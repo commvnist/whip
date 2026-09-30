@@ -12,13 +12,21 @@ die() {
 [[ -v ANDROID_SERIAL ]] || die 'set ANDROID_SERIAL to one explicit primary emulator serial'
 readonly primary_serial="$ANDROID_SERIAL"
 readonly secondary_serial="${WHIP_ANDROID_SECONDARY_SERIAL:-}"
+readonly tertiary_serial="${WHIP_ANDROID_TERTIARY_SERIAL:-}"
 
 serials=("$primary_serial")
 if [[ -n "$secondary_serial" ]]; then
     serials+=("$secondary_serial")
 fi
-[[ "${#serials[@]}" -le 2 ]] || die 'Whip supports at most two explicit Android emulators'
-[[ "${serials[0]}" != "${serials[1]:-}" ]] || die 'primary and secondary emulator serials must be different'
+if [[ -n "$tertiary_serial" ]]; then
+    [[ -n "$secondary_serial" ]] || die 'a tertiary emulator requires an explicit secondary emulator'
+    serials+=("$tertiary_serial")
+fi
+declare -A selected_serials=()
+for serial in "${serials[@]}"; do
+    [[ -z "${selected_serials[$serial]+x}" ]] || die 'selected emulator serials must be different'
+    selected_serials["$serial"]=1
+done
 
 reference_identity=''
 for serial in "${serials[@]}"; do
@@ -34,7 +42,7 @@ for serial in "${serials[@]}"; do
     if [[ -z "$reference_identity" ]]; then
         reference_identity="$identity"
     elif [[ "$identity" != "$reference_identity" ]]; then
-        die 'primary and secondary emulators must use the same API, system-image fingerprint, and ABI'
+        die 'selected emulators must use the same API, system-image fingerprint, and ABI'
     fi
 done
 

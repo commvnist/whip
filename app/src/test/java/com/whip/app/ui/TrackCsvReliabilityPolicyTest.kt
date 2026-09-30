@@ -149,7 +149,9 @@ class TrackCsvReliabilityPolicyTest {
             runBlocking { buildTrackCsv(exportProjection(), maxBytes = 32) }
         }.message.orEmpty()
 
-        assertTrue(message, message.contains("larger than 25 MB"))
+        assertTrue(message, message.contains("25 MB"))
+        assertTrue(message, message.contains("data is unchanged"))
+        assertTrue(message, message.contains("portable backup"))
     }
 
     @Test

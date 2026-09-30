@@ -32,6 +32,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsSelected
@@ -67,6 +68,7 @@ import com.whip.app.domain.UnitDefinition
 import com.whip.app.domain.UnitDimension
 import com.whip.app.core.PersistenceRequestState
 import com.whip.app.core.WhipResult
+import kotlinx.coroutines.flow.MutableStateFlow
 import com.whip.app.domain.ScheduleKind
 import com.whip.app.domain.ScheduledTask
 import com.whip.app.domain.WhipTask
@@ -79,7 +81,6 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale
-import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -610,6 +611,7 @@ class InteractionControlUiTest {
     fun emojiPickerSearchesCommonChoicesAndPersistsReusableCustomEmoji() {
         var icon by mutableStateOf("✅")
         var saved by mutableStateOf(emptyList<CustomIdentityEmoji>())
+        val saveState = MutableStateFlow<PersistenceRequestState<SettingsMutationReceipt>>(PersistenceRequestState.Idle)
         compose.setContent {
             WhipTheme(dynamicColor = false) {
                 WhipEmojiPicker(
@@ -617,7 +619,15 @@ class InteractionControlUiTest {
                     defaultEmoji = "✅",
                     onValueChange = { icon = it },
                     customEmojis = saved,
-                    onSaveEmoji = { choice -> saved = (saved.filterNot { it.emoji == choice.emoji } + choice) },
+                    onSaveEmoji = IdentityEmojiSaveActions(
+                        saveState,
+                        save = { requestId, choice ->
+                            saved = saved.filterNot { it.emoji == choice.emoji } + choice
+                            saveState.value = PersistenceRequestState.Finished(requestId, WhipResult.Success(SettingsMutationReceipt()))
+                            true
+                        },
+                        consume = { saveState.value = PersistenceRequestState.Idle },
+                    ),
                     onRemoveSavedEmoji = { emoji -> saved = saved.filterNot { it.emoji == emoji } },
                 )
             }
@@ -655,6 +665,94 @@ class InteractionControlUiTest {
     }
 
     @Test
+    fun emojiSaveFailureRetainsDraftAndUseOnceDoesNotClaimLibraryPersistence() {
+        var icon by mutableStateOf("✅")
+        val saveState = MutableStateFlow<PersistenceRequestState<SettingsMutationReceipt>>(PersistenceRequestState.Idle)
+        var requestId = ""
+        var submissions = 0
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                WhipEmojiPicker(
+                    value = icon,
+                    defaultEmoji = "✅",
+                    onValueChange = { icon = it },
+                    onSaveEmoji = IdentityEmojiSaveActions(
+                        saveState,
+                        save = { id, _ ->
+                            submissions++
+                            requestId = id
+                            saveState.value = PersistenceRequestState.Running(id)
+                            true
+                        },
+                        consume = { saveState.value = PersistenceRequestState.Idle },
+                    ),
+                )
+            }
+        }
+        compose.onNodeWithTag("emoji-picker-trigger").performClick()
+        compose.onNodeWithTag("emoji-picker-custom-option").performClick()
+        compose.onNodeWithTag("emoji-picker-custom-input").performTextReplacement("🦊")
+        compose.onNodeWithTag("emoji-picker-custom-name").performTextReplacement("Retained Name")
+        compose.onNodeWithTag("emoji-picker-custom-apply").performClick()
+        compose.onNodeWithTag("persistence-saving-overlay").assertIsDisplayed()
+        compose.onNodeWithTag("emoji-picker-custom-apply").assertIsNotEnabled()
+        compose.onNodeWithTag("emoji-picker-custom-use-once").assertIsNotEnabled()
+        assertEquals("✅", icon)
+        assertEquals(1, submissions)
+        saveState.value = PersistenceRequestState.Finished(requestId, WhipResult.Failure("Injected library save failure"))
+        compose.waitUntil(10_000) { saveState.value == PersistenceRequestState.Idle }
+        compose.onNodeWithTag("emoji-picker-custom-input").assertTextContains("🦊")
+        compose.onNodeWithTag("emoji-picker-custom-name").assertTextContains("Retained Name")
+        compose.onNodeWithTag("emoji-picker-dialog").assertIsDisplayed()
+        assertEquals("✅", icon)
+        compose.onNodeWithTag("emoji-picker-custom-use-once").performClick()
+        compose.waitUntil(10_000) { icon == "🦊" }
+        compose.onNodeWithTag("emoji-picker-dialog").assertDoesNotExist()
+        assertEquals(1, submissions)
+    }
+
+    @Test
+    fun emojiSaveReconnectsAfterRecreationAndAppliesOnlyItsConfirmedReceipt() {
+        var icon by mutableStateOf("✅")
+        val saveState = MutableStateFlow<PersistenceRequestState<SettingsMutationReceipt>>(PersistenceRequestState.Idle)
+        var submittedId = ""
+        var submittedChoice: CustomIdentityEmoji? = null
+        val restoration = StateRestorationTester(compose)
+        restoration.setContent {
+            WhipTheme(dynamicColor = false) {
+                WhipEmojiPicker(
+                    value = icon,
+                    defaultEmoji = "✅",
+                    onValueChange = { icon = it },
+                    onSaveEmoji = IdentityEmojiSaveActions(
+                        saveState,
+                        save = { id, choice ->
+                            submittedId = id
+                            submittedChoice = choice
+                            saveState.value = PersistenceRequestState.Running(id)
+                            true
+                        },
+                        consume = { saveState.value = PersistenceRequestState.Idle },
+                    ),
+                )
+            }
+        }
+        compose.onNodeWithTag("emoji-picker-trigger").performClick()
+        compose.onNodeWithTag("emoji-picker-custom-option").performClick()
+        compose.onNodeWithTag("emoji-picker-custom-input").performTextReplacement("🦊")
+        compose.onNodeWithTag("emoji-picker-custom-name").performTextReplacement("Durable Choice")
+        compose.onNodeWithTag("emoji-picker-custom-apply").performClick()
+        restoration.emulateSavedInstanceStateRestore()
+        compose.onNodeWithTag("persistence-saving-overlay").assertIsDisplayed()
+        assertEquals("✅", icon)
+        assertEquals(CustomIdentityEmoji("🦊", "Durable Choice"), submittedChoice)
+        saveState.value = PersistenceRequestState.Finished(submittedId, WhipResult.Success(SettingsMutationReceipt()))
+        compose.waitUntil(10_000) { icon == "🦊" }
+        compose.onNodeWithTag("emoji-picker-dialog").assertDoesNotExist()
+        assertEquals(PersistenceRequestState.Idle, saveState.value)
+    }
+
+    @Test
     fun emojiPickerSearchManagementRemovesSavedCustomEmoji() {
         var icon by mutableStateOf("✅")
         var saved by mutableStateOf(listOf(CustomIdentityEmoji("🦊", "Forest Work")))
@@ -665,7 +763,6 @@ class InteractionControlUiTest {
                     defaultEmoji = "✅",
                     onValueChange = { icon = it },
                     customEmojis = saved,
-                    onSaveEmoji = { choice -> saved = (saved.filterNot { it.emoji == choice.emoji } + choice) },
                     onRemoveSavedEmoji = { emoji -> saved = saved.filterNot { it.emoji == emoji } },
                 )
             }

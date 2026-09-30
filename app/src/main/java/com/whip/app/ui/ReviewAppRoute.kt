@@ -21,6 +21,7 @@ internal class ReviewNavigationState(
     val goal: MutableState<Long?>,
     val gymDomain: MutableState<SearchDomain?>,
     val gymId: MutableState<Long?>,
+    val habitEpochDay: MutableState<Long?>,
 ) {
     fun open(outcome: ReviewOutcome, tasks: TaskUiState) {
         when (outcome.section) {
@@ -34,7 +35,11 @@ internal class ReviewNavigationState(
                 }
                 destination.value = AppDestination.Tasks
             }
-            ReviewSection.Habits -> { habit.value = outcome.sourceId; destination.value = AppDestination.Habits }
+            ReviewSection.Habits -> {
+                habit.value = outcome.sourceId
+                habitEpochDay.value = outcome.date.toEpochDay()
+                destination.value = AppDestination.Habits
+            }
             ReviewSection.Goals -> { goal.value = outcome.sourceId; destination.value = AppDestination.Goals }
             ReviewSection.Gym -> {
                 gymDomain.value = SearchDomain.Workout
@@ -46,7 +51,7 @@ internal class ReviewNavigationState(
 
     fun openSection(section: ReviewSection) {
         destination.value = when (section) {
-            ReviewSection.Tasks -> { taskDestination.value = TaskDestination.Completed; AppDestination.Tasks }
+            ReviewSection.Tasks -> { taskDestination.value = TaskDestination.All; AppDestination.Tasks }
             ReviewSection.Habits -> AppDestination.Habits
             ReviewSection.Goals -> AppDestination.Goals
             ReviewSection.Gym -> AppDestination.Gym

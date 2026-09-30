@@ -47,6 +47,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -59,6 +60,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.selected
@@ -71,6 +73,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.whip.app.WhipApplication
+import com.whip.app.core.PersistenceRequestState
 import com.whip.app.domain.EstimatedOneRepMaxFormula
 import com.whip.app.domain.Exercise
 import com.whip.app.domain.ExerciseDraft
@@ -159,9 +162,11 @@ internal fun RoutineBuilderScreen(
     onSave: (RoutineDraft, (Boolean) -> Unit) -> Unit,
     onCreateExercise: (ExerciseDraft, (Long?) -> Unit) -> Unit,
     onCreateMachine: (GymMachineDraft, (Long?) -> Unit) -> Unit,
-    onSavePrescriptionScheme: (RepPrescriptionScheme) -> Unit = {},
-    onReorderPrescriptionSchemes: (List<RepPrescriptionScheme>) -> Unit = {},
-    onDeletePrescriptionScheme: (String) -> Unit = {},
+    prescriptionMutationState: PersistenceRequestState<SettingsMutationReceipt> = PersistenceRequestState.Idle,
+    consumePrescriptionMutation: (String) -> Unit = {},
+    onSavePrescriptionScheme: (RepPrescriptionScheme, String) -> Boolean = { _, _ -> false },
+    onReorderPrescriptionSchemes: (List<RepPrescriptionScheme>, String) -> Boolean = { _, _ -> false },
+    onDeletePrescriptionScheme: (String, String) -> Boolean = { _, _ -> false },
 ) {
     val app = LocalContext.current.applicationContext as WhipApplication
     val dataGeneration by app.userDataGeneration.collectAsStateWithLifecycle()
@@ -194,7 +199,6 @@ internal fun RoutineBuilderScreen(
     var createExerciseForMachineProfile by rememberSaveable(token) { mutableStateOf(false) }
     var createdExerciseForMachineId by rememberSaveable(token) { mutableStateOf<Long?>(null) }
     var exerciseNameSeed by rememberSaveable(token) { mutableStateOf("") }
-    var routineSaveInFlight by rememberSaveable(token) { mutableStateOf(false) }
     var machineEditorPlacementKey by rememberSaveable(token) { mutableStateOf<Long?>(null) }
     var quickMachinePlacementKey by rememberSaveable(token) { mutableStateOf<Long?>(null) }
     var equipmentPickerPlacementKey by rememberSaveable(token) { mutableStateOf<Long?>(null) }
@@ -221,8 +225,29 @@ internal fun RoutineBuilderScreen(
     LaunchedEffect(isDirty) {
         if (isDirty) savedInPlaceMessage = null
     }
+    val routineSaveState by stateHolder.routineSave.collectAsStateWithLifecycle()
+    val routineSaveCoordinator = rememberPersistenceRequestCoordinator(
+        state = routineSaveState,
+        consume = stateHolder::consumeRoutineSave,
+        key = token,
+        requestNamespace = "$token-routine",
+        orphanedMessage = "The previous Routine save was interrupted. Your draft is still here; check the Routine Library before retrying.",
+        onPersisted = { saved ->
+            if (routineId == null) {
+                stateHolder.clear()
+                onDismiss()
+            } else {
+                savedBaseline = saved
+                savedInPlaceMessage = "Routine saved. Continue editing ${selectedDay?.name ?: "this routine"}."
+            }
+        },
+    )
+    var prescriptionSaveInFlight by rememberSaveable(token) { mutableStateOf(false) }
+    var prescriptionDialogOpen by rememberSaveable(token) { mutableStateOf(false) }
+    val routineSaveInFlight = routineSaveCoordinator.saving || prescriptionSaveInFlight
     val requestDismiss = {
-        if (isDirty) showDiscardConfirmation = true
+        if (routineSaveInFlight) Unit
+        else if (isDirty) showDiscardConfirmation = true
         else {
             stateHolder.clear()
             onDismiss()
@@ -230,6 +255,7 @@ internal fun RoutineBuilderScreen(
     }
     BackHandler(enabled = !showDiscardConfirmation && !showCreateExercise && machineEditorPlacementKey == null && quickMachinePlacementKey == null) {
         when {
+            routineSaveInFlight -> Unit
             equipmentPickerPlacementKey != null -> equipmentPickerPlacementKey = null
             page != RoutineBuilderPage.Outline -> page = RoutineBuilderPage.Outline
             selectedPlacement != null -> stateHolder.update { it.copy(selectedPlacementKey = null) }
@@ -381,7 +407,8 @@ internal fun RoutineBuilderScreen(
         builder.days.isNotEmpty() && builder.days.all { it.name.isNotBlank() } && validationErrors.isEmpty()
 
     Surface(modifier.fillMaxSize().testTag("routine-builder"), color = MaterialTheme.colorScheme.background) {
-        Column(Modifier.fillMaxSize()) {
+        Box(Modifier.fillMaxSize()) {
+        Column(Modifier.fillMaxSize().then(if (routineSaveInFlight) Modifier.clearAndSetSemantics {} else Modifier)) {
             RoutineBuilderHeader(
                 editing = routineId != null,
                 page = page,
@@ -389,6 +416,7 @@ internal fun RoutineBuilderScreen(
                 canSave = canSave && (routineId == null || isDirty),
                 onBack = {
                     when {
+                        routineSaveInFlight -> Unit
                         equipmentPickerPlacementKey != null -> equipmentPickerPlacementKey = null
                         page != RoutineBuilderPage.Outline -> page = RoutineBuilderPage.Outline
                         selectedPlacement != null -> stateHolder.update { it.copy(selectedPlacementKey = null) }
@@ -397,21 +425,16 @@ internal fun RoutineBuilderScreen(
                 },
                 onCancel = requestDismiss,
                 onSave = {
-                    routineSaveInFlight = true
-                    onSave(builder.toRoutineDraft(gymState)) { saved ->
-                        routineSaveInFlight = false
-                        if (saved) {
-                            if (routineId == null) {
-                                stateHolder.clear()
-                                onDismiss()
-                            } else {
-                                savedBaseline = builder
-                                savedInPlaceMessage = "Routine saved. Continue editing ${selectedDay?.name ?: "this routine"}."
-                            }
-                        }
+                    val requestId = routineSaveCoordinator.begin()
+                    if (requestId != null && !stateHolder.saveRoutine(requestId, builder) { complete ->
+                        onSave(builder.toRoutineDraft(gymState), complete)
+                    }) {
+                        routineSaveCoordinator.finishFailure("Another Routine save is still finishing. Try again.")
                     }
                 },
             )
+
+            routineSaveCoordinator.errorMessage?.let { PersistenceFailureNotice(it) }
 
             savedInPlaceMessage?.let { message ->
                 Surface(
@@ -578,6 +601,10 @@ internal fun RoutineBuilderScreen(
                                         onChooseEquipment = { equipmentPickerPlacementKey = selectedPlacement.key },
                                         onMoveToDay = { target, copy -> moveOrCopyPlacement(stateHolder, selectedDay.key, target, selectedPlacement, copy) },
                                         dialogModifier = dialogModifier,
+                                        prescriptionOwnerKey = "$token-prescription-${selectedPlacement.key}",
+                                        prescriptionMutationState = prescriptionMutationState,
+                                        consumePrescriptionMutation = consumePrescriptionMutation,
+                                        onPrescriptionBusyChange = { saving, dialogOpen -> prescriptionSaveInFlight = saving; prescriptionDialogOpen = dialogOpen },
                                         onSavePrescriptionScheme = onSavePrescriptionScheme,
                                         onReorderPrescriptionSchemes = onReorderPrescriptionSchemes,
                                         onDeletePrescriptionScheme = onDeletePrescriptionScheme,
@@ -616,6 +643,10 @@ internal fun RoutineBuilderScreen(
                                     onChooseEquipment = { equipmentPickerPlacementKey = selectedPlacement.key },
                                     onMoveToDay = { target, copy -> moveOrCopyPlacement(stateHolder, selectedDay.key, target, selectedPlacement, copy) },
                                     dialogModifier = dialogModifier,
+                                    prescriptionOwnerKey = "$token-prescription-${selectedPlacement.key}",
+                                    prescriptionMutationState = prescriptionMutationState,
+                                    consumePrescriptionMutation = consumePrescriptionMutation,
+                                    onPrescriptionBusyChange = { saving, dialogOpen -> prescriptionSaveInFlight = saving; prescriptionDialogOpen = dialogOpen },
                                     onSavePrescriptionScheme = onSavePrescriptionScheme,
                                     onReorderPrescriptionSchemes = onReorderPrescriptionSchemes,
                                     onDeletePrescriptionScheme = onDeletePrescriptionScheme,
@@ -668,6 +699,11 @@ internal fun RoutineBuilderScreen(
                     }
                 }
             }
+        }
+        PersistenceSavingOverlay(
+            active = routineSaveCoordinator.saving || (prescriptionSaveInFlight && !prescriptionDialogOpen),
+            label = if (prescriptionSaveInFlight) "Saving rep prescriptions" else "Saving Routine",
+        )
         }
     }
 
@@ -2227,9 +2263,13 @@ private fun RoutinePlacementEditor(
     onChooseEquipment: () -> Unit,
     onMoveToDay: (Long, Boolean) -> Unit,
     dialogModifier: Modifier,
-    onSavePrescriptionScheme: (RepPrescriptionScheme) -> Unit,
-    onReorderPrescriptionSchemes: (List<RepPrescriptionScheme>) -> Unit,
-    onDeletePrescriptionScheme: (String) -> Unit,
+    prescriptionOwnerKey: String,
+    prescriptionMutationState: PersistenceRequestState<SettingsMutationReceipt>,
+    consumePrescriptionMutation: (String) -> Unit,
+    onPrescriptionBusyChange: (Boolean, Boolean) -> Unit,
+    onSavePrescriptionScheme: (RepPrescriptionScheme, String) -> Boolean,
+    onReorderPrescriptionSchemes: (List<RepPrescriptionScheme>, String) -> Boolean,
+    onDeletePrescriptionScheme: (String, String) -> Boolean,
 ) {
     val exercise = (gymState.exercises + gymState.archivedExercises).firstOrNull { it.id == placement.exerciseId }
     val machine = (gymState.machines + gymState.archivedMachines).firstOrNull { it.id == placement.machineId }
@@ -2238,6 +2278,24 @@ private fun RoutinePlacementEditor(
     var showSchemeEditor by rememberSaveable(placement.key) { mutableStateOf(false) }
     var editingSchemeId by rememberSaveable(placement.key) { mutableStateOf<String?>(null) }
     var pendingDeleteSchemeId by rememberSaveable(placement.key) { mutableStateOf<String?>(null) }
+    val prescriptionCoordinator = rememberPersistenceRequestCoordinator(
+        state = prescriptionMutationState, consume = consumePrescriptionMutation,
+        key = prescriptionOwnerKey, requestNamespace = prescriptionOwnerKey,
+        onPersisted = {
+            showSchemeEditor = false
+            editingSchemeId = null
+            pendingDeleteSchemeId = null
+        },
+    )
+    val prescriptionSaving = prescriptionCoordinator.saving
+    DisposableEffect(prescriptionSaving, showSchemeEditor, pendingDeleteSchemeId) {
+        onPrescriptionBusyChange(prescriptionSaving, showSchemeEditor || pendingDeleteSchemeId != null)
+        onDispose { onPrescriptionBusyChange(false, false) }
+    }
+    fun submitPrescriptionMutation(save: (String) -> Boolean) {
+        val requestId = prescriptionCoordinator.begin() ?: return
+        if (!save(requestId)) prescriptionCoordinator.finishFailure("Another settings change is still finishing. Your prescription draft is still here.")
+    }
     var alternativeQuery by rememberSaveable(placement.key) { mutableStateOf("") }
     var visibleProgramPhase by rememberSaveable(placement.key) { mutableStateOf(0) }
     var expandedSetKey by rememberSaveable(placement.key) {
@@ -2302,8 +2360,10 @@ private fun RoutinePlacementEditor(
     LaunchedEffect(hasTrainingMaxPrescription) {
         if (hasTrainingMaxPrescription) trainingMaxExpanded = true
     }
+    Box(modifier) {
     WhipReorderLazyColumn(
-        modifier = modifier.testTag("routine-placement-editor"),
+        modifier = Modifier.fillMaxSize().testTag("routine-placement-editor")
+            .then(if (prescriptionSaving) Modifier.clearAndSetSemantics {} else Modifier),
         contentPadding = PaddingValues(16.dp, 12.dp, 16.dp, 100.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
@@ -2606,6 +2666,7 @@ private fun RoutinePlacementEditor(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            Text("Saved prescriptions and generated warm-ups change only this phase. Common sets remain unchanged.", style = MaterialTheme.typography.bodySmall)
         }
         val visibleSets = placement.sets.filter { set ->
             !hasProgramPhases || set.routinePhaseIndex == null || set.routinePhaseIndex == visibleProgramPhase
@@ -2717,15 +2778,17 @@ private fun RoutinePlacementEditor(
                                 moveWholeItem = true,
                                 layoutScope = "routine-prescription-schemes",
                                 onMove = { delta ->
-                                    onReorderPrescriptionSchemes(
-                                        moveListItem(gymState.appSettings.repPrescriptionSchemes, index, delta),
-                                    )
+                                    submitPrescriptionMutation { requestId ->
+                                        onReorderPrescriptionSchemes(
+                                            moveListItem(gymState.appSettings.repPrescriptionSchemes, index, delta), requestId,
+                                        )
+                                    }
                                 },
                             )
                             Box(Modifier.weight(1f)) {
                                 RepPrescriptionSchemeRow(
                                     scheme = scheme,
-                                    onApply = { onUpdate { current -> current.copy(sets = applyRepPrescriptionScheme(current.sets, scheme)) } },
+                                    onApply = { onUpdate { current -> current.copy(sets = applyRepPrescriptionScheme(current.sets, scheme, visibleProgramPhase.takeIf { hasProgramPhases })) } },
                                     onEdit = { editingSchemeId = scheme.id; showSchemeEditor = true },
                                     onDelete = { pendingDeleteSchemeId = scheme.id },
                                 )
@@ -2742,13 +2805,13 @@ private fun RoutinePlacementEditor(
         }
         if (!isProgramControlledPlacement && exercise?.trackingType in setOf(ExerciseTrackingType.WeightReps, ExerciseTrackingType.WeightOnly, ExerciseTrackingType.WeightDuration)) {
             item {
-                val workingLoad = placement.sets.firstOrNull { it.classification != WorkoutSetClassification.WarmUp.name }
+                val workingLoad = placement.sets.firstOrNull { (!hasProgramPhases || it.routinePhaseIndex == visibleProgramPhase) && it.classification != WorkoutSetClassification.WarmUp.name }
                     ?.load?.toWhipDoubleOrNull()
                 WhipOutlinedButton(
                     enabled = workingLoad != null && workingLoad > 0.0,
                     onClick = {
                         onUpdate { current ->
-                            current.copy(sets = generateWarmupSets(current, requireNotNull(exercise), machine))
+                            current.copy(sets = generateWarmupSets(current, requireNotNull(exercise), machine, visibleProgramPhase.takeIf { hasProgramPhases }))
                         }
                     },
                     modifier = Modifier.fillMaxWidth().testTag("routine-generate-warmups"),
@@ -2885,16 +2948,18 @@ private fun RoutinePlacementEditor(
         }
     }
 
+    if (!showSchemeEditor && pendingDeleteSchemeId == null) {
+        prescriptionCoordinator.errorMessage?.let { PersistenceFailureNotice(it, testTag = "rep-scheme-save-error") }
+    }
+    }
     if (showSchemeEditor) {
         RepPrescriptionSchemeDialog(
             modifier = dialogModifier,
             scheme = gymState.appSettings.repPrescriptionSchemes.firstOrNull { it.id == editingSchemeId },
-            onDismiss = { showSchemeEditor = false; editingSchemeId = null },
-            onSave = { scheme ->
-                onSavePrescriptionScheme(scheme)
-                showSchemeEditor = false
-                editingSchemeId = null
-            },
+            onDismiss = { if (!prescriptionSaving) { prescriptionCoordinator.clear(); showSchemeEditor = false; editingSchemeId = null } },
+            saving = prescriptionSaving,
+            error = prescriptionCoordinator.errorMessage,
+            onSave = { scheme -> submitPrescriptionMutation { requestId -> onSavePrescriptionScheme(scheme, requestId) } },
         )
     }
     pendingDeleteSchemeId?.let { schemeId ->
@@ -2902,15 +2967,22 @@ private fun RoutinePlacementEditor(
         if (scheme != null) {
             PaneAwareAlertDialog(
                 modifier = dialogModifier,
-                onDismissRequest = { pendingDeleteSchemeId = null },
+                onDismissRequest = { if (!prescriptionSaving) { prescriptionCoordinator.clear(); pendingDeleteSchemeId = null } },
+                inputBlocked = prescriptionSaving,
+                inputBlockedLabel = "Deleting rep prescription",
                 title = { Text("Delete ${scheme.displayLabel}?") },
-                text = { Text("This removes the saved shortcut. Existing routine prescriptions stay unchanged.") },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        prescriptionCoordinator.errorMessage?.let { PersistenceFailureNotice(it, testTag = "rep-scheme-save-error") }
+                        Text("This removes the saved shortcut. Existing routine prescriptions stay unchanged.")
+                    }
+                },
                 confirmButton = {
-                    WhipDestructiveTextButton(onClick = { onDeletePrescriptionScheme(scheme.id); pendingDeleteSchemeId = null }) {
+                    WhipDestructiveTextButton(onClick = { submitPrescriptionMutation { requestId -> onDeletePrescriptionScheme(scheme.id, requestId) } }) {
                         Text("Delete Scheme")
                     }
                 },
-                dismissButton = { WhipTextButton(onClick = { pendingDeleteSchemeId = null }) { Text("Cancel") } },
+                dismissButton = { WhipTextButton(onClick = { if (!prescriptionSaving) { prescriptionCoordinator.clear(); pendingDeleteSchemeId = null } }) { Text("Cancel") } },
             )
         }
     }
@@ -2957,11 +3029,13 @@ private fun RepPrescriptionSchemeRow(
 }
 
 @Composable
-private fun RepPrescriptionSchemeDialog(
+internal fun RepPrescriptionSchemeDialog(
     modifier: Modifier,
     scheme: RepPrescriptionScheme?,
     onDismiss: () -> Unit,
     onSave: (RepPrescriptionScheme) -> Unit,
+    saving: Boolean = false,
+    error: String? = null,
 ) {
     val editorKey = scheme?.id ?: "new-rep-scheme"
     val schemeId = rememberSaveable(editorKey) { scheme?.id ?: UUID.randomUUID().toString() }
@@ -2986,16 +3060,23 @@ private fun RepPrescriptionSchemeDialog(
         restSeconds = restSeconds.takeIf(String::isNotBlank)?.toIntOrNull(),
     )
     val canSave = candidate.isValid() && (restSeconds.isBlank() || restSeconds.toIntOrNull() != null)
+    var showDiscardConfirmation by rememberSaveable(editorKey) { mutableStateOf(false) }
+    val fingerprint = listOf(name, setCount, repetitionsMin, repetitionsMax, classificationName, restSeconds)
+    val initialFingerprint by rememberSaveable(editorKey) { mutableStateOf(fingerprint) }
+    val requestDismiss = { if (!saving) { if (fingerprint != initialFingerprint) showDiscardConfirmation = true else onDismiss() } }
 
     PaneAwareAlertDialog(
         modifier = modifier.testTag("rep-scheme-editor"),
-        onDismissRequest = onDismiss,
+        onDismissRequest = requestDismiss,
+        inputBlocked = saving,
+        inputBlockedLabel = "Saving rep prescription",
         title = { Text(if (scheme == null) "Add Rep Prescription Scheme" else "Edit Rep Prescription Scheme") },
         text = {
             Column(
                 Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
+                error?.let { PersistenceFailureNotice(it, testTag = "rep-scheme-save-error") }
                 Text(
                     "Save a reusable set-and-rep shortcut. The name is optional.",
                     style = MaterialTheme.typography.bodySmall,
@@ -3064,11 +3145,15 @@ private fun RepPrescriptionSchemeDialog(
         confirmButton = {
             WhipButton(
                 onClick = { onSave(candidate) },
-                enabled = canSave,
+                enabled = canSave && !saving,
                 modifier = Modifier.testTag("rep-scheme-save"),
             ) { Text(if (scheme == null) "Add Scheme" else "Save Changes") }
         },
-        dismissButton = { WhipTextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { WhipTextButton(onClick = requestDismiss) { Text("Cancel") } },
+    )
+    if (showDiscardConfirmation) UnsavedChangesDialog(
+        subject = "rep prescription", onKeepEditing = { showDiscardConfirmation = false },
+        onDiscard = { showDiscardConfirmation = false; onDismiss() }, modifier = modifier,
     )
 }
 
@@ -3408,6 +3493,7 @@ private fun ExercisePickerPage(
 
 @Composable
 private fun WorkoutPickerPage(modifier: Modifier, gymState: GymUiState, onChoose: (WorkoutSession) -> Unit) {
+    var visibleCount by rememberSaveable { mutableStateOf(50) }
     LazyColumn(modifier, contentPadding = PaddingValues(16.dp, 8.dp, 16.dp, 96.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         item {
             Text("Reuse a Performed Workout", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
@@ -3419,7 +3505,7 @@ private fun WorkoutPickerPage(modifier: Modifier, gymState: GymUiState, onChoose
                 supportingText = "Complete a workout first, or go back and add exercises from your library.",
             )
         }
-        items(gymState.history.take(50), key = WorkoutSession::id) { session ->
+        items(gymState.history.take(visibleCount), key = WorkoutSession::id) { session ->
             val placements = gymState.allWorkoutExercises.count { it.sessionId == session.id }
             WhipCollectionCard(
                 onClick = { onChoose(session) },
@@ -3429,6 +3515,11 @@ private fun WorkoutPickerPage(modifier: Modifier, gymState: GymUiState, onChoose
                     Text(session.name.ifBlank { "Workout" }, fontWeight = FontWeight.Bold)
                     Text("${session.localDate} · $placements exercise${if (placements == 1) "" else "s"}")
                 }
+            }
+        }
+        if (visibleCount < gymState.history.size) item {
+            WhipOutlinedButton(onClick = { visibleCount += 50 }, modifier = Modifier.fillMaxWidth().testTag("routine-workout-picker-more")) {
+                Text("Show older workouts (${gymState.history.size - visibleCount} remaining)")
             }
         }
     }
@@ -3495,9 +3586,13 @@ private fun QuickMachineDialog(modifier: Modifier = Modifier, exercise: Exercise
     val max = maximum.toWhipDoubleOrNull()
     val step = increment.toWhipDoubleOrNull()
     val validRange = min != null && max != null && step != null && min >= 0.0 && max >= min && step > 0.0 && ((max - min) / step) <= 500
+    var showDiscardConfirmation by rememberSaveable(exercise.id) { mutableStateOf(false) }
+    val fingerprint = listOf(name, location, loadType.name, unitId, minimum, maximum, increment, levelLabel, levelDirection.name)
+    val initialFingerprint by rememberSaveable(exercise.id) { mutableStateOf(fingerprint) }
+    val requestDismiss = { if (!saving) { if (fingerprint != initialFingerprint) showDiscardConfirmation = true else onDismiss() } }
     PaneAwareAlertDialog(
         modifier = modifier,
-        onDismissRequest = { if (!saving) onDismiss() },
+        onDismissRequest = requestDismiss,
         inputBlocked = saving,
         inputBlockedLabel = "Saving Machine",
         title = { Text("Quick-Create Machine") },
@@ -3546,7 +3641,11 @@ private fun QuickMachineDialog(modifier: Modifier = Modifier, exercise: Exercise
                 )
             }, modifier = Modifier.testTag("routine-quick-machine-create")) { Text("Create and Select") }
         },
-        dismissButton = { WhipTextButton(enabled = !saving, onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { WhipTextButton(enabled = !saving, onClick = requestDismiss) { Text("Cancel") } },
+    )
+    if (showDiscardConfirmation) UnsavedChangesDialog(
+        subject = "Machine", onKeepEditing = { showDiscardConfirmation = false },
+        onDiscard = { showDiscardConfirmation = false; onDismiss() }, modifier = modifier,
     )
 }
 
@@ -4141,11 +4240,13 @@ private fun RoutineBuilderDayState.movePlacementWithinGroup(key: Long, delta: In
 internal fun applyRepPrescriptionScheme(
     existing: List<RoutineBuilderSetState>,
     scheme: RepPrescriptionScheme,
+    phaseIndex: Int? = null,
 ): List<RoutineBuilderSetState> {
     require(scheme.isValid())
+    val scoped = if (phaseIndex == null) existing else existing.filter { it.routinePhaseIndex == phaseIndex }
     var key = nextLocalSetKey(existing)
-    return List(scheme.setCount) { index ->
-        val current = existing.getOrNull(index) ?: RoutineBuilderSetState(key++)
+    val prescribed = List(scheme.setCount) { index ->
+        val current = scoped.getOrNull(index) ?: RoutineBuilderSetState(key++, routinePhaseIndex = phaseIndex)
         current.copy(
             repetitionsMin = scheme.repetitionsMin.toString(),
             repetitionsMax = scheme.repetitionsMax.takeIf { it != scheme.repetitionsMin }?.toString().orEmpty(),
@@ -4153,6 +4254,17 @@ internal fun applyRepPrescriptionScheme(
             restSeconds = scheme.restSeconds?.toString() ?: current.restSeconds,
         )
     }
+    return if (phaseIndex == null) prescribed else replaceRoutinePhaseSets(existing, phaseIndex, prescribed)
+}
+
+/** Keep every other phase and common prescription, including its order and identity. */
+private fun replaceRoutinePhaseSets(
+    existing: List<RoutineBuilderSetState>,
+    phaseIndex: Int,
+    replacement: List<RoutineBuilderSetState>,
+): List<RoutineBuilderSetState> {
+    val insertionIndex = existing.indexOfFirst { it.routinePhaseIndex == phaseIndex }.takeIf { it >= 0 } ?: existing.size
+    return existing.take(insertionIndex) + replacement + existing.drop(insertionIndex).filterNot { it.routinePhaseIndex == phaseIndex }
 }
 
 private fun Exercise.supportsRepPrescription(): Boolean = trackingType !in setOf(
@@ -5190,8 +5302,10 @@ internal fun generateWarmupSets(
     placement: RoutineBuilderPlacementState,
     exercise: Exercise,
     machine: GymMachine?,
+    phaseIndex: Int? = null,
 ): List<RoutineBuilderSetState> {
-    val working = placement.sets.firstOrNull { it.classification != WorkoutSetClassification.WarmUp.name }
+    val scoped = if (phaseIndex == null) placement.sets else placement.sets.filter { it.routinePhaseIndex == phaseIndex }
+    val working = scoped.firstOrNull { it.classification != WorkoutSetClassification.WarmUp.name }
         ?: return placement.sets
     val workingLoad = working.load.toWhipDoubleOrNull()?.takeIf { it > 0.0 } ?: return placement.sets
     val usedKeys = placement.sets.mapTo(mutableSetOf(), RoutineBuilderSetState::key)
@@ -5232,9 +5346,11 @@ internal fun generateWarmupSets(
             classification = WorkoutSetClassification.WarmUp.name,
             restSeconds = "60",
             note = "Generated ${(fraction * 100).toInt()}% ramp set",
+            routinePhaseIndex = phaseIndex,
         )
     }.distinctBy { it.load }
-    return generated + placement.sets.filterNot { it.classification == WorkoutSetClassification.WarmUp.name }
+    val replacement = generated + scoped.filterNot { it.classification == WorkoutSetClassification.WarmUp.name }
+    return if (phaseIndex == null) replacement else replaceRoutinePhaseSets(placement.sets, phaseIndex, replacement)
 }
 
 internal fun RoutineBuilderDayState.groupPlacements(firstKey: Long, secondKey: Long): RoutineBuilderDayState {

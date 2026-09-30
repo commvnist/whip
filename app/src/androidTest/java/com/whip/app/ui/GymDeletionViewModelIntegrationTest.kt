@@ -100,6 +100,32 @@ class GymDeletionViewModelIntegrationTest {
     }
 
     @Test
+    fun workoutDetailsUseOwnedReceiptsForAtomicStartAndDurableUpdate() = runBlocking {
+        val date = java.time.LocalDate.of(2026, 9, 30)
+        assertTrue(viewModel.startWorkoutConfirmed("Owned workout", "Draft notes", date, true, "workout-new:1"))
+        assertFalse(viewModel.startWorkoutConfirmed("Duplicate", "", date, false, "workout-new:2"))
+        val started = withTimeout(5_000) {
+            viewModel.sessionMutationState.first { it is PersistenceRequestState.Finished }
+        } as PersistenceRequestState.Finished
+        val receipt = (started.result as WhipResult.Success).value
+        assertEquals(GymSessionMutationKind.WorkoutStarted, receipt.kind)
+        val id = requireNotNull(receipt.targetId)
+        assertEquals("Owned workout", app.gymRepository.sessions.first().single().name)
+        assertEquals("Draft notes", app.gymRepository.sessions.first().single().notes)
+        viewModel.consumeSessionMutationResult("other")
+        assertEquals(started, viewModel.sessionMutationState.value)
+        viewModel.consumeSessionMutationResult("workout-new:1")
+        assertTrue(viewModel.updateWorkoutConfirmed(id, "Updated workout", "Updated notes", false, "workout-existing:1"))
+        val updated = withTimeout(5_000) {
+            viewModel.sessionMutationState.first { it is PersistenceRequestState.Finished }
+        } as PersistenceRequestState.Finished
+        assertEquals(id, (updated.result as WhipResult.Success).value.targetId)
+        assertEquals("Updated workout", app.gymRepository.sessions.first().single().name)
+        assertEquals("Updated notes", app.gymRepository.sessions.first().single().notes)
+        assertFalse(app.gymRepository.sessions.first().single().keepScreenAwake)
+    }
+
+    @Test
     fun rapidDoubleConfirmAdmitsOnlyOneDeletionAndTerminalResultHasOneOwner() = runBlocking {
         val exerciseId = createExercise("Atomic press")
         val impact = previewExercise(exerciseId)

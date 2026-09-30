@@ -45,7 +45,7 @@ internal interface WidgetCollectionSnapshot<Row> {
 internal sealed interface WidgetCollectionEntry<out Row> {
     data class Current<Row>(val row: Row) : WidgetCollectionEntry<Row>
     data class Cached(val row: CachedWidgetRow) : WidgetCollectionEntry<Nothing>
-    data class RefreshError(val hasCachedRows: Boolean) : WidgetCollectionEntry<Nothing>
+    data class RefreshError(val hasCachedRows: Boolean, val actionStatus: WidgetActionStatus? = null) : WidgetCollectionEntry<Nothing>
 }
 
 internal class WidgetCollectionSnapshotState<Row>(
@@ -66,7 +66,12 @@ internal class WidgetCollectionSnapshotState<Row>(
     ) {
         val snapshot = runCatching(loadSnapshot).getOrNull()
         if (snapshot != null) {
-            rows = snapshot.rows.map { WidgetCollectionEntry.Current(it) }
+            rows = buildList {
+                WidgetSnapshotCache.actionStatus(context, kind, appWidgetId, snapshot.dataGeneration)?.let {
+                    add(WidgetCollectionEntry.RefreshError(hasCachedRows = false, actionStatus = it))
+                }
+                snapshot.rows.mapTo(this) { WidgetCollectionEntry.Current(it) }
+            }
             date = snapshot.date
             dataGeneration = snapshot.dataGeneration
             WidgetSnapshotCache.save(
@@ -79,6 +84,9 @@ internal class WidgetCollectionSnapshotState<Row>(
         } else {
             val cached = WidgetSnapshotCache.load(context, kind, appWidgetId)
             rows = buildList<WidgetCollectionEntry<Row>> {
+                WidgetSnapshotCache.actionStatus(context, kind, appWidgetId)?.let {
+                    add(WidgetCollectionEntry.RefreshError(hasCachedRows = false, actionStatus = it))
+                }
                 add(WidgetCollectionEntry.RefreshError(hasCachedRows = cached?.rows?.isNotEmpty() == true))
                 cached?.rows?.mapTo(this) { WidgetCollectionEntry.Cached(it) }
             }
@@ -130,10 +138,48 @@ internal object WidgetSnapshotCache {
         return null
     }
 
+    fun setActionStatus(
+        context: Context,
+        kind: WidgetSnapshotKind,
+        appWidgetId: Int,
+        status: WidgetActionStatus?,
+        dataGeneration: Long = context.currentWidgetDataGeneration(),
+    ) {
+        if (appWidgetId < 0) return
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit {
+            if (status == null) {
+                remove("action_" + key(kind, appWidgetId))
+                remove("action_generation_" + key(kind, appWidgetId))
+            } else {
+                putString("action_" + key(kind, appWidgetId), status.name)
+                putLong("action_generation_" + key(kind, appWidgetId), dataGeneration)
+            }
+        }
+    }
+
+    fun actionStatus(
+        context: Context,
+        kind: WidgetSnapshotKind,
+        appWidgetId: Int,
+        dataGeneration: Long = context.currentWidgetDataGeneration(),
+    ): WidgetActionStatus? {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val stored = prefs.getString("action_" + key(kind, appWidgetId), null) ?: return null
+        if (prefs.getLong("action_generation_" + key(kind, appWidgetId), -1L) != dataGeneration) {
+            setActionStatus(context, kind, appWidgetId, null)
+            return null
+        }
+        return WidgetActionStatus.entries.firstOrNull { it.name == stored }
+    }
+
     fun remove(context: Context, appWidgetIds: IntArray) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit {
             appWidgetIds.forEach { appWidgetId ->
-                WidgetSnapshotKind.entries.forEach { kind -> remove(key(kind, appWidgetId)) }
+                WidgetSnapshotKind.entries.forEach { kind ->
+                    remove(key(kind, appWidgetId))
+                    remove("action_" + key(kind, appWidgetId))
+                    remove("action_generation_" + key(kind, appWidgetId))
+                }
             }
         }
     }
@@ -228,20 +274,20 @@ internal fun refreshErrorRow(
     hasCachedRows: Boolean,
     retryActionKey: String,
     retryAction: String,
+    actionStatus: WidgetActionStatus? = null,
 ): RemoteViews = RemoteViews(context.packageName, R.layout.widget_status_row).apply {
-    setTextViewText(R.id.widget_row_title, context.getString(R.string.widget_refresh_failed))
-    setTextViewText(
-        R.id.widget_row_meta,
-        context.getString(
-            if (hasCachedRows) R.string.widget_refresh_failed_with_cache
-            else R.string.widget_refresh_failed_without_cache,
-        ),
-    )
+    val title = context.getString(actionStatus?.titleRes ?: R.string.widget_refresh_failed)
+    val meta = context.getString(actionStatus?.messageRes ?: (
+        if (hasCachedRows) R.string.widget_refresh_failed_with_cache
+        else R.string.widget_refresh_failed_without_cache
+    ))
+    setTextViewText(R.id.widget_row_title, title)
+    setTextViewText(R.id.widget_row_meta, meta)
     setViewVisibility(R.id.widget_row_action_icon, View.VISIBLE)
     setOnClickFillInIntent(R.id.widget_row, Intent().putExtra(retryActionKey, retryAction))
     setContentDescription(
         R.id.widget_row,
-        context.getString(
+        if (actionStatus != null) "$title. $meta" else context.getString(
             if (hasCachedRows) R.string.widget_retry_refresh_with_cache
             else R.string.widget_retry_refresh_without_cache,
         ),

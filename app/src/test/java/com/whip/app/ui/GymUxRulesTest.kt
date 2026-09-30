@@ -275,10 +275,19 @@ class GymUxRulesTest {
         val placement = WorkoutExercise(2, "placement", 1, 1, 0, "", null, 1, 1)
         val session = WorkoutSession(1, "session", "Training", "", Instant.EPOCH, Instant.EPOCH.plusSeconds(60),
             LocalDate.of(2026, 9, 28), "UTC", WorkoutSessionState.Finished, false, null, null, false, 1, 2)
-        val text = workoutShareText(session, GymUiState(archivedExercises = listOf(exercise),
-            allWorkoutExercises = listOf(placement), allSets = listOf(performanceSet(2))))
-        assertTrue(text, text.contains(exercise.name))
-        assertTrue(text, text.contains("100 kg"))
+        val completed = performanceSet(2).copy(completed = true, planned = false)
+        val unperformed = performanceSet(2).copy(id = 3, position = 1, completed = false, planned = true)
+        listOf(WorkoutExerciseOutcome.Active to "Included", WorkoutExerciseOutcome.Removed to "Removed",
+            WorkoutExerciseOutcome.Substituted to "Substituted").forEach { (outcome, label) ->
+            val text = workoutShareText(session, GymUiState(archivedExercises = listOf(exercise),
+                allWorkoutExercises = listOf(placement.copy(outcome = outcome)), allSets = listOf(completed, unperformed)))
+            assertTrue(text, text.contains(exercise.name))
+            assertTrue(text, text.contains("100 kg"))
+            assertTrue(text, text.contains("Exercise Status: $label"))
+            assertFalse(text, text.contains("Outcome: Active"))
+            assertTrue(text, text.contains(" · Completed"))
+            assertTrue(text, text.contains(" · Planned, not performed"))
+        }
     }
 
     @Test

@@ -1,6 +1,8 @@
 package com.whip.app
 
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.assert
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
@@ -363,6 +365,57 @@ class RoutineBuilderUiTest {
             assertEquals(2, draft.program?.phaseCount)
             assertEquals(listOf(0, 1), draft.days.single().exercises.single().plannedSets.map { it.routinePhaseIndex })
             assertEquals(listOf(80.0, 80.0), draft.days.single().exercises.single().plannedSets.map { it.weight })
+        }
+    }
+
+    @Test
+    fun phasePrescriptionToolsPreserveCommonAndSiblingRowsThroughSaveAndRestore() {
+        val bench = exercise(1, "Bench Press")
+        val common = WorkoutSetDraft(weight = 20.0, reps = 10, note = "Every phase")
+        val firstPhase = WorkoutSetDraft(weight = 100.0, reps = 3, routinePhaseIndex = 0, note = "Keep phase one")
+        val thirdPhase = WorkoutSetDraft(weight = 120.0, reps = 1, routinePhaseIndex = 2, note = "Keep phase three")
+        val scheme = RepPrescriptionScheme(id = "phase-volume", name = "Phase Volume", setCount = 2,
+            repetitionsMin = 8, repetitionsMax = 8)
+        var saved: RoutineDraft? = null
+        val restoration = androidx.compose.ui.test.junit4.StateRestorationTester(compose)
+        restoration.setContent {
+            WhipTheme(dynamicColor = false) {
+                RoutineBuilderScreen(
+                    routineId = 46,
+                    gymState = GymUiState(exercises = listOf(bench),
+                        appSettings = AppSettings(repPrescriptionSchemes = listOf(scheme)), loading = false),
+                    initial = RoutineDraft("Three phase plan",
+                        program = RoutineProgramDraft(kind = RoutineProgramKind.Custom, phaseCount = 3),
+                        days = listOf(RoutineDayDraft("A", listOf(RoutineExerciseDraft(bench.id, plannedSets = listOf(
+                            common, firstPhase, WorkoutSetDraft(weight = 80.0, reps = 5, routinePhaseIndex = 1), thirdPhase,
+                        )))))),
+                    onDismiss = {}, onSave = { draft, complete -> saved = draft; complete(true) },
+                    onCreateExercise = { _, _ -> }, onCreateMachine = { _, _ -> },
+                )
+            }
+        }
+        compose.onNodeWithContentDescription("Edit routine exercise Bench Press").performScrollTo().performClick()
+        val list = compose.onNodeWithTag("routine-placement-editor")
+        list.performScrollToNode(hasTestTag("routine-program-phase-1"))
+        compose.onNodeWithTag("routine-program-phase-1").performClick()
+        list.performScrollToNode(hasText("Phase Volume · 2 × 8"))
+        captureVisualCatalogSurface("overhaul.gym.phase-tools-before")
+        compose.onNodeWithText("Phase Volume · 2 × 8").performClick()
+        list.performScrollToNode(hasTestTag("routine-generate-warmups"))
+        compose.onNodeWithTag("routine-generate-warmups").performClick()
+        restoration.emulateSavedInstanceStateRestore()
+        compose.onNodeWithTag("routine-builder-save").performClick()
+        compose.onNodeWithTag("routine-saved-in-place").assertIsDisplayed()
+        captureVisualCatalogSurface("overhaul.gym.phase-tools-after")
+        compose.runOnIdle {
+            val sets = requireNotNull(saved).days.single().exercises.single().plannedSets
+            assertEquals(listOf(common, firstPhase, thirdPhase).map { it.copy(planned = true) }, sets.filter { it.routinePhaseIndex != 1 })
+            val phase = sets.filter { it.routinePhaseIndex == 1 }
+            assertEquals(listOf(WorkoutSetClassification.WarmUp, WorkoutSetClassification.WarmUp,
+                WorkoutSetClassification.WarmUp, WorkoutSetClassification.Working, WorkoutSetClassification.Working),
+                phase.map { it.classification })
+            assertEquals(listOf(8, 8), phase.filter { it.classification == WorkoutSetClassification.Working }.map { it.reps })
+            assertEquals(80.0, phase.first { it.classification == WorkoutSetClassification.Working }.weight)
         }
     }
 
@@ -1133,6 +1186,47 @@ class RoutineBuilderUiTest {
     }
 
     @Test
+    fun delayedRoutineSaveBlocksBackRetainsFailureAcrossRestoreAndAllowsOneRetry() {
+        var completion: ((Boolean) -> Unit)? = null
+        var calls = 0
+        var dismissals = 0
+        val restoration = androidx.compose.ui.test.junit4.StateRestorationTester(compose)
+        restoration.setContent {
+            WhipTheme(dynamicColor = false) {
+                RoutineBuilderScreen(
+                    routineId = 45, gymState = GymUiState(loading = false),
+                    initial = RoutineDraft("Original", days = listOf(RoutineDayDraft("A", emptyList()))),
+                    onDismiss = { dismissals++ },
+                    onSave = { _, complete -> calls++; completion = complete },
+                    onCreateExercise = { _, _ -> }, onCreateMachine = { _, _ -> },
+                )
+            }
+        }
+        compose.onNodeWithTag("routine-editor-name").performTextReplacement("Retained submission")
+        closeSoftKeyboard()
+        captureVisualCatalogSurface("overhaul.gym.routine-before-save")
+        compose.onNodeWithTag("routine-builder-save").performClick()
+        compose.onNodeWithTag("persistence-saving-overlay").assertIsDisplayed()
+        androidx.test.espresso.Espresso.pressBack()
+        compose.onNodeWithTag("persistence-saving-overlay").assertIsDisplayed()
+        restoration.emulateSavedInstanceStateRestore()
+        compose.onNodeWithTag("persistence-saving-overlay").assertIsDisplayed()
+        captureVisualCatalogSurface("overhaul.gym.routine-saving-restored")
+        compose.runOnIdle { assertEquals(1, calls); assertEquals(0, dismissals); completion!!(false) }
+        compose.onNodeWithTag("persistence-save-problem").assertIsDisplayed()
+        compose.onNodeWithTag("routine-editor-name").assertTextContains("Retained submission")
+        captureVisualCatalogSurface("overhaul.gym.routine-failed-retained")
+        compose.onNodeWithTag("routine-builder-save").performClick()
+        compose.runOnIdle { assertEquals(2, calls); completion!!(true); completion!!(false) }
+        compose.onNodeWithTag("routine-saved-in-place").assertIsDisplayed()
+        compose.onNodeWithTag("routine-builder-save").assertIsNotEnabled()
+        compose.onNodeWithTag("routine-editor-name").assertTextContains("Retained submission")
+        captureVisualCatalogSurface("overhaul.gym.routine-after-confirmed-save")
+        compose.onNodeWithContentDescription("Close routine editor").performClick()
+        compose.runOnIdle { assertEquals(1, dismissals) }
+    }
+
+    @Test
     fun failedRoutineSaveKeepsTheCompleteDraftOpenForRetry() {
         var attempts = 0
         compose.setContent {
@@ -1213,9 +1307,110 @@ class RoutineBuilderUiTest {
     }
 
     @Test
+    fun repSchemeMutationsRetainDraftAndConfirmationAcrossDelayedFailureAndRestore() {
+        val bench = exercise(1, "Bench")
+        val existing = RepPrescriptionScheme("existing", "Existing", 2, 8, 8, WorkoutSetClassification.Working)
+        val gymState = androidx.compose.runtime.mutableStateOf(GymUiState(exercises = listOf(bench),
+            appSettings = AppSettings(repPrescriptionSchemes = listOf(existing)), loading = false))
+        val mutation = androidx.compose.runtime.mutableStateOf<com.whip.app.core.PersistenceRequestState<com.whip.app.ui.SettingsMutationReceipt>>(com.whip.app.core.PersistenceRequestState.Idle)
+        var pendingId: String? = null
+        var pendingUpdate: (() -> Unit)? = null
+        var attempts = 0
+        fun admit(id: String, update: () -> Unit): Boolean {
+            attempts++
+            pendingId = id
+            pendingUpdate = update
+            mutation.value = com.whip.app.core.PersistenceRequestState.Running(id)
+            return true
+        }
+        fun fail() {
+            mutation.value = com.whip.app.core.PersistenceRequestState.Finished(checkNotNull(pendingId),
+                com.whip.app.core.WhipResult.Failure("Storage unavailable"))
+        }
+        fun confirm() {
+            checkNotNull(pendingUpdate).invoke()
+            mutation.value = com.whip.app.core.PersistenceRequestState.Finished(checkNotNull(pendingId),
+                com.whip.app.core.WhipResult.Success(com.whip.app.ui.SettingsMutationReceipt()))
+        }
+        val restoration = StateRestorationTester(compose)
+        restoration.setContent {
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                RoutineBuilderScreen(
+                    routineId = null, gymState = gymState.value,
+                    initial = RoutineDraft(name = "Push", days = listOf(RoutineDayDraft("A", listOf(RoutineExerciseDraft(bench.id))))),
+                    onDismiss = {}, onSave = { _, complete -> complete(true) },
+                    onCreateExercise = { _, _ -> }, onCreateMachine = { _, _ -> },
+                    prescriptionMutationState = mutation.value,
+                    consumePrescriptionMutation = { mutation.value = com.whip.app.core.PersistenceRequestState.Idle },
+                    onSavePrescriptionScheme = { scheme, id -> admit(id) {
+                        gymState.value = gymState.value.copy(appSettings = gymState.value.appSettings.copy(
+                            repPrescriptionSchemes = gymState.value.appSettings.repPrescriptionSchemes + scheme))
+                    } },
+                    onReorderPrescriptionSchemes = { schemes, id -> admit(id) {
+                        gymState.value = gymState.value.copy(appSettings = gymState.value.appSettings.copy(repPrescriptionSchemes = schemes))
+                    } },
+                    onDeletePrescriptionScheme = { removed, id -> admit(id) {
+                        gymState.value = gymState.value.copy(appSettings = gymState.value.appSettings.copy(
+                            repPrescriptionSchemes = gymState.value.appSettings.repPrescriptionSchemes.filterNot { it.id == removed }))
+                    } },
+                )
+            }
+        }
+        compose.onNodeWithText("Bench", useUnmergedTree = true).performClick()
+        compose.onNodeWithTag("routine-placement-editor").performScrollToNode(hasTestTag("routine-add-rep-scheme"))
+        compose.onNodeWithTag("routine-add-rep-scheme").performClick()
+        compose.onNodeWithTag("rep-scheme-name").performTextInput("Retained")
+        compose.onNodeWithTag("rep-scheme-set-count").performTextInput("3")
+        compose.onNodeWithTag("rep-scheme-reps-min").performTextInput("8")
+        compose.onNodeWithTag("rep-scheme-reps-max").performTextInput("10")
+        androidx.test.espresso.Espresso.closeSoftKeyboard()
+        captureVisualCatalogSurface("overhaul.gym.rep-scheme-before-save")
+        compose.onNodeWithTag("rep-scheme-save").performClick()
+        compose.onNodeWithTag("persistence-saving-overlay").assertIsDisplayed()
+        androidx.test.espresso.Espresso.pressBack()
+        restoration.emulateSavedInstanceStateRestore()
+        compose.onNodeWithTag("persistence-saving-overlay").assertIsDisplayed()
+        compose.runOnIdle { assertEquals(1, attempts); fail() }
+        compose.onNodeWithTag("rep-scheme-save-error").assert(hasContentDescription("Storage unavailable", substring = true))
+        compose.onNodeWithTag("rep-scheme-name").assertTextContains("Retained")
+        captureVisualCatalogSurface("overhaul.gym.rep-scheme-failed-restored")
+        compose.onNodeWithTag("rep-scheme-save").performClick()
+        compose.runOnIdle { assertEquals(2, attempts); confirm() }
+        compose.onNodeWithTag("rep-scheme-editor").assertDoesNotExist()
+        compose.onNodeWithTag("routine-placement-editor").performScrollToNode(hasContentDescription("Reorder Existing scheme"))
+        val reorderFirst = compose.onNodeWithContentDescription("Reorder Existing scheme").fetchSemanticsNode()
+            .config[androidx.compose.ui.semantics.SemanticsActions.CustomActions]
+            .single { it.label == "Move Existing scheme down" }
+        compose.runOnIdle { assertTrue(reorderFirst.action()) }
+        compose.onNodeWithTag("persistence-saving-overlay").assertIsDisplayed()
+        restoration.emulateSavedInstanceStateRestore()
+        compose.runOnIdle { assertEquals(3, attempts); fail() }
+        compose.onNodeWithTag("rep-scheme-save-error").assert(hasContentDescription("Storage unavailable", substring = true))
+        compose.runOnIdle { assertEquals("existing", gymState.value.appSettings.repPrescriptionSchemes.first().id) }
+        val reorderRetry = compose.onNodeWithContentDescription("Reorder Existing scheme").fetchSemanticsNode()
+            .config[androidx.compose.ui.semantics.SemanticsActions.CustomActions]
+            .single { it.label == "Move Existing scheme down" }
+        compose.runOnIdle { assertTrue(reorderRetry.action()) }
+        compose.runOnIdle { assertEquals(4, attempts); confirm() }
+        compose.onNodeWithTag("routine-placement-editor").performScrollToNode(hasContentDescription("Delete Retained · 3 × 8–10"))
+        compose.onNodeWithContentDescription("Delete Retained · 3 × 8–10").performClick()
+        compose.onNodeWithText("Delete Scheme").performClick()
+        compose.onNodeWithTag("persistence-saving-overlay").assertIsDisplayed()
+        restoration.emulateSavedInstanceStateRestore()
+        compose.runOnIdle { assertEquals(5, attempts); fail() }
+        compose.onNodeWithText("Delete Retained · 3 × 8–10?").assertIsDisplayed()
+        compose.onNodeWithTag("rep-scheme-save-error").assert(hasContentDescription("Storage unavailable", substring = true))
+        compose.onNodeWithText("Delete Scheme").performClick()
+        compose.runOnIdle { assertEquals(6, attempts); confirm(); assertEquals(listOf(existing), gymState.value.appSettings.repPrescriptionSchemes) }
+        compose.onNodeWithText("Delete Retained · 3 × 8–10?").assertDoesNotExist()
+        captureVisualCatalogSurface("overhaul.gym.rep-scheme-after-confirmed-mutations")
+    }
+
+    @Test
     fun repSchemeLibraryStartsBlankAndPlusCreatesAReusableScheme() {
         val bench = exercise(1, "Bench")
         var saved: RepPrescriptionScheme? = null
+        val prescriptionState = androidx.compose.runtime.mutableStateOf<com.whip.app.core.PersistenceRequestState<com.whip.app.ui.SettingsMutationReceipt>>(com.whip.app.core.PersistenceRequestState.Idle)
         compose.setContent {
             WhipTheme(darkTheme = true, dynamicColor = false) {
                 RoutineBuilderScreen(
@@ -1229,7 +1424,13 @@ class RoutineBuilderUiTest {
                     onSave = { _, complete -> complete(true) },
                     onCreateExercise = { _, _ -> },
                     onCreateMachine = { _, _ -> },
-                    onSavePrescriptionScheme = { saved = it },
+                    prescriptionMutationState = prescriptionState.value,
+                    consumePrescriptionMutation = { prescriptionState.value = com.whip.app.core.PersistenceRequestState.Idle },
+                    onSavePrescriptionScheme = { scheme, id ->
+                        saved = scheme
+                        prescriptionState.value = com.whip.app.core.PersistenceRequestState.Finished(id, com.whip.app.core.WhipResult.Success(com.whip.app.ui.SettingsMutationReceipt()))
+                        true
+                    },
                 )
             }
         }
@@ -1270,6 +1471,7 @@ class RoutineBuilderUiTest {
         )
         var edited: RepPrescriptionScheme? = null
         var deletedId: String? = null
+        val prescriptionState = androidx.compose.runtime.mutableStateOf<com.whip.app.core.PersistenceRequestState<com.whip.app.ui.SettingsMutationReceipt>>(com.whip.app.core.PersistenceRequestState.Idle)
         compose.setContent {
             WhipTheme(darkTheme = true, dynamicColor = false) {
                 RoutineBuilderScreen(
@@ -1287,8 +1489,18 @@ class RoutineBuilderUiTest {
                     onSave = { _, complete -> complete(true) },
                     onCreateExercise = { _, _ -> },
                     onCreateMachine = { _, _ -> },
-                    onSavePrescriptionScheme = { edited = it },
-                    onDeletePrescriptionScheme = { deletedId = it },
+                    prescriptionMutationState = prescriptionState.value,
+                    consumePrescriptionMutation = { prescriptionState.value = com.whip.app.core.PersistenceRequestState.Idle },
+                    onSavePrescriptionScheme = { updated, id ->
+                        edited = updated
+                        prescriptionState.value = com.whip.app.core.PersistenceRequestState.Finished(id, com.whip.app.core.WhipResult.Success(com.whip.app.ui.SettingsMutationReceipt()))
+                        true
+                    },
+                    onDeletePrescriptionScheme = { removed, id ->
+                        deletedId = removed
+                        prescriptionState.value = com.whip.app.core.PersistenceRequestState.Finished(id, com.whip.app.core.WhipResult.Success(com.whip.app.ui.SettingsMutationReceipt()))
+                        true
+                    },
                 )
             }
         }

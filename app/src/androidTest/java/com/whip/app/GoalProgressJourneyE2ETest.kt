@@ -93,7 +93,7 @@ class GoalProgressJourneyE2ETest {
         }
         launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
             compose.onNodeWithContentDescription("Goals tab").performClick()
-            compose.onNodeWithTag("goal-card-status-$id", useUnmergedTree = true).assertTextContains("Current 31.0 → target 100.0", substring = true)
+            compose.onNodeWithTag("goal-card-status-$id", useUnmergedTree = true).assertTextContains("31 → 100", substring = true)
             runBlocking { app.goalRepository.setStatus(id, GoalStatus.Paused) }
             compose.waitUntil(10_000) {
                 compose.onAllNodes(hasTestTag("goal-card-status-$id") and hasText("Paused", substring = true), useUnmergedTree = true)
@@ -210,6 +210,7 @@ class GoalProgressJourneyE2ETest {
                 useUnmergedTree = true).assertCountEquals(1)
             captureVisualCatalogSurface("goals.progress.expanded")
             compose.onNodeWithTag("goal-card-title-$id", useUnmergedTree = true).performClick()
+            compose.onNodeWithTag("goal-detail-section-Overview").performClick()
             compose.onNodeWithTag("goal-inspector-outcome").assertTextEquals("0.5% complete")
             captureVisualCatalogSurface("goals.progress.overview")
             compose.onNodeWithText("Trend Data Table").performScrollTo().performClick()
@@ -231,6 +232,7 @@ class GoalProgressJourneyE2ETest {
             compose.onAllNodesWithTag("goal-celebration").assertCountEquals(0)
             compose.onNodeWithTag("goal-destination-History").performClick()
             compose.onNodeWithTag("goal-card-$id").performScrollTo().performClick()
+            compose.onNodeWithTag("goal-detail-section-Overview").performClick()
             compose.onNodeWithTag("goal-inspector-outcome").assertTextEquals("0.5% complete")
             compose.onNodeWithTag("goal-detail-section-History").performClick()
             val snapshot = runBlocking { app.goalRepository.closureSnapshots.first().single { it.goalId == id } }
@@ -243,6 +245,7 @@ class GoalProgressJourneyE2ETest {
             compose.waitUntil(10_000) { compose.onAllNodesWithTag("entity-inspector-close").fetchSemanticsNodes().isEmpty() }
             compose.openWorkspaceArchive("Goals")
             compose.onNodeWithTag("goal-card-$id").performScrollTo().performClick()
+            compose.onNodeWithTag("goal-detail-section-Overview").performClick()
             compose.onNodeWithTag("goal-inspector-outcome").assertTextEquals("0.5% complete")
             scenario.recreate()
             compose.onNodeWithTag("goal-inspector-outcome").assertTextEquals("0.5% complete")
@@ -266,11 +269,13 @@ class GoalProgressJourneyE2ETest {
             val expected = listOf("<0.1% complete", ">99.9% complete", "0% complete", "100% complete",
                 ">100% complete", "120% complete")
             ids.zip(expected).forEachIndexed { index, (id, text) ->
-                compose.onNodeWithTag("goal-card-$id").performScrollTo()
+                compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasTestTag("goal-card-$id"))
                 if (index == 0) captureVisualCatalogSurface("goals.progress.endpoints")
-                assertCard(id, text)
+                assertCard(id, text, "overhaul.goals.endpoint-four-after-scroll".takeIf { index == 4 })
             }
-            compose.onNodeWithTag("goal-card-${ids[1]}").performScrollTo().performClick()
+            compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasTestTag("goal-card-${ids[1]}"))
+            compose.onNodeWithTag("goal-card-${ids[1]}").performClick()
+            compose.onNodeWithTag("goal-detail-section-Overview").performClick()
             compose.onNodeWithTag("goal-inspector-outcome").assertTextEquals(">99.9% complete")
             scenario.recreate()
             compose.onNodeWithTag("goal-inspector-outcome").assertTextEquals(">99.9% complete")
@@ -278,7 +283,9 @@ class GoalProgressJourneyE2ETest {
             assertEquals(GoalStatus.Active, runBlocking { app.goalRepository.get(ids[1])?.status })
 
             compose.onNodeWithTag("entity-inspector-close").performClick()
-            compose.onNodeWithTag("goal-card-${ids[5]}").performScrollTo().performClick()
+            compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasTestTag("goal-card-${ids[5]}"))
+            compose.onNodeWithTag("goal-card-${ids[5]}").performClick()
+            compose.onNodeWithTag("goal-detail-section-Overview").performClick()
             compose.onNodeWithTag("goal-inspector-outcome").assertTextEquals("120% complete")
             compose.onNodeWithText("Trend Data Table").performScrollTo().performClick()
             inspectorNode(hasText("progress 120%", substring = true)).assertIsDisplayed()
@@ -291,7 +298,9 @@ class GoalProgressJourneyE2ETest {
                 useUnmergedTree = true).assertIsDisplayed()
             runBlocking { app.goalRepository.setStatus(ids[5], GoalStatus.Completed) }
             compose.onNodeWithTag("goal-destination-History").performClick()
-            compose.onNodeWithTag("goal-card-${ids[5]}").performScrollTo().performClick()
+            compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasTestTag("goal-card-${ids[5]}"))
+            compose.onNodeWithTag("goal-card-${ids[5]}").performClick()
+            compose.onNodeWithTag("goal-detail-section-Overview").performClick()
             compose.onNodeWithTag("goal-inspector-outcome").assertTextEquals("120% complete")
             compose.onNodeWithTag("goal-detail-section-History").performClick()
             val snapshot = runBlocking { app.goalRepository.closureSnapshots.first().single { it.goalId == ids[5] } }
@@ -311,7 +320,7 @@ class GoalProgressJourneyE2ETest {
             compose.onNodeWithContentDescription("Goals tab").performClick()
             compose.onNodeWithTag("goal-card-${ids[0]}").performScrollTo().performClick()
             compose.onNodeWithTag("goal-detail-section-Options").performClick()
-            val complete = compose.onNodeWithText("Complete Goal").performScrollTo()
+            val complete = inspectorNode(hasTestTag("entity-inspector-action-complete")).performScrollTo()
             compose.mainClock.autoAdvance = false
             try {
                 complete.performClick()
@@ -334,13 +343,14 @@ class GoalProgressJourneyE2ETest {
             compose.onNodeWithTag("goal-destination-History").performClick()
             compose.onAllNodesWithTag("goal-celebration").assertCountEquals(0)
             compose.onNodeWithTag("goal-card-${ids[0]}").performScrollTo().performClick()
+            compose.onNodeWithTag("goal-detail-section-Overview").performClick()
             compose.onNodeWithTag("goal-inspector-outcome").assertTextEquals("40% complete")
             compose.onNodeWithTag("entity-inspector-close").performClick()
 
             compose.onNodeWithTag("goal-destination-Goals").performClick()
             compose.onNodeWithTag("goal-card-${ids[1]}").performScrollTo().performClick()
             compose.onNodeWithTag("goal-detail-section-Options").performClick()
-            val secondComplete = compose.onNodeWithText("Complete Goal").performScrollTo()
+            val secondComplete = inspectorNode(hasTestTag("entity-inspector-action-complete")).performScrollTo()
             compose.mainClock.autoAdvance = false
             try {
                 secondComplete.performClick()
@@ -375,14 +385,16 @@ class GoalProgressJourneyE2ETest {
             compose.onNodeWithTag("goal-destination-Goals").performClick()
             compose.onNodeWithTag("goal-card-${ids[2]}").performScrollTo().performClick()
             compose.onNodeWithTag("goal-detail-section-Options").performClick()
-            compose.onNodeWithText("Complete Goal").performScrollTo().performClick()
+            inspectorNode(hasTestTag("entity-inspector-action-complete")).performScrollTo().performClick()
             compose.waitUntil(10_000) { runBlocking { app.goalRepository.get(ids[2])?.status == GoalStatus.Completed } }
             compose.onAllNodesWithTag("goal-celebration").assertCountEquals(0)
         }
     }
 
-    private fun assertCard(id: Long, expected: String) {
-        compose.onNodeWithTag("goal-card-status-$id", useUnmergedTree = true).assertTextContains(expected, substring = true)
+    private fun assertCard(id: Long, expected: String, captureSurfaceId: String? = null) {
+        val label = compose.onNodeWithTag("goal-card-progress-label-$id", useUnmergedTree = true).performScrollTo()
+        captureSurfaceId?.let { captureVisualCatalogSurface(it) }
+        label.assertTextEquals(expected.removeSuffix(" complete")).assertIsDisplayed()
     }
 
     private suspend fun prepare() {

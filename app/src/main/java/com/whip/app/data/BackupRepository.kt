@@ -61,6 +61,7 @@ data class BackupMergeSummary(
     val importedRecords: Int,
     val skippedExistingRecords: Int,
     val settingsKept: Boolean = true,
+    val warnings: List<String> = emptyList(),
 )
 
 interface BackupRepository {
@@ -70,6 +71,7 @@ interface BackupRepository {
     suspend fun previewBackup(json: String): BackupPreview
     suspend fun restoreBackup(json: String)
     suspend fun mergeBackup(json: String): BackupMergeSummary
+    suspend fun refreshAfterMerge(): List<String> = emptyList()
     suspend fun exportTasksCsv(): String
     suspend fun exportHabitsCsv(): String
     suspend fun exportGoalsCsv(): String
@@ -265,9 +267,16 @@ class RoomBackupRepository(
             database.retireLegacyHealthHabitSources()
             BackupMergeSummary(imported, skipped)
         }
-        areaRepository?.ensureDefaultArea()
-        RoomTrackRepository(database, SystemWhipClock, UuidWhipIdGenerator).rebuildSearchIndex()
-        return summary
+        return summary.copy(warnings = refreshAfterMerge())
+    }
+
+    override suspend fun refreshAfterMerge(): List<String> = buildList {
+        runCatching { areaRepository?.ensureDefaultArea() }.onFailure {
+            add("Data is imported, but the default Area could not be refreshed.")
+        }
+        runCatching { RoomTrackRepository(database, SystemWhipClock, UuidWhipIdGenerator).rebuildSearchIndex() }.onFailure {
+            add("Data is imported, but Track search could not be refreshed.")
+        }
     }
 
     override suspend fun exportTasksCsv(): String = queryCsv(

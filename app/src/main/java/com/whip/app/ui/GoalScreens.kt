@@ -91,6 +91,7 @@ import com.whip.app.domain.GoalAggregation
 import com.whip.app.domain.GoalAggregationPeriod
 import com.whip.app.domain.GoalConsistencyPeriod
 import com.whip.app.domain.GoalDraft
+import com.whip.app.domain.GoalDirection
 import com.whip.app.domain.GoalClosureSnapshot
 import com.whip.app.domain.GoalElapsedResetEvent
 import com.whip.app.domain.GoalMilestoneDraft
@@ -116,6 +117,7 @@ import com.whip.app.domain.UnitDefinition
 import com.whip.app.domain.BuiltInUnits
 import com.whip.app.domain.displayValue
 import com.whip.app.domain.buildGoalInsights
+import com.whip.app.domain.progressBaseline
 import com.whip.app.domain.goalOutcomeKind
 import com.whip.app.domain.supportsDimension
 import com.whip.app.domain.compatibleAggregations
@@ -185,7 +187,7 @@ fun GoalAreaContent(
     onCreateArea: (String, Long?, (Result<String>) -> Unit) -> Unit = { _, _, _ -> },
     onCreateCustomUnit: CreateCustomUnitAction = UnavailableCreateCustomUnitAction,
     customIdentityEmojis: List<CustomIdentityEmoji> = emptyList(),
-    onSaveIdentityEmoji: (CustomIdentityEmoji) -> Unit = {},
+    onSaveIdentityEmoji: IdentityEmojiSaveActions? = null,
     onRemoveSavedIdentityEmoji: (String) -> Unit = {},
     areaScopeLabel: String? = null,
     onShowAllAreasForReorder: () -> Unit = {},
@@ -498,6 +500,7 @@ fun GoalAreaContent(
                 innerPadding = WhipPageContentPadding,
                 nowMillis = state.nowMillis,
                 zoneId = state.activeZoneId,
+                through = state.currentDate,
                 onOpen = { actionsGoalId = it.goal.id },
             )
         } else WhipReorderLazyColumn(
@@ -669,6 +672,7 @@ fun GoalAreaContent(
             modifier = modifier,
             zoneId = editorState.activeZoneId,
             nowMillis = editorState.nowMillis,
+            through = editorState.currentDate,
             customUnits = editorState.customUnits,
             onDismiss = {
                 mutationCoordinator.clear()
@@ -896,7 +900,11 @@ internal fun GoalProjection.offersCompletion(): Boolean =
     !goal.archived && goal.status == GoalStatus.Active && terminalSnapshot == null &&
         goal.type in setOf(GoalType.ReachValue, GoalType.ReduceValue, GoalType.AccumulateTotal,
             GoalType.MeetAverage, GoalType.Consistency, GoalType.WeightedMilestones) &&
-        progress?.let { it.isFinite() && it >= 1.0 } == true
+        (progress?.let { it.isFinite() && it >= 1.0 } == true ||
+            (progress == null && goal.progressBaseline == null && goal.type in setOf(GoalType.ReachValue, GoalType.ReduceValue, GoalType.AccumulateTotal, GoalType.MeetAverage) &&
+                currentValue?.let { value -> goal.targetMin?.let { target ->
+                    value.isFinite() && if (goal.direction == GoalDirection.Decrease) value <= target else value >= target
+                } } == true))
 
 @Composable
 fun GoalCard(
@@ -998,7 +1006,8 @@ fun GoalCard(
                         color = if (projection.progress >= 1.0) MaterialTheme.whipColors.success else MaterialTheme.colorScheme.primary,
                         trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
                     )
-                    Text(formatGoalProgressPercent(projection.progress), style = MaterialTheme.typography.labelMedium)
+                    Text(formatGoalProgressPercent(projection.progress), style = MaterialTheme.typography.labelMedium,
+                        modifier = Modifier.testTag("goal-card-progress-label-${goal.id}"))
                 }
             }
             disclosure(expanded = disclosure.expanded, tag = "goal-expand-${goal.id}", onToggle = disclosure.toggle.takeUnless { reorderMode })
@@ -1057,6 +1066,11 @@ fun GoalCard(
                 } ?: projection.numericReading(customUnits)?.let { Text(it) } ?: projection.currentValue?.let { canonical ->
                     val current = goal.displayValue(canonical, customUnits)
                     Text("Current: ${formatGoalValue(current, goal.precision)} ${goal.unitId.goalUnitLabel(customUnits)}")
+                }
+                if (goal.type in setOf(GoalType.ReachValue, GoalType.ReduceValue, GoalType.AccumulateTotal, GoalType.MeetAverage) &&
+                    projection.terminalSnapshot == null && goal.progressBaseline == null) {
+                    Text("Edit the starting value to show a progress percentage. Recorded values and the target remain available.",
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 val pace = when (projection.onPace) { true -> "On pace"; false -> "Behind pace"; null -> null }
                 if (pace != null) Text(pace + (projection.forecastDate?.let { " · forecast ${it.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))}" } ?: ""), style = MaterialTheme.typography.labelMedium)
@@ -1386,6 +1400,7 @@ private fun GoalInsightsContent(
     innerPadding: PaddingValues,
     nowMillis: Long,
     zoneId: ZoneId,
+    through: LocalDate,
     onOpen: (GoalProjection) -> Unit,
 ) {
     val listState = rememberLazyListState()
@@ -1403,7 +1418,6 @@ private fun GoalInsightsContent(
             )
         }
         items(projections, key = { "goal-insight-${it.goal.id}" }) { projection ->
-            val through = Instant.ofEpochMilli(nowMillis).atZone(zoneId).toLocalDate()
             val insights = remember(projection, through) { buildGoalInsights(projection.goal, projection.entries, projection.milestones, through) }
             WhipItemCard(
                 modifier = Modifier
@@ -1637,7 +1651,7 @@ internal fun GoalEditorDialog(
     onCreateArea: (String, Long?, (Result<String>) -> Unit) -> Unit = { _, _, _ -> },
     onCreateCustomUnit: CreateCustomUnitAction = UnavailableCreateCustomUnitAction,
     customIdentityEmojis: List<CustomIdentityEmoji> = emptyList(),
-    onSaveIdentityEmoji: (CustomIdentityEmoji) -> Unit = {},
+    onSaveIdentityEmoji: IdentityEmojiSaveActions? = null,
     onRemoveSavedIdentityEmoji: (String) -> Unit = {},
 ) {
     val goal = projection?.goal
@@ -2002,9 +2016,12 @@ internal fun GoalEditorDialog(
                             GoalNumberField(
                                 baseline,
                                 { baseline = it },
-                                goalValueLabel("Starting Value (Optional)", unitId, customUnits),
-                                error = "Starting value must be a number".takeIf {
-                                    validationRequested && baseline.isNotBlank() && baseline.toWhipDoubleOrNull() == null
+                                goalValueLabel(if (type == GoalType.ReduceValue) "Starting Value" else "Starting Value (Optional)", unitId, customUnits),
+                                required = type == GoalType.ReduceValue,
+                                error = if (!validationRequested) null else when {
+                                    type == GoalType.ReduceValue && baseline.isBlank() -> "Enter a starting value for a reduction Goal"
+                                    baseline.isNotBlank() && baseline.toWhipDoubleOrNull() == null -> "Starting value must be a number"
+                                    else -> draftValidationMessages.firstOrNull { it.startsWith("Starting value cannot") }
                                 },
                             )
                         }
@@ -2694,6 +2711,7 @@ internal fun GoalActionsDialog(
     mutationSaving: Boolean = false,
     mutationError: String? = null,
     onToggleMilestone: (GoalMilestoneBoundary, Boolean) -> Unit = { _, _ -> },
+    through: LocalDate = LocalWhipToday.current,
 ) {
     var historyQuery by rememberSaveable(projection.goal.id) { mutableStateOf("") }
     val historyLocale = LocalConfiguration.current.locales[0]
@@ -2708,7 +2726,6 @@ internal fun GoalActionsDialog(
     var visibleTrendPoints by rememberSaveable(projection.goal.id) { mutableIntStateOf(25) }
     var showAccessibleTable by rememberSaveable(projection.goal.id) { mutableStateOf(false) }
     var section by rememberSaveable(projection.goal.id) { mutableStateOf(GoalDetailSection.Overview) }
-    val through = Instant.ofEpochMilli(nowMillis).atZone(zoneId).toLocalDate()
     val insights = remember(projection, through) { buildGoalInsights(projection.goal, projection.entries, projection.milestones, through) }
     val primaryAction = if (projection.goal.archived) {
         EntityInspectorPrimaryAction("restore", "Restore Goal", onArchive)
@@ -2823,9 +2840,13 @@ internal fun GoalActionsDialog(
                 }
                 if (projection.goal.type !in setOf(GoalType.ElapsedSince, GoalType.WeightedMilestones)) item {
                     EntityInspectorInformationGroup(
-                        title = "Progress Insight",
+                        title = if (projection.terminalSnapshot != null) "Trend under current settings" else "Progress Insight",
                         modifier = Modifier.testTag("goal-inspector-progress-card"),
                     ) {
+                        if (projection.terminalSnapshot != null) Text(
+                            "The closed outcome above is frozen. This trend uses current settings; original target and calculation settings were not stored. See Lifecycle History for closure facts.",
+                            style = MaterialTheme.typography.bodySmall,
+                        )
                         val chartValues = insights.points.mapNotNull { it.progress ?: it.canonicalValue }
                         if (chartValues.size >= 2) {
                             GoalLineChart(
@@ -3281,7 +3302,7 @@ private fun GoalAggregation.displayLabel(): String = when (this) {
     GoalAggregation.Minimum -> "Lowest entry"
     GoalAggregation.Maximum -> "Highest entry"
     GoalAggregation.CompletionCount -> "Count completions"
-    GoalAggregation.TimeInRange -> "Time inside the target range"
+    GoalAggregation.TimeInRange -> "Share of observations in range"
 }
 
 private fun GoalAggregationPeriod.displayLabel(): String = when (this) {

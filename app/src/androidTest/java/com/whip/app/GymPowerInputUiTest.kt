@@ -51,6 +51,7 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import androidx.test.espresso.Espresso.closeSoftKeyboard
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.whip.app.domain.BodyweightLoadPolicy
 import com.whip.app.domain.MachineLoadType
@@ -1909,6 +1910,57 @@ class GymPowerInputUiTest {
     }
 
     @Test
+    fun pendingRestPresetSurvivesDiscardReviewFailureAndRestoreUntilConfirmedReceipt() {
+        var presets by mutableStateOf(DEFAULT_REST_TIMER_PRESET_SECONDS)
+        var saving by mutableStateOf(false)
+        var error by mutableStateOf<String?>(null)
+        var revision by mutableStateOf(0)
+        var submitted: List<Int>? = null
+        var attempts = 0
+        val restoration = StateRestorationTester(compose)
+        restoration.setContent {
+            WhipTheme(dynamicColor = false) {
+                com.whip.app.ui.RestDurationDialog(
+                    initialSeconds = 120, isWorkoutOverride = false, presetSeconds = presets,
+                    onDismiss = {}, onConfirm = {}, saving = saving, error = error,
+                    presetSaveRevision = revision,
+                    onPresetSecondsChange = { submitted = it; attempts++; error = null; saving = true },
+                )
+            }
+        }
+        compose.onNodeWithText("Manage Presets").performClick()
+        compose.onNodeWithTag("rest-preset-seconds").performTextReplacement("45")
+        closeSoftKeyboard()
+        compose.onNodeWithText("Back").performClick()
+        compose.onNodeWithText("Discard Unsaved Changes?").assertIsDisplayed()
+        compose.onNodeWithText("Keep Editing").performClick()
+        compose.onNodeWithTag("rest-preset-seconds").assertTextContains("45")
+        captureVisualCatalogSurface("overhaul.gym.rest-preset-before-save")
+        compose.onNodeWithText("Save Presets").performClick()
+        compose.onNodeWithTag("persistence-saving-overlay").assertIsDisplayed()
+        restoration.emulateSavedInstanceStateRestore()
+        compose.onNodeWithTag("persistence-saving-overlay").assertIsDisplayed()
+        compose.runOnIdle { assertEquals(1, attempts); assertTrue(45 in requireNotNull(submitted)); saving = false; error = "Storage unavailable" }
+        compose.onNodeWithTag("rest-presets-error").assertIsDisplayed()
+        compose.onNodeWithText("Manage Rest Presets").assertIsDisplayed()
+        compose.onNodeWithTag("rest-preset-seconds").assertTextContains("45")
+        captureVisualCatalogSurface("overhaul.gym.rest-preset-failed-retained")
+        compose.onNodeWithText("Save Presets").performClick()
+        compose.runOnIdle { assertEquals(2, attempts); presets = requireNotNull(submitted); saving = false; revision++ }
+        compose.onNodeWithText("Rest Time for This Workout").assertIsDisplayed()
+        compose.onNodeWithText("0:45").assertIsDisplayed()
+        captureVisualCatalogSurface("overhaul.gym.rest-preset-after-confirmed-save")
+        compose.onNodeWithText("Manage Presets").performClick()
+        compose.onNodeWithTag("rest-preset-seconds").performTextReplacement("75")
+        closeSoftKeyboard()
+        restoration.emulateSavedInstanceStateRestore()
+        compose.onNodeWithText("Manage Rest Presets").assertIsDisplayed()
+        compose.onNodeWithTag("rest-preset-seconds").assertTextContains("75")
+        compose.runOnIdle { assertEquals(2, attempts) }
+        captureVisualCatalogSurface("overhaul.gym.rest-preset-later-draft-restored")
+    }
+
+    @Test
     fun readyRestTimerMakesWorkoutScopedDurationDiscoverableAndUsesIt() {
         val session = WorkoutSession(
             id = 9,
@@ -1932,6 +1984,7 @@ class GymPowerInputUiTest {
         compose.setContent {
             var selectedSeconds by remember { mutableStateOf<Int?>(null) }
             var presets by remember { mutableStateOf(DEFAULT_REST_TIMER_PRESET_SECONDS) }
+            var presetRevision by remember { mutableStateOf(0) }
             WhipTheme(dynamicColor = false) {
                 RestTimerCard(
                     session = session,
@@ -1940,7 +1993,8 @@ class GymPowerInputUiTest {
                     presetSeconds = presets,
                     notificationPermissionRequested = true,
                     onSelectedSecondsChange = { selectedSeconds = it },
-                    onPresetSecondsChange = { changed -> presets = changed; savedPresets = changed },
+                    onPresetSecondsChange = { changed -> presets = changed; savedPresets = changed; presetRevision++ },
+                    presetsSaveRevision = presetRevision,
                     onStart = { _, seconds -> startedWith = seconds },
                     onAdjust = { _, _ -> },
                     onStop = {},

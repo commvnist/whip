@@ -71,6 +71,9 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 
+private const val TRACK_CSV_EXPORT_LIMIT_MESSAGE =
+    "This Track CSV export exceeds the 25 MB limit. Your data is unchanged. Use a portable backup in Settings to preserve the full history."
+
 internal const val TRACK_CSV_MAX_EXPORT_BYTES = 25 * 1024 * 1024
 private const val TRACK_CSV_INSERT_CHUNK_SIZE = 100
 
@@ -93,7 +96,7 @@ internal suspend fun requireTrackCsvExportWithinLimit(
             else -> 3
         }
         require(bytes <= maxBytes) {
-            "This Track export is larger than 25 MB. Remove unneeded long-text values or older Entries, then try again."
+            TRACK_CSV_EXPORT_LIMIT_MESSAGE
         }
         index++
     }
@@ -2464,7 +2467,7 @@ internal suspend fun buildTrackCsv(
 
     fun appendChecked(value: String, startIndex: Int, endIndex: Int, byteCount: Int) {
         require(bytes + byteCount <= maxBytes) {
-            "This Track export is larger than 25 MB. Remove unneeded long-text values or older Entries, then try again."
+            TRACK_CSV_EXPORT_LIMIT_MESSAGE
         }
         result.append(value, startIndex, endIndex)
         bytes += byteCount
@@ -2472,7 +2475,7 @@ internal suspend fun buildTrackCsv(
 
     fun appendAscii(char: Char) {
         require(bytes < maxBytes) {
-            "This Track export is larger than 25 MB. Remove unneeded long-text values or older Entries, then try again."
+            TRACK_CSV_EXPORT_LIMIT_MESSAGE
         }
         result.append(char)
         bytes++

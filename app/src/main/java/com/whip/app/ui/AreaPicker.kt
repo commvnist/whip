@@ -221,6 +221,12 @@ internal fun CreateAreaDialog(
         "Area creation was interrupted. Your draft is still here. Try again; an Area with this name will be selected instead of duplicated."
     } else null
     val duplicate = existingAreas.firstOrNull { it.name.equals(name.trim(), true) }
+    var confirmDiscard by rememberSaveable { mutableStateOf(false) }
+    fun requestDismiss() {
+        if (saving) return
+        if (name.isNotBlank() || color != null) confirmDiscard = true else onDismiss()
+    }
+
     fun submitCreate(displayName: String, requestedColor: Long?) {
         if (onCreateRequested != null) {
             onCreateRequested(displayName, requestedColor)
@@ -239,7 +245,7 @@ internal fun CreateAreaDialog(
     }
     PaneAwareAlertDialog(
         modifier = modifier,
-        onDismissRequest = { if (!saving) onDismiss() },
+        onDismissRequest = ::requestDismiss,
         inputBlocked = saving,
         inputBlockedLabel = "Saving Area",
         title = { Text("Create Area") },
@@ -298,6 +304,13 @@ internal fun CreateAreaDialog(
                 ) { Text(if (saving) "Saving…" else "Create") }
             }
         },
-        dismissButton = { WhipTextButton(enabled = !saving, onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { WhipTextButton(enabled = !saving, onClick = ::requestDismiss) { Text("Cancel") } },
     )
+    if (confirmDiscard) UnsavedChangesDialog(
+        subject = "Area",
+        onKeepEditing = { confirmDiscard = false },
+        onDiscard = { confirmDiscard = false; onDismiss() },
+        modifier = modifier,
+    )
+
 }

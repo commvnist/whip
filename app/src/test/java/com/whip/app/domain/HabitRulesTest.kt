@@ -427,6 +427,111 @@ class HabitRulesTest {
         assertEquals(1, monthly.flexiblePeriodStreak(logs, start.plusDays(1)))
     }
 
+    @Test fun discreteWeeksAndMonthsEarnOnceOnTheDatedAttainment() {
+        DayOfWeek.entries.forEach { weekStart ->
+            val start = monday.with(java.time.temporal.TemporalAdjusters.previousOrSame(weekStart))
+            val habit = habit(min = 2.0).copy(startDate = start, weekStart = weekStart, targetPeriod = TargetPeriod.Week,
+                endType = HabitEndType.AfterCompletions, endValue = 2.0)
+            val logs = listOf(log(1, start.plusDays(1), HabitLogStatus.Recorded), log(2, start.plusDays(3), HabitLogStatus.Recorded))
+            assertEquals(emptySet<LocalDate>(), habit.successfulPeriodOutcomeDates(logs, start, start.plusDays(2)))
+            assertEquals(setOf(start.plusDays(3)), habit.successfulPeriodOutcomeDates(logs, start, start.plusDays(6)))
+            assertEquals(HabitDayState.Pending, habit.dayStateOn(start.plusDays(2), start.plusDays(6), logs))
+            assertEquals(HabitDayState.Completed, habit.dayStateOn(start.plusDays(3), start.plusDays(6), logs))
+            assertFalse(habit.hasEnded(logs, start.plusDays(6)))
+            assertEquals(1, habit.currentStreak(logs, start.plusDays(6)))
+        }
+        val start = LocalDate.of(2026, 8, 1)
+        val monthly = habit(min = 2.0).copy(startDate = start, targetPeriod = TargetPeriod.Month)
+        val logs = listOf(log(1, start.plusDays(2), HabitLogStatus.Recorded), log(2, start.plusDays(10), HabitLogStatus.Recorded))
+        assertEquals(setOf(start.plusDays(10)), monthly.successfulPeriodOutcomeDates(logs, start, start.plusDays(30)))
+        assertEquals(1, monthly.currentStreak(logs, start.plusDays(30)))
+    }
+
+    @Test fun boundedDiscreteTargetsSettleOnceAfterTheirLastEligibleDay() {
+        listOf(TargetComparison.AtMost, TargetComparison.Exactly, TargetComparison.WithinRange).forEach { comparison ->
+            val habit = habit(comparison, min = if (comparison == TargetComparison.AtMost) null else 2.0, max = 2.0)
+                .copy(targetPeriod = TargetPeriod.Week)
+            val logs = listOf(log(1, monday, HabitLogStatus.Recorded).copy(value = 2.0, canonicalValue = 2.0))
+            assertEquals(emptySet<LocalDate>(), habit.successfulPeriodOutcomeDates(logs, monday, monday.plusDays(6)))
+            assertEquals(HabitDayState.Pending, habit.dayStateOn(monday, monday.plusDays(6), logs))
+            assertEquals(setOf(monday.plusDays(6)), habit.successfulPeriodOutcomeDates(logs, monday, monday.plusDays(7)))
+            assertEquals(HabitDayState.Completed, habit.dayStateOn(monday.plusDays(6), monday.plusDays(7), logs))
+            val exceeded = logs + log(2, monday.plusDays(6), HabitLogStatus.Recorded)
+            assertEquals(emptySet<LocalDate>(), habit.successfulPeriodOutcomeDates(exceeded, monday, monday.plusDays(7)))
+            assertEquals(HabitDayState.BelowTarget, habit.dayStateOn(monday.plusDays(6), monday.plusDays(7), exceeded))
+        }
+    }
+
+    @Test fun finitePeriodTargetsKeepTheirThresholdOutcomeAndStopAccumulatingMisses() {
+        val logs = listOf(log(1, monday.plusDays(2), HabitLogStatus.Recorded), log(2, monday.plusWeeks(1).plusDays(2), HabitLogStatus.Recorded))
+        listOf(HabitEndType.AfterCompletions, HabitEndType.AfterStreak, HabitEndType.AfterTotal).forEach { ending ->
+            val habit = habit().copy(targetPeriod = TargetPeriod.Week, endType = ending, endValue = 2.0)
+            val through = monday.plusWeeks(4)
+            assertTrue(habit.hasEnded(logs, through))
+            assertEquals(setOf(monday.plusDays(2), monday.plusWeeks(1).plusDays(2)), habit.successfulPeriodOutcomeDates(logs, monday, through))
+            assertEquals(2, habit.currentStreak(logs, through))
+            assertEquals(1.0, habit.completionRateOverRecentPeriods(logs, through), 0.0)
+            assertEquals(HabitDayState.NotScheduled, habit.dayStateOn(through, through, logs))
+            assertEquals(HabitDayState.Completed, habit.dayStateOn(monday.plusWeeks(1).plusDays(2), through, logs))
+        }
+        val daily = habit().copy(endType = HabitEndType.AfterCompletions, endValue = 2.0)
+        val dailyLogs = listOf(log(1, monday, HabitLogStatus.Recorded), log(2, monday.plusDays(1), HabitLogStatus.Recorded))
+        assertEquals(2, daily.currentStreak(dailyLogs, monday.plusDays(20)))
+        assertEquals(1.0, daily.completionRateOverRecentPeriods(dailyLogs, monday.plusDays(20)), 0.0)
+    }
+
+    @Test fun futureEvidenceCannotEarnFlexiblePeriodsOrSuppressCurrentReminders() {
+        val future = listOf(log(1, monday.plusDays(1), HabitLogStatus.Success))
+        listOf(HabitScheduleType.FlexibleTimesPerWeek, HabitScheduleType.FlexibleTimesPerMonth).forEach { cadence ->
+            val habit = habit(schedule = cadence, flexible = 1)
+            assertEquals(0, habit.flexiblePeriodStreak(future, monday))
+            assertEquals(0.0, habit.completionRateOverRecentPeriods(future, monday), 0.0)
+            assertTrue(habit.reminderNeededOn(future, monday))
+            assertEquals(1, habit.flexiblePeriodStreak(future, monday.plusDays(1)))
+            assertEquals(1.0, habit.completionRateOverRecentPeriods(future, monday.plusDays(1)), 0.0)
+            assertFalse(habit.reminderNeededOn(future, monday.plusDays(1)))
+        }
+        // A calendar lookup intentionally includes the whole period; dated consumers own the cutoff.
+        val weekly = habit().copy(targetPeriod = TargetPeriod.Week)
+        assertEquals(1.0, weekly.valueForPeriod(future, monday), 0.0)
+        assertTrue(weekly.reminderNeededOn(future, monday))
+    }
+
+    @Test fun neutralPeriodsAndFutureLogsCannotInventOrBreakDiscreteAttainment() {
+        val habit = habit().copy(targetPeriod = TargetPeriod.Week)
+        val pause = HabitPause(1, habit.id, monday.plusWeeks(1), monday.plusWeeks(1).plusDays(6), "Away")
+        val logs = listOf(log(1, monday.plusDays(2), HabitLogStatus.Recorded), log(2, monday.plusWeeks(2).plusDays(2), HabitLogStatus.Recorded))
+        assertEquals(setOf(monday.plusDays(2)), habit.successfulPeriodOutcomeDates(logs, monday, monday.plusDays(6)))
+        assertEquals(2, habit.currentStreak(logs, monday.plusWeeks(2).plusDays(3), pauses = listOf(pause)))
+        assertEquals(1.0, habit.completionRateOverRecentPeriods(logs, monday.plusWeeks(2).plusDays(3), pauses = listOf(pause)), 0.0)
+        val total = habit.copy(endType = HabitEndType.AfterTotal, endValue = 1.0)
+        val decreased = logs.take(1) + log(3, monday.plusDays(3), HabitLogStatus.Recorded).copy(value = -1.0, canonicalValue = -1.0)
+        assertTrue(total.hasEnded(decreased, monday.plusDays(4)))
+    }
+
+
+    @Test fun finiteFlexibleStreaksPreserveEarnedPeriodsWhileOpenHabitsCanLoseThem() {
+        for (schedule in listOf(HabitScheduleType.FlexibleTimesPerWeek, HabitScheduleType.FlexibleTimesPerMonth)) {
+            val start = if (schedule == HabitScheduleType.FlexibleTimesPerWeek) monday else monday.withDayOfMonth(1)
+            val nextPeriod = if (schedule == HabitScheduleType.FlexibleTimesPerWeek) start.plusWeeks(1) else start.plusMonths(1)
+            val earned = listOf(start.plusDays(2), nextPeriod.plusDays(2))
+            val through = if (schedule == HabitScheduleType.FlexibleTimesPerWeek) nextPeriod.plusWeeks(2).plusDays(2)
+                else nextPeriod.plusMonths(2).plusDays(2)
+            val logs = earned.mapIndexed { index, day -> log(index + 1L, day, HabitLogStatus.Success) }
+            val ongoing = habit(schedule = schedule, flexible = 1).copy(startDate = start)
+            assertEquals(2, ongoing.currentStreak(logs, earned.last()))
+            assertEquals(0, ongoing.currentStreak(logs, through))
+            for (ending in listOf(HabitEndType.AfterCompletions, HabitEndType.AfterStreak, HabitEndType.AfterTotal, HabitEndType.OnDate)) {
+                val finite = ongoing.copy(endType = ending,
+                    endValue = 2.0.takeUnless { ending == HabitEndType.OnDate },
+                    endDate = earned.last().takeIf { ending == HabitEndType.OnDate })
+                assertTrue(finite.hasEnded(logs, through))
+                assertEquals(2, finite.currentStreak(logs, through))
+                assertEquals(2, finite.currentStreak(logs, through.plusMonths(1)))
+            }
+        }
+    }
+
     private fun habit(
         comparison: TargetComparison = TargetComparison.AtLeast,
         min: Double? = 1.0,

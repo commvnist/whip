@@ -423,7 +423,7 @@ class UiDesignArchitectureTest {
     fun primaryWorkspaceSwitchingPreservesEachWorkspaceContext() {
         val app = File(sourceRoot, "com/whip/app/ui/WhipApp.kt").readText()
         val switcher = app.substringAfter("fun selectPrimaryDestination(destination: AppDestination)")
-            .substringBefore("val collectionStatusNowMillis")
+            .substringBefore("fun selectHomeSummary(destination: AppDestination)")
 
         listOf(
             "taskDestination =",

@@ -58,6 +58,41 @@ class EditorDependencyUxTest {
     @get:Rule val rules: RuleChain = RuleChain.outerRule(AndroidFontScaleRule()).around(compose)
 
     @Test
+    fun pendingSubtaskIsDirtySurvivesCancelAndBelongsToSaveAndNewWithoutDuplicates() {
+        val saved = AtomicReference<TaskDraft?>(null)
+        var dismissals = 0
+        compose.setContent {
+            WhipTheme(dynamicColor = false) {
+                TaskEditorDialog(request = TaskEditorRequest(sessionId = 2201L), onDismiss = { dismissals++ },
+                    onSave = { _, draft, _ -> saved.set(draft) }, onSaveAndNew = { _, draft, _ -> saved.set(draft) },
+                    onRequestNotificationPermission = {}, powerMode = true)
+            }
+        }
+        closeSoftKeyboard()
+        compose.onNodeWithText("New Subtask").performScrollTo().performTextInput("Pack shoes")
+        closeSoftKeyboard()
+        captureVisualCatalogSurface("overhaul.tasks.pending-subtask-before")
+        compose.onNodeWithContentDescription("Cancel Task editing").performClick()
+        compose.onNodeWithText("Discard Unsaved Changes?").assertIsDisplayed()
+        compose.runOnIdle { assertEquals(0, dismissals) }
+        compose.onNodeWithText("Keep Editing").performClick()
+        compose.onNodeWithText("New Subtask").performScrollTo().assertTextContains("Pack shoes")
+        compose.onNodeWithTag("task-editor-title").performScrollTo().performTextInput("Training kit")
+        closeSoftKeyboard()
+        compose.onNodeWithText("Save & New").performClick()
+        compose.runOnIdle {
+            assertEquals(listOf("Pack shoes"), requireNotNull(saved.get()).steps.map { it.title })
+            assertEquals(listOf(0), requireNotNull(saved.get()).steps.map { it.position })
+        }
+        compose.onNodeWithText("New Subtask").performScrollTo()
+        compose.onNodeWithContentDescription("Add subtask").performClick()
+        closeSoftKeyboard()
+        compose.onNodeWithText("Save").performClick()
+        compose.runOnIdle { assertEquals(listOf("Pack shoes"), requireNotNull(saved.get()).steps.map { it.title }) }
+        captureVisualCatalogSurface("overhaul.tasks.pending-subtask-after")
+    }
+
+    @Test
     fun untouchedTaskTitleStaysNeutralUntilSaveExplainsTheRequirement() {
         val saved = AtomicReference<TaskDraft?>(null)
         compose.setContent {

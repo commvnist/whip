@@ -43,6 +43,38 @@ class GoalRulesTest {
         assertEquals(1.0, goalOutcomeScoreOnDate(trend, listOf(entry(0.0, today)), emptyList(), today), 0.0)
     }
 
+    @Test fun reductionDraftsRequireAnHonestDirectionAwareStartingInterval() {
+        val draft = GoalDraft("Reduce weight", type = GoalType.ReduceValue, targetMin = 80.0, startDate = today).withTypeSemantics()
+        assertTrue(draft.validationErrors(0).contains("Enter a starting value for a reduction Goal"))
+        assertTrue(draft.copy(baseline = 70.0).validationErrors(0).any { it.startsWith("Starting value cannot") })
+        assertTrue(draft.copy(baseline = 100.0).validationErrors(0).isEmpty())
+        assertTrue(draft.copy(baseline = 80.0).validationErrors(0).isEmpty())
+        assertTrue(GoalDraft("Increase", type = GoalType.ReachValue, baseline = 110.0, targetMin = 100.0, startDate = today).withTypeSemantics()
+            .validationErrors(0).any { it.startsWith("Starting value cannot") })
+        val milestones = GoalDraft("Milestones", type = GoalType.WeightedMilestones, precision = -1, startDate = today,
+            milestones = listOf(GoalMilestoneDraft("Ship", 1.0))).withTypeSemantics()
+        assertEquals(0, milestones.precision)
+        assertTrue(milestones.validationErrors(0).isEmpty())
+    }
+
+    @Test fun legacyInvalidReductionIntervalsNeverInvertProgressOrInflateReview() {
+        listOf(null, 0.0, 70.0).forEach { baseline ->
+            val legacy = goal(baseline = baseline, target = 80.0, type = GoalType.ReduceValue)
+            assertNull(calculateGoalProgress(legacy, null))
+            listOf(90.0, 80.0, 70.0).forEach { value ->
+                val readings = listOf(entry(value, today))
+                assertNull(calculateGoalProgress(legacy, value))
+                assertNull(projectGoal(legacy, readings, emptyList(), today).progress)
+                assertNull(buildGoalInsights(legacy, readings, through = today).points.single().progress)
+                assertEquals(value, projectGoal(legacy, readings, emptyList(), today).currentValue!!, 0.0)
+                assertEquals(0.0, goalOutcomeScoreOnDate(legacy, readings, emptyList(), today), 0.0)
+            }
+        }
+        val valid = goal(baseline = 100.0, target = 80.0, type = GoalType.ReduceValue)
+        assertEquals(0.5, calculateGoalProgress(valid, 90.0)!!, 0.0)
+        assertEquals(1.5, calculateGoalProgress(valid, 70.0)!!, 0.0)
+    }
+
     @Test fun increasingAndDecreasingProgressUseBaseline() {
         assertEquals(.5, calculateGoalProgress(goal(baseline = 0.0, target = 100.0), 50.0)!!, 0.0)
         assertEquals(.5, calculateGoalProgress(goal(baseline = 100.0, target = 80.0, type = GoalType.ReduceValue), 90.0)!!, 0.0)

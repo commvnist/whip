@@ -30,9 +30,9 @@ internal sealed interface LaunchDeliveryCommand {
         val destination: TaskDestination?,
     ) : LaunchDeliveryCommand
     data class OpenTaskFallback(val message: String) : LaunchDeliveryCommand
-    data class OpenHabit(val id: Long) : LaunchDeliveryCommand
+    data class OpenHabit(val id: Long, val date: LocalDate? = null) : LaunchDeliveryCommand
     data class OpenGoal(val id: Long) : LaunchDeliveryCommand
-    data object OpenGym : LaunchDeliveryCommand
+    data class OpenGym(val sessionId: Long? = null) : LaunchDeliveryCommand
     data class OpenTrack(val id: Long) : LaunchDeliveryCommand
     data class SharedTaskQueueOverflow(val count: Int) : LaunchDeliveryCommand
 }
@@ -168,13 +168,13 @@ internal fun LaunchDeliveryEffect(
                 )
             }
             WhipLaunchActions.ACTION_OPEN_HABIT -> initialEntityId?.let {
-                admitted = onCommand(LaunchDeliveryCommand.OpenHabit(it))
+                admitted = onCommand(LaunchDeliveryCommand.OpenHabit(it, initialOccurrenceEpochDay?.let(LocalDate::ofEpochDay)))
             }
             WhipLaunchActions.ACTION_OPEN_GOAL -> initialEntityId?.let {
                 admitted = onCommand(LaunchDeliveryCommand.OpenGoal(it))
             }
             WhipLaunchActions.ACTION_OPEN_GYM -> {
-                admitted = onCommand(LaunchDeliveryCommand.OpenGym)
+                admitted = onCommand(LaunchDeliveryCommand.OpenGym(initialEntityId))
             }
             WhipLaunchActions.ACTION_OPEN_TRACK -> initialEntityId?.let { trackId ->
                 admitted = onCommand(LaunchDeliveryCommand.OpenTrack(trackId))

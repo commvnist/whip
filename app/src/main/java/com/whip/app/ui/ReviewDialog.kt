@@ -186,6 +186,7 @@ fun ReviewDialog(
             retryActions = retryActions,
             correlations = correlations,
             rangeLabel = rangeLabel,
+            correlationRangeLabel = formatReviewRange(through.minusDays(29), through, locale),
             locale = locale,
             onDrillDown = onDrillDown,
             onOpenDetails = { detailedSection = it },
@@ -457,6 +458,7 @@ private fun ReviewOverview(
     retryActions: DomainRetryActions,
     correlations: List<ReviewCorrelation>,
     rangeLabel: String,
+    correlationRangeLabel: String,
     locale: java.util.Locale,
     onDrillDown: (ReviewSection) -> Unit,
     onOpenDetails: (ReviewSection) -> Unit,
@@ -481,9 +483,6 @@ private fun ReviewOverview(
                 supportingText = "Try another period or include more sections in Review Options. " +
                     "Complete a Task, reach a Habit target, record Goal progress, or finish a Workout to add an outcome.",
             )
-            trackEvidence?.let { evidence ->
-                TrackEvidenceCard(evidence = evidence, rangeLabel = rangeLabel, onOpenTracks = onOpenTracks)
-            }
             FlowRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
@@ -497,7 +496,6 @@ private fun ReviewOverview(
                 }
                 WhipTextButton(onClick = { onDrillDown(ReviewSection.Gym) }) { Text("Open Gym") }
             }
-            return@Column
         }
         if (includedSections.isEmpty()) {
             trackEvidence?.let { evidence ->
@@ -505,7 +503,7 @@ private fun ReviewOverview(
             }
             return@Column
         }
-        BoxWithConstraints(Modifier.fillMaxWidth().testTag("review-signal-grid")) {
+        if (hasReviewData || !availability.outcomesComplete) BoxWithConstraints(Modifier.fillMaxWidth().testTag("review-signal-grid")) {
             val visibleSignals = allSignals.filter { it.first in includedSections }
             val readableWidth = maxWidth / LocalDensity.current.fontScale.coerceAtLeast(1f)
             val columns = when {
@@ -538,14 +536,14 @@ private fun ReviewOverview(
         }
         DisclosureRow(
             title = "30-Day Correlations",
-            supportingText = if (correlations.isEmpty()) "Not enough observations yet" else "${correlations.size} comparisons · Association, not causation",
+            supportingText = "$correlationRangeLabel · " + if (correlations.isEmpty()) "Not enough outcome days yet" else "${correlations.size} comparisons · Association, not causation",
             expanded = correlationsExpanded,
             onClick = { onCorrelationsExpandedChange(!correlationsExpanded) },
             modifier = Modifier.testTag("review-correlations-toggle"),
         )
         if (correlationsExpanded) WhipGroupedInformationCard {
             Text(
-                "Correlations show association, not causation. Each comparison needs at least seven observed days.",
+                "Correlations show association, not causation. Each series needs at least seven days with nonzero outcomes and some variation; all 30 calendar days are compared.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -664,8 +662,9 @@ private fun ReviewLineChart(values: List<Double>, modifier: Modifier = Modifier)
         val step = if (values.size <= 1) 0f else size.width / (values.size - 1)
         val path = Path()
         values.forEachIndexed { index, value ->
-            val x = index * step
+            val x = if (values.size == 1) size.width / 2f else index * step
             val y = size.height - ((value / max).toFloat() * size.height)
+            if (values.size == 1) drawCircle(lineColor, radius = 4.dp.toPx(), center = androidx.compose.ui.geometry.Offset(x, y.coerceIn(4.dp.toPx(), size.height - 4.dp.toPx())))
             if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
         }
         drawPath(path, lineColor, style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round))

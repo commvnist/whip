@@ -91,6 +91,42 @@ class WidgetExtremeTextTest {
     }
 
     @Test
+    fun decimalWidgetExposesExactIncrementAndUpperBoundAtExtremeTextScale() = runBlocking {
+        val app = ApplicationProvider.getApplicationContext<WhipApplication>()
+        app.backupRepository.deleteAllData()
+        val habitId = app.habitRepository.create(HabitDraft(
+            name = "Precise weekly limit",
+            trackingMode = HabitTrackingMode.Decimal,
+            dimension = com.whip.app.domain.UnitDimension.Count,
+            unitId = "count", precision = 3,
+            comparison = com.whip.app.domain.TargetComparison.AtMost,
+            targetMin = null, targetMax = 10.0,
+            targetPeriod = com.whip.app.domain.TargetPeriod.Week,
+            quickIncrement = 0.001,
+            startDate = app.clock.today(),
+        ))
+        val scaledContext = app.createConfigurationContext(
+            Configuration(app.resources.configuration).apply { fontScale = 3.2f },
+        )
+        val widgetId = 83_203
+        WhipWidgetPreferences.save(app, widgetId, WidgetPreferences(
+            areaScope = AreaScope.All, selectedHabitIds = setOf(habitId), showCompletedHabits = true,
+        ))
+        try {
+            val factory = HabitWidgetRemoteViewsFactory(scaledContext, widgetId)
+            factory.onDataSetChanged()
+            val row = requireNotNull(factory.getViewAt(0)).apply(scaledContext, FrameLayout(scaledContext))
+            val body = row.findViewById<View>(R.id.widget_row_body)
+            val action = row.findViewById<View>(R.id.widget_row_action)
+            assertTrue(body.contentDescription.toString().contains("at most 10.000"))
+            assertTrue(body.contentDescription.toString().contains(app.clock.today().toString()))
+            assertTrue(action.contentDescription.toString().contains("0.001"))
+        } finally {
+            WhipWidgetPreferences.remove(app, intArrayOf(widgetId))
+        }
+    }
+
+    @Test
     fun minimumTaskWidgetRetainsOnePrimaryRowAndTrailingActionAtExtremeTextScale() = runBlocking {
         val app = ApplicationProvider.getApplicationContext<WhipApplication>()
         app.backupRepository.deleteAllData()

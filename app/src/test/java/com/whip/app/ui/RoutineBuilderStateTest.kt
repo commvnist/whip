@@ -62,6 +62,68 @@ class RoutineBuilderStateTest {
     }
 
     @Test
+    fun routineSaveRetainsSubmittedDraftFreezesEditsAndRejectsLateReplacementReceipts() {
+        val owner = RoutineBuilderViewModel(SavedStateHandle())
+        owner.initialize("first", RoutineBuilderState(name = "Submitted"), 1)
+        val submitted = owner.state.value
+        var complete: ((Boolean) -> Unit)? = null
+        assertTrue(owner.saveRoutine("first:1", submitted) { complete = it })
+        assertFalse(owner.saveRoutine("first:2", submitted) { error("duplicate started") })
+        owner.update { it.copy(name = "Unsubmitted") }
+        assertEquals(submitted, owner.state.value)
+        owner.initialize("first", RoutineBuilderState(), 1)
+        complete!!(true)
+        val finished = owner.routineSave.value as com.whip.app.core.PersistenceRequestState.Finished
+        assertEquals(submitted, (finished.result as com.whip.app.core.WhipResult.Success).value)
+        complete!!(false)
+        owner.consumeRoutineSave("other")
+        assertEquals(finished, owner.routineSave.value)
+        owner.consumeRoutineSave("first:1")
+        owner.update { it.copy(name = "Retry draft") }
+        assertTrue(owner.saveRoutine("first:3", owner.state.value) { it(false) })
+        assertTrue((owner.routineSave.value as com.whip.app.core.PersistenceRequestState.Finished).result is com.whip.app.core.WhipResult.Failure)
+        assertEquals("Retry draft", owner.state.value.name)
+        owner.consumeRoutineSave("first:3")
+        assertTrue(owner.saveRoutine("first:4", owner.state.value) { complete = it })
+        owner.initialize("replacement", RoutineBuilderState(name = "Replacement"), 2)
+        complete!!(true)
+        assertEquals(com.whip.app.core.PersistenceRequestState.Idle, owner.routineSave.value)
+        assertEquals("Replacement", owner.state.value.name)
+        assertThrows(kotlinx.coroutines.CancellationException::class.java) {
+            owner.saveRoutine("replacement:1", owner.state.value) { throw kotlinx.coroutines.CancellationException() }
+        }
+        assertEquals(com.whip.app.core.PersistenceRequestState.Idle, owner.routineSave.value)
+        assertTrue(owner.saveRoutine("replacement:2", owner.state.value) { it(true) })
+    }
+
+    @Test
+    fun repSchemeChangesOnlySelectedPhasePreservingCommonAndOtherPhaseRows() {
+        val existing = listOf(
+            RoutineBuilderSetState(10, load = "20", note = "Common"),
+            RoutineBuilderSetState(11, load = "100", routinePhaseIndex = 0),
+            RoutineBuilderSetState(12, load = "80", restSeconds = "90", note = "Selected", routinePhaseIndex = 1),
+            RoutineBuilderSetState(13, load = "110", routinePhaseIndex = 0),
+            RoutineBuilderSetState(14, load = "85", routinePhaseIndex = 1),
+            RoutineBuilderSetState(15, load = "120", routinePhaseIndex = 2),
+        )
+        val scheme = RepPrescriptionScheme(id = "phase", name = "Phase", setCount = 3,
+            repetitionsMin = 8, repetitionsMax = 10)
+        val applied = applyRepPrescriptionScheme(existing, scheme, phaseIndex = 1)
+        assertEquals(existing.filter { it.routinePhaseIndex != 1 }, applied.filter { it.routinePhaseIndex != 1 })
+        assertEquals(listOf(12L, 14L, 16L), applied.filter { it.routinePhaseIndex == 1 }.map { it.key })
+        assertEquals(listOf("8", "8", "8"), applied.filter { it.routinePhaseIndex == 1 }.map { it.repetitionsMin })
+        assertEquals("Selected", applied.first { it.key == 12L }.note)
+        assertEquals("90", applied.first { it.key == 12L }.restSeconds)
+        val shortened = applyRepPrescriptionScheme(applied, scheme.copy(setCount = 1), phaseIndex = 1)
+        assertEquals(existing.filter { it.routinePhaseIndex != 1 }, shortened.filter { it.routinePhaseIndex != 1 })
+        assertEquals(listOf(12L), shortened.filter { it.routinePhaseIndex == 1 }.map { it.key })
+        val newPhase = applyRepPrescriptionScheme(existing, scheme, phaseIndex = 3)
+        assertEquals(existing, newPhase.take(existing.size))
+        assertEquals(listOf(16L, 17L, 18L), newPhase.takeLast(3).map { it.key })
+        assertTrue(newPhase.takeLast(3).all { it.routinePhaseIndex == 3 })
+    }
+
+    @Test
     fun collapsedPrescriptionsExposeOnlyApplicableMeasurementsAcrossEveryTrackingType() {
         val set = RoutineBuilderSetState(1, load = "40", repetitionsMin = "5", repetitionsMax = "8",
             distance = "0.4", durationSeconds = "90", restSeconds = "60", rpe = "7", tempo = "3010")

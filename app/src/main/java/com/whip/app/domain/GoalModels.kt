@@ -173,6 +173,7 @@ data class GoalDraft(
 ) : Serializable
 
 fun GoalDraft.withTypeSemantics(): GoalDraft = copy(
+    precision = if (type == GoalType.WeightedMilestones) 0 else precision,
     aggregation = aggregation.takeIf { it in type.compatibleAggregations() } ?: type.defaultAggregation(),
     direction = type.defaultDirection(),
     paceType = paceType.takeIf { deadline != null && type !in setOf(GoalType.OpenEndedTrend, GoalType.ElapsedSince) } ?: GoalPaceType.None,
@@ -217,6 +218,14 @@ fun GoalDraft.validationErrors(nowMillis: Long): List<String> = buildList {
             if (deadline != null) add("Elapsed-time Goals do not use a deadline")
         }
         GoalType.Consistency, GoalType.OpenEndedTrend -> Unit
+    }
+    if (type in setOf(GoalType.ReachValue, GoalType.ReduceValue, GoalType.AccumulateTotal, GoalType.MeetAverage)) {
+        val starting = baseline ?: 0.0
+        if (type == GoalType.ReduceValue && baseline == null) add("Enter a starting value for a reduction Goal")
+        else if (starting.isFinite() && targetMin?.isFinite() == true) {
+            if (direction == GoalDirection.Decrease && starting < targetMin) add("Starting value cannot be below the target for a reduction Goal")
+            if (direction == GoalDirection.Increase && starting > targetMin) add("Starting value cannot exceed the target for an increasing Goal")
+        }
     }
     if (
         type.supportsAggregationPeriod() && aggregationPeriod == GoalAggregationPeriod.RollingDays &&
@@ -785,6 +794,8 @@ fun calculateGoalProgress(
         if (total <= 0.0) return 0.0
         return milestones.filter(GoalMilestone::completed).sumOf { it.weight.coerceAtLeast(0.0) } / total
     }
+    if (goal.type in setOf(GoalType.ReachValue, GoalType.ReduceValue, GoalType.AccumulateTotal, GoalType.MeetAverage) &&
+        goal.progressBaseline == null) return null
     val value = current ?: return 0.0
     if (goal.type == GoalType.Consistency) {
         val required = goal.consistencyRequiredPeriods ?: return null
@@ -798,7 +809,7 @@ fun calculateGoalProgress(
         val max = goal.targetMax ?: return null
         return if (value in min..max) 1.0 else 0.0
     }
-    val baseline = goal.baseline ?: 0.0
+    val baseline = goal.progressBaseline ?: return null
     val target = goal.targetMin ?: goal.targetMax ?: return null
     if (baseline == target) {
         return when (goal.direction) {
@@ -812,6 +823,17 @@ fun calculateGoalProgress(
     }
     return raw.takeIf(Double::isFinite)?.coerceAtLeast(0.0)
 }
+
+/** A percentage needs an interval that follows the authored direction. Legacy invalid Goals retain their observations. */
+val Goal.progressBaseline: Double?
+    get() {
+        val starting = baseline ?: if (type == GoalType.ReduceValue) return null else 0.0
+        val target = targetMin ?: targetMax ?: return null
+        if (!starting.isFinite() || !target.isFinite()) return null
+        if (direction == GoalDirection.Decrease && starting < target) return null
+        if (direction == GoalDirection.Increase && starting > target) return null
+        return starting
+    }
 
 fun projectGoal(
     goal: Goal,

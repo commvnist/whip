@@ -260,6 +260,32 @@ expect_failure mismatched-secondary-emulator 'must use the same API, system-imag
         PATH="$GUARDED_PATH" "${SCRIPT_DIR}/android-emulator-set"
 printf 'PASS explicit compatible two-emulator set guard\n'
 
+expect_success matching-three-emulator-set \
+    env ANDROID_SERIAL=emulator-5554 WHIP_ANDROID_SECONDARY_SERIAL=emulator-5556 \
+        WHIP_ANDROID_TERTIARY_SERIAL=emulator-5558 PATH="$GUARDED_PATH" \
+        "${SCRIPT_DIR}/android-emulator-set"
+[[ "$(wc -l < "$OUTPUT_FILE")" -eq 3 ]] && grep -Fqx 'emulator-5558' "$OUTPUT_FILE" || {
+    printf 'FAIL three-emulator guard did not emit exactly three explicit targets\n' >&2
+    exit 1
+}
+expect_failure tertiary-without-secondary 'requires an explicit secondary' \
+    env -u WHIP_ANDROID_SECONDARY_SERIAL ANDROID_SERIAL=emulator-5554 \
+        WHIP_ANDROID_TERTIARY_SERIAL=emulator-5558 PATH="$GUARDED_PATH" \
+        "${SCRIPT_DIR}/android-emulator-set"
+expect_failure duplicate-tertiary-emulator 'must be different' \
+    env ANDROID_SERIAL=emulator-5554 WHIP_ANDROID_SECONDARY_SERIAL=emulator-5556 \
+        WHIP_ANDROID_TERTIARY_SERIAL=emulator-5556 PATH="$GUARDED_PATH" \
+        "${SCRIPT_DIR}/android-emulator-set"
+expect_failure physical-tertiary-emulator 'refusing instrumentation' \
+    env ANDROID_SERIAL=emulator-5554 WHIP_ANDROID_SECONDARY_SERIAL=emulator-5556 \
+        WHIP_ANDROID_TERTIARY_SERIAL=owner-phone FAKE_ADB_SECONDARY_SERIAL=owner-phone \
+        FAKE_ADB_SECONDARY_QEMU=0 PATH="$GUARDED_PATH" "${SCRIPT_DIR}/android-emulator-set"
+expect_failure mismatched-tertiary-emulator 'must use the same API, system-image fingerprint, and ABI' \
+    env ANDROID_SERIAL=emulator-5554 WHIP_ANDROID_SECONDARY_SERIAL=emulator-5556 \
+        WHIP_ANDROID_TERTIARY_SERIAL=emulator-5558 FAKE_ADB_SECONDARY_SERIAL=emulator-5558 \
+        FAKE_ADB_SECONDARY_FINGERPRINT=fixture/other PATH="$GUARDED_PATH" "${SCRIPT_DIR}/android-emulator-set"
+printf 'PASS explicit compatible three-emulator set guard\n'
+
 expect_failure missing-release-target 'set WHIP_DEVICE' \
     env -u WHIP_DEVICE PATH="$GUARDED_PATH" "${SCRIPT_DIR}/android-target-guard" release
 expect_failure emulator-release-target 'refusing release action on emulator' \
@@ -488,7 +514,7 @@ if [[ " $* " == *' :app:createDebugUnitTestCoverageReport '* ]]; then
     exit 0
 fi
 if [[ " $* " == *' :app:connectedDebugAndroidTest '* ]]; then
-    [[ "${ANDROID_SERIAL:-}" == 'emulator-5554' || "${ANDROID_SERIAL:-}" == 'emulator-5556' ]] || {
+    [[ "${ANDROID_SERIAL:-}" == 'emulator-5554' || "${ANDROID_SERIAL:-}" == 'emulator-5556' || "${ANDROID_SERIAL:-}" == 'emulator-5558' ]] || {
         printf 'connected coverage task was not pinned\n' >&2
         exit 90
     }
@@ -660,6 +686,31 @@ grep -Fq 'across 2 batches on 2 emulator(s)' "$OUTPUT_FILE" || {
     exit 1
 }
 printf 'PASS targeted two-emulator distribution and exact aggregate\n'
+
+: > "$COVERAGE_GRADLE_LOG"
+expect_success targeted-three-emulator-parallel-accounting \
+    env ANDROID_SERIAL=emulator-5554 WHIP_ANDROID_SECONDARY_SERIAL=emulator-5556 \
+        WHIP_ANDROID_TERTIARY_SERIAL=emulator-5558 PATH="$GUARDED_PATH" \
+        "${COVERAGE_FIXTURE_ROOT}/scripts/android-test-engine" --mode targeted \
+        --class com.whip.app.CoverageProbe01Test --class com.whip.app.CoverageProbe02Test \
+        --class com.whip.app.CoverageProbe03Test
+[[ "$(grep -c '^connected' "$COVERAGE_GRADLE_LOG")" -eq 3 ]] || {
+    printf 'FAIL three-emulator engine: expected exactly three invocations\n' >&2
+    exit 1
+}
+for serial in emulator-5554 emulator-5556 emulator-5558; do
+    [[ "$(grep -c "^connected"$'\t'"${serial}"$'\t' "$COVERAGE_GRADLE_LOG")" -eq 1 ]] || {
+        printf 'FAIL three-emulator engine: %s did not own exactly one batch\n' "$serial" >&2
+        exit 1
+    }
+done
+parallel_run_dir="$(sed -nE 's/^Android instrumentation accepted .* Evidence: (.*)$/\1/p' "$OUTPUT_FILE" | tail -n 1)"
+[[ "$(awk -F '\t' 'NR > 1 { tests += $5; failures += $6; skipped += $7; rows++ } END { print rows ":" tests ":" failures ":" skipped }' "${parallel_run_dir}/aggregate.tsv")" == '3:3:0:0' ]] || {
+    printf 'FAIL three-emulator engine: incomplete aggregate\n' >&2
+    exit 1
+}
+grep -Fq 'across 3 batches on 3 emulator(s)' "$OUTPUT_FILE"
+printf 'PASS targeted three-emulator distribution and exact aggregate\n'
 
 : > "$COVERAGE_GRADLE_LOG"
 expect_failure parallel-two-emulator-surfaces-batch-diagnostics 'got status/tests/failures/skips 0/1/1/0' \

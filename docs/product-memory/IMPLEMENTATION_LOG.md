@@ -1,5 +1,13 @@
 # Implementation history
 
+### IMP-20260930-001 - Resume and integrate the comprehensive UX and correctness overhaul
+
+- Related: FB-20260930-001, DEC-20260930-001, the September29 coherence audit and paused QA handoff. Status: First implementation batch validated; full native/category acceptance remains in progress.
+- Changes: Direction-aware Goal truth; discrete/finite/future Habit evidence; phase-local and receipt-owned Routine/Workout authoring; raw pending subtasks; retained inspection/list context; confirmed emoji/settings saves and committed-import warnings; exact platform date/Area/session routes; precise widget semantics and shared generation-bound mutation failure states.
+- Shared design: Preserve existing chrome/theme/components; add direct empty Habit creation through the existing empty-state owner. Separate explicit daily intent from ordinary retained navigation. Move Task editor state registration to its existing host to keep instrumentation within JVM method limits without disabling coverage.
+- Evidence: [Twelve-category status and exact limitations](../quality/UX_OVERHAUL_2026-09-30.md), [selected original before/after gallery](../../artifacts/ux-overhaul/2026-09-30/README.md). All three assigned emulators have actual Whip interactions; incomplete/failed batches remain recorded.
+- Compatibility: No dependency, schema, data epoch, backup-format or owner-phone change. All754 JVM, local coverage/lint/build/static and affected readiness pass; composite focused native acceptance and selected originals are recorded. Normal commit/push is the next checkpoint; full fresh native accounting and the explicitly documented remaining journeys still precede complete-overhaul acceptance.
+
 ### IMP-20260929-024 — Release direct execution to the owner phone before extensive QA
 
 - Related: FB-20260929-019, IMP-20260929-023, VER-20260929-021. Status: Released; subjective appearance awaits owner use.

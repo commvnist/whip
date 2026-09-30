@@ -856,6 +856,13 @@ fun CompletedTaskDialog(
                             item.task.notes.takeIf(String::isNotBlank)?.let { EntityInspectorFact("Notes", it) }
                             if (item.totalSubtasks > 0) {
                                 EntityInspectorFact("Subtasks", "${item.completedSubtasks} of ${item.totalSubtasks} complete")
+                                item.subtasks.forEach { subtask ->
+                                    EntityInspectorFact(
+                                        subtask.title,
+                                        if (subtask.completed) "Complete" else "Incomplete at completion",
+                                    )
+                                    subtask.notes.takeIf(String::isNotBlank)?.let { EntityInspectorFact("Step notes", it) }
+                                }
                             }
                         }
                     }

@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -83,6 +84,7 @@ internal fun AreaManagementDialog(
     var detailId by rememberSaveable { mutableStateOf<String?>(null) }
     var archivedExpanded by rememberSaveable { mutableStateOf(false) }
     var query by rememberSaveable { mutableStateOf("") }
+    val areaListState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
     var pendingAction by rememberSaveable { mutableStateOf<String?>(null) }
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -218,6 +220,7 @@ internal fun AreaManagementDialog(
                     if (masterDetail) {
                         Row(Modifier.fillMaxSize()) {
                             AreaListContent(
+                                listState = areaListState,
                                 modifier = Modifier.weight(0.42f).fillMaxHeight(),
                                 state = state,
                                 active = active,
@@ -290,6 +293,7 @@ internal fun AreaManagementDialog(
                         )
                     } else {
                         AreaListContent(
+                            listState = areaListState,
                             modifier = Modifier.fillMaxSize(),
                             state = state,
                             active = active,
@@ -481,6 +485,7 @@ internal fun AreaManagementDialog(
 
 @Composable
 private fun AreaListContent(
+    listState: LazyListState,
     modifier: Modifier,
     state: SettingsUiState,
     active: List<Area>,
@@ -505,6 +510,7 @@ private fun AreaListContent(
     val visibleArchived = archived.filter { query.isBlank() || it.name.contains(query, true) }
     BackHandler(enabled = reordering) { reordering = false }
     WhipReorderLazyColumn(
+        state = listState,
         modifier = modifier,
         contentPadding = androidx.compose.foundation.layout.PaddingValues(20.dp, 16.dp, 20.dp, 88.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -967,10 +973,16 @@ private fun RenameAreaDialog(
     onRename: (String) -> Unit,
 ) {
     var name by rememberSaveable(area.id) { mutableStateOf(area.name) }
+    var confirmDiscard by rememberSaveable { mutableStateOf(false) }
+    fun requestDismiss() {
+        if (saving) return
+        if (name != area.name) confirmDiscard = true else onDismiss()
+    }
+
     val conflict = existingAreas.firstOrNull { it.id != area.id && it.name.equals(name.trim(), true) }
     PaneAwareAlertDialog(
         modifier = modifier.testTag("rename-area-dialog"),
-        onDismissRequest = { if (!saving) onDismiss() },
+        onDismissRequest = ::requestDismiss,
         inputBlocked = saving,
         inputBlockedLabel = "Renaming Area",
         title = { Text("Rename Area") },
@@ -991,8 +1003,15 @@ private fun RenameAreaDialog(
         confirmButton = { WhipTextButton(enabled = name.isNotBlank() && conflict == null && !saving, onClick = {
             onRename(name.trim())
         }) { Text(if (saving) "Saving…" else "Rename") } },
-        dismissButton = { WhipTextButton(enabled = !saving, onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { WhipTextButton(enabled = !saving, onClick = ::requestDismiss) { Text("Cancel") } },
     )
+    if (confirmDiscard) UnsavedChangesDialog(
+        subject = "Area",
+        onKeepEditing = { confirmDiscard = false },
+        onDiscard = { confirmDiscard = false; onDismiss() },
+        modifier = modifier,
+    )
+
 }
 
 @Composable

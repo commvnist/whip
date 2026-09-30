@@ -28,6 +28,7 @@ import com.whip.app.domain.Habit
 import com.whip.app.domain.HabitChecklistItem
 import com.whip.app.domain.HabitChecklistState
 import com.whip.app.domain.HabitDayProgress
+import com.whip.app.domain.HabitDayState
 import com.whip.app.domain.HabitDraft
 import com.whip.app.domain.HabitLog
 import com.whip.app.domain.HabitLogStatus
@@ -47,7 +48,6 @@ import com.whip.app.domain.BuiltInUnits
 import com.whip.app.domain.currentStreak
 import com.whip.app.domain.hasEnded
 import com.whip.app.domain.completionRateOverRecentPeriods
-import com.whip.app.domain.flexiblePeriodStreak
 import com.whip.app.domain.isScheduledOn
 import com.whip.app.domain.isNeutralDate
 import com.whip.app.domain.outcomeForPeriod
@@ -1313,7 +1313,7 @@ internal fun mirrorMeasurementEntriesAsHabitLogs(
     }.toList()
 }
 
-private data class HabitData(
+internal data class HabitData(
     val habits: List<Habit>,
     val items: List<HabitChecklistItem>,
     val logs: List<HabitLog>,
@@ -1322,7 +1322,7 @@ private data class HabitData(
     val skips: List<HabitSkip>,
 )
 
-private fun buildHabitUiState(data: HabitData, today: LocalDate, customUnits: List<UnitDefinition>): HabitUiState {
+internal fun buildHabitUiState(data: HabitData, today: LocalDate, customUnits: List<UnitDefinition>): HabitUiState {
     // An unresolved timer stays reachable even when persisted/restored state says archived,
     // paused, ended, or not scheduled today. New archive/pause operations are blocked first.
     val active = data.habits.filter { !it.archived || it.timerSessionId != null }
@@ -1347,7 +1347,7 @@ private fun buildProgress(
     date: LocalDate,
     customUnits: List<UnitDefinition>,
 ): HabitDayProgress {
-    val habitLogs = data.logs.filter { it.habitId == habit.id }
+    val habitLogs = data.logs.filter { it.habitId == habit.id && it.localDate <= date }
     val habitPauses = data.pauses.filter { it.habitId == habit.id }
     val habitSkips = data.skips.filter { it.habitId == habit.id }
     val flexibleProgress = habit.flexibleProgress(habitLogs, date, habitPauses, habitSkips)
@@ -1361,29 +1361,33 @@ private fun buildProgress(
         customUnits = customUnits,
         skips = habitSkips,
     )
-    val streak = if (habit.scheduleType in setOf(HabitScheduleType.FlexibleTimesPerWeek, HabitScheduleType.FlexibleTimesPerMonth)) {
-        habit.flexiblePeriodStreak(habitLogs, date, habitPauses, habitSkips)
-    } else {
-        habit.currentStreak(habitLogs, date, habitPauses, habitSkips, customUnits)
-    }
+    val streak = habit.currentStreak(habitLogs, date, habitPauses, habitSkips, customUnits)
     val ended = habit.hasEnded(habitLogs, date, habitPauses, customUnits, habitSkips)
     val explicitlyPaused = data.pauses.any { it.habitId == habit.id && !date.isBefore(it.startDate) && (it.endDate == null || !date.isAfter(it.endDate)) }
     val items = data.items.filter { it.habitId == habit.id && !it.archived }.map { item ->
         val completed = data.states.firstOrNull { it.habitId == habit.id && it.itemId == item.id && it.localDate == date }?.completed == true
         item to completed
     }
+    val dayState = habit.dayStateOn(date, date, habitLogs, habitPauses, habitSkips, customUnits)
     return HabitDayProgress(
         habit = habit,
         date = date,
-        scheduled = !ended && !explicitlyPaused && habit.isScheduledOn(date, weekCompletions, monthCompletions),
+        // Keep an earned outcome in Today (and its Home denominator) on the final day.
+        // dayStateOn excludes dates after the ending, so it cannot resurrect later check-ins.
+        scheduled = !explicitlyPaused && (dayState == HabitDayState.Completed ||
+            !ended && habit.isScheduledOn(date, weekCompletions, monthCompletions)),
         value = habit.valueForPeriod(habitLogs, date, customUnits),
         status = status,
-        successful = habit.outcomeForPeriod(habitLogs, date, customUnits),
+        successful = when (dayState) {
+            HabitDayState.Completed -> true
+            HabitDayState.BelowTarget -> false
+            else -> null
+        },
         checklistItems = items,
         streak = streak,
         completionRate = completionRate,
         flexibleScheduleProgress = flexibleProgress?.completed,
         flexibleScheduleTarget = flexibleProgress?.target,
-        dayState = habit.dayStateOn(date, date, habitLogs, habitPauses, habitSkips, customUnits),
+        dayState = dayState,
     )
 }

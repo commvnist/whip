@@ -428,11 +428,17 @@ private fun CreateTagDialog(
     onRestore: (String) -> Unit,
 ) {
     var name by rememberSaveable { mutableStateOf("") }
+    var confirmDiscard by rememberSaveable { mutableStateOf(false) }
+    fun requestDismiss() {
+        if (saving) return
+        if (name.isNotBlank()) confirmDiscard = true else onDismiss()
+    }
+
     val duplicate = existingTags.firstOrNull { it.name.equals(name.trim(), true) }
     val invalidSeparator = ',' in name
     PaneAwareAlertDialog(
         modifier = modifier.testTag("create-tag-dialog"),
-        onDismissRequest = { if (!saving) onDismiss() },
+        onDismissRequest = ::requestDismiss,
         inputBlocked = saving,
         inputBlockedLabel = "Saving Tag",
         title = { Text("Create Tag") },
@@ -477,8 +483,15 @@ private fun CreateTagDialog(
                 ) { Text(if (saving) "Saving…" else "Create") }
             }
         },
-        dismissButton = { WhipTextButton(enabled = !saving, onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { WhipTextButton(enabled = !saving, onClick = ::requestDismiss) { Text("Cancel") } },
     )
+    if (confirmDiscard) UnsavedChangesDialog(
+        subject = "Tag",
+        onKeepEditing = { confirmDiscard = false },
+        onDiscard = { confirmDiscard = false; onDismiss() },
+        modifier = modifier,
+    )
+
 }
 
 @Composable
@@ -493,11 +506,17 @@ private fun RenameTagDialog(
     onRename: (String) -> Unit,
 ) {
     var name by rememberSaveable(tag.id) { mutableStateOf(tag.name) }
+    var confirmDiscard by rememberSaveable { mutableStateOf(false) }
+    fun requestDismiss() {
+        if (saving) return
+        if (name != tag.name) confirmDiscard = true else onDismiss()
+    }
+
     val conflict = existingTags.firstOrNull { it.id != tag.id && it.name.equals(name.trim(), true) }
     val invalidSeparator = ',' in name
     PaneAwareAlertDialog(
         modifier = modifier.testTag("rename-tag-dialog"),
-        onDismissRequest = { if (!saving) onDismiss() },
+        onDismissRequest = ::requestDismiss,
         inputBlocked = saving,
         inputBlockedLabel = "Renaming Tag",
         paneTitle = "Rename #${tag.name}",
@@ -539,8 +558,15 @@ private fun RenameTagDialog(
                 onClick = { onRename(name.trim()) },
             ) { Text(if (saving) "Saving…" else "Rename Everywhere") }
         },
-        dismissButton = { WhipTextButton(enabled = !saving, onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { WhipTextButton(enabled = !saving, onClick = ::requestDismiss) { Text("Cancel") } },
     )
+    if (confirmDiscard) UnsavedChangesDialog(
+        subject = "Tag",
+        onKeepEditing = { confirmDiscard = false },
+        onDiscard = { confirmDiscard = false; onDismiss() },
+        modifier = modifier,
+    )
+
 }
 
 @Composable

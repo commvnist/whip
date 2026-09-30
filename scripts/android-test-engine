@@ -22,8 +22,9 @@ usage() {
         '  ANDROID_SERIAL=emulator-N scripts/android-test-engine --mode coverage [--evidence-dir DIR]' \
         '  ANDROID_SERIAL=emulator-N scripts/android-test-engine --mode targeted --class CLASS[#METHOD] ...' \
         '' \
-        'Set WHIP_ANDROID_SECONDARY_SERIAL=emulator-M to use two matching emulators.' \
-        'The primary and optional secondary targets remain explicit and emulator-only.' \
+        'Set WHIP_ANDROID_SECONDARY_SERIAL=emulator-M for two matching emulators.' \
+        'Also set WHIP_ANDROID_TERTIARY_SERIAL=emulator-P for three matching emulators.' \
+        'Every target remains explicit and emulator-only.' \
         'Modes reusable, fresh, and coverage select the complete inventory. Coverage' \
         'and fresh never reuse execution; compilation and APK packaging stay incremental.'
 }
@@ -72,7 +73,7 @@ emulator_set="$("${SCRIPT_DIR}/android-emulator-set")"
 mapfile -t test_serials <<< "$emulator_set"
 readonly -a test_serials
 readonly emulator_count="${#test_serials[@]}"
-((emulator_count >= 1 && emulator_count <= 2)) || die 'expected one or two validated Android emulators'
+((emulator_count >= 1 && emulator_count <= 3)) || die 'expected one to three validated Android emulators'
 
 previous_hide_error_dialogs=()
 previous_font_scales=()
@@ -192,8 +193,8 @@ if [[ "${#graphics_selectors[@]}" -gt 0 ]]; then
     append_batch graphics "${graphics_selectors[@]}"
 fi
 ordinary_batch_size="$INSTRUMENTATION_BATCH_SIZE"
-if ((emulator_count == 2 && ${#ordinary_selectors[@]} > 1 && ${#ordinary_selectors[@]} <= INSTRUMENTATION_BATCH_SIZE * 2)); then
-    ordinary_batch_size="$(((${#ordinary_selectors[@]} + 1) / 2))"
+if ((emulator_count > 1 && ${#ordinary_selectors[@]} > 1 && ${#ordinary_selectors[@]} <= INSTRUMENTATION_BATCH_SIZE * emulator_count)); then
+    ordinary_batch_size="$(((${#ordinary_selectors[@]} + emulator_count - 1) / emulator_count))"
 fi
 for ((batch_start = 0; batch_start < ${#ordinary_selectors[@]}; batch_start += ordinary_batch_size)); do
     batch=("${ordinary_selectors[@]:batch_start:ordinary_batch_size}")
@@ -449,15 +450,6 @@ else
         ordinary_indices+=("$next_batch_index")
         next_batch_index="$((next_batch_index + 1))"
     done
-    worker_one_indices=()
-    worker_two_indices=()
-    for index in "${!ordinary_indices[@]}"; do
-        if ((index % 2 == 0)); then
-            worker_one_indices+=("${ordinary_indices[$index]}")
-        else
-            worker_two_indices+=("${ordinary_indices[$index]}")
-        fi
-    done
     run_worker() {
         local worker_index="$1"
         shift
@@ -470,14 +462,18 @@ else
         done
     }
     worker_pids=()
-    if ((${#worker_one_indices[@]} > 0)); then
-        run_worker 0 "${worker_one_indices[@]}" &
-        worker_pids+=("$!")
-    fi
-    if ((${#worker_two_indices[@]} > 0)); then
-        run_worker 1 "${worker_two_indices[@]}" &
-        worker_pids+=("$!")
-    fi
+    for ((worker_index = 0; worker_index < emulator_count; worker_index++)); do
+        worker_indices=()
+        for index in "${!ordinary_indices[@]}"; do
+            if ((index % emulator_count == worker_index)); then
+                worker_indices+=("${ordinary_indices[$index]}")
+            fi
+        done
+        if ((${#worker_indices[@]} > 0)); then
+            run_worker "$worker_index" "${worker_indices[@]}" &
+            worker_pids+=("$!")
+        fi
+    done
     worker_failed=false
     for worker_pid in "${worker_pids[@]}"; do
         if ! wait "$worker_pid"; then worker_failed=true; fi

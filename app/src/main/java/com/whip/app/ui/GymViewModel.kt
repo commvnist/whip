@@ -63,9 +63,7 @@ import com.whip.app.domain.equipmentScopeKey
 import com.whip.app.data.MachineDeletionImpact
 import com.whip.app.core.AppSettings
 import com.whip.app.core.PlatePreset
-import com.whip.app.core.RepPrescriptionScheme
 import com.whip.app.core.TrackedGymRecord
-import com.whip.app.core.normalizeRestTimerPresets
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -274,6 +272,8 @@ internal data class QuickSetAuthorshipBoundary(
 )
 
 internal enum class GymSessionMutationKind {
+    WorkoutStarted,
+    WorkoutDetailsUpdated,
     ExerciseAdded,
     ExerciseSubstituted,
     WorkoutExerciseCopied,
@@ -991,34 +991,8 @@ class GymViewModel @JvmOverloads constructor(
         }
     }
 
-    fun saveRepPrescriptionScheme(scheme: RepPrescriptionScheme) {
-        require(scheme.isValid()) { "Invalid rep prescription scheme" }
-        updateSettings { current ->
-            val existingIndex = current.repPrescriptionSchemes.indexOfFirst { it.id == scheme.id }
-            current.copy(
-                repPrescriptionSchemes = if (existingIndex >= 0) {
-                    current.repPrescriptionSchemes.toMutableList().also { it[existingIndex] = scheme }
-                } else {
-                    current.repPrescriptionSchemes + scheme
-                },
-            )
-        }
-    }
-
-    fun reorderRepPrescriptionSchemes(schemes: List<RepPrescriptionScheme>) {
-        updateSettings { current ->
-            current.copy(repPrescriptionSchemes = schemes)
-        }
-    }
-
     fun updateTrackedGymRecords(records: List<TrackedGymRecord>) {
         updateSettings { current -> current.copy(trackedGymRecords = records) }
-    }
-
-    fun deleteRepPrescriptionScheme(id: String) {
-        updateSettings { current ->
-            current.copy(repPrescriptionSchemes = current.repPrescriptionSchemes.filterNot { it.id == id })
-        }
     }
 
     fun saveMachine(id: Long?, draft: GymMachineDraft, requestId: String): Boolean = runCatalogMutation(
@@ -1465,17 +1439,34 @@ class GymViewModel @JvmOverloads constructor(
         _pendingWorkoutLayoutUndo.value = null
     }
 
-    fun updateWorkout(
+    internal fun startWorkoutConfirmed(
+        name: String,
+        notes: String,
+        date: LocalDate,
+        keepAwake: Boolean,
+        requestId: String,
+    ): Boolean = runSessionMutation(
+        running = "Starting workout…", success = "Workout started", requestId = requestId,
+        committedReceipt = GymSessionMutationReceipt(GymSessionMutationKind.WorkoutStarted),
+    ) {
+        val id = repository.startWorkout(name, notes, localDate = date, zoneId = clock.zoneId(), keepScreenAwake = keepAwake)
+        _pendingWorkoutLayoutUndo.value = null
+        GymSessionMutationReceipt(GymSessionMutationKind.WorkoutStarted, id)
+    }
+
+    internal fun updateWorkoutConfirmed(
         id: Long,
         name: String,
         notes: String,
         keepAwake: Boolean,
-        onFinished: (Boolean) -> Unit = {},
-    ) = runOperation(
-        "Saving workout…",
-        "Workout saved",
-        onFinished,
-    ) { repository.updateWorkout(id, name, notes, keepAwake) }
+        requestId: String,
+    ): Boolean = runSessionMutation(
+        running = "Saving workout…", success = "Workout saved", requestId = requestId,
+        committedReceipt = GymSessionMutationReceipt(GymSessionMutationKind.WorkoutDetailsUpdated, id),
+    ) {
+        repository.updateWorkout(id, name, notes, keepAwake)
+        GymSessionMutationReceipt(GymSessionMutationKind.WorkoutDetailsUpdated, id)
+    }
 
     internal fun finishWorkout(
         boundary: WorkoutFinishBoundary,
@@ -2154,12 +2145,6 @@ class GymViewModel @JvmOverloads constructor(
         }
     }
 
-    fun updateRestTimerPresets(seconds: List<Int>) {
-        updateSettings { settings ->
-            settings.copy(restTimerPresetSeconds = normalizeRestTimerPresets(seconds))
-        }
-    }
-
     fun saveRoutine(id: Long?, draft: RoutineDraft) = runOperation(
         if (id == null) "Creating routine…" else "Saving routine…",
         if (id == null) "Routine created" else "Routine saved",
@@ -2184,6 +2169,9 @@ class GymViewModel @JvmOverloads constructor(
                 _operationStatus.value = OperationStatus.Failed(error.message ?: "Could not save routine", error)
                 onComplete(false)
             }
+        }.invokeOnCompletion { cause ->
+            // Cancellation may happen before launch starts; release the retained builder in either case.
+            if (cause is CancellationException) onComplete(false)
         }
     }
 

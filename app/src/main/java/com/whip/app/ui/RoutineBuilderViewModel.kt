@@ -118,6 +118,37 @@ internal class RoutineBuilderViewModel(
     val state = mutableState.asStateFlow()
     private val mutableLibrarySave = MutableStateFlow<PersistenceRequestState<RoutineLibrarySaveReceipt>>(PersistenceRequestState.Idle)
     val librarySave = mutableLibrarySave.asStateFlow()
+    private val mutableRoutineSave = MutableStateFlow<PersistenceRequestState<RoutineBuilderState>>(PersistenceRequestState.Idle)
+    val routineSave = mutableRoutineSave.asStateFlow()
+
+    fun saveRoutine(
+        requestId: String,
+        submitted: RoutineBuilderState,
+        save: ((Boolean) -> Unit) -> Unit,
+    ): Boolean {
+        if (!mutableRoutineSave.tryStartPersistenceRequest(requestId)) return false
+        val token = state.value.token
+        fun finish(saved: Boolean) {
+            if (state.value.token != token ||
+                (mutableRoutineSave.value as? PersistenceRequestState.Running)?.requestId != requestId) return
+            mutableRoutineSave.value = PersistenceRequestState.Finished(requestId,
+                if (saved) WhipResult.Success(submitted)
+                else WhipResult.Failure("The Routine save could not be confirmed. Your draft is still here; check the Routine Library before retrying."))
+        }
+        try { save(::finish) }
+        catch (cancelled: kotlinx.coroutines.CancellationException) {
+            if ((mutableRoutineSave.value as? PersistenceRequestState.Running)?.requestId == requestId) mutableRoutineSave.value = PersistenceRequestState.Idle
+            throw cancelled
+        }
+        catch (_: Exception) { finish(false) }
+        return true
+    }
+
+    fun consumeRoutineSave(requestId: String) {
+        if ((mutableRoutineSave.value as? PersistenceRequestState.Finished)?.requestId == requestId) {
+            mutableRoutineSave.value = PersistenceRequestState.Idle
+        }
+    }
 
     /** The retained owner receives late callbacks; a recreated dialog only consumes its own request. */
     fun saveLibraryItem(
@@ -155,10 +186,12 @@ internal class RoutineBuilderViewModel(
             mutableState.value.dataGeneration == dataGeneration
         ) return
         mutableLibrarySave.value = PersistenceRequestState.Idle
+        mutableRoutineSave.value = PersistenceRequestState.Idle
         set(initial.copy(token = token, dataGeneration = dataGeneration))
     }
 
     fun update(transform: (RoutineBuilderState) -> RoutineBuilderState) {
+        if (mutableRoutineSave.value is PersistenceRequestState.Running) return
         set(transform(mutableState.value))
     }
 
@@ -174,6 +207,7 @@ internal class RoutineBuilderViewModel(
 
     fun clear() {
         mutableLibrarySave.value = PersistenceRequestState.Idle
+        mutableRoutineSave.value = PersistenceRequestState.Idle
         savedStateHandle.remove<RoutineBuilderState>(STATE_KEY)
         mutableState.value = RoutineBuilderState()
     }

@@ -1,6 +1,8 @@
 package com.whip.app
 
 import androidx.compose.ui.test.assertContentDescriptionContains
+import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.assertIsOff
 
 import android.content.Intent
 import androidx.compose.ui.test.assertCountEquals
@@ -283,7 +285,16 @@ class HabitSkipJourneyE2ETest {
                 .performScrollToNode(hasTestTag("habit-card-$checklistHabitId"))
             compose.onNodeWithTag("habit-card-$checklistHabitId").assertIsDisplayed()
             compose.onNodeWithContentDescription("Expand habit Medication").assertIsDisplayed()
-            compose.onAllNodesWithText("Evening dose").assertCountEquals(0)
+            // Direct checklist controls remain available on a collapsed finished card for undo.
+            compose.onNodeWithContentDescription("Mark checklist item Evening dose incomplete").assertIsDisplayed().assertIsOn()
+            captureVisualCatalogSurface("overhaul.habits.finished-checklist-direct-undo")
+            compose.onNodeWithContentDescription("Mark checklist item Evening dose incomplete").performClick()
+            compose.waitUntil(5_000) {
+                compose.onAllNodesWithContentDescription("Complete checklist item Evening dose")
+                    .fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithContentDescription("Complete checklist item Evening dose").assertIsDisplayed().assertIsOff()
+            compose.onNodeWithTag("habit-card-$checklistHabitId").assertIsDisplayed()
         }
     }
 

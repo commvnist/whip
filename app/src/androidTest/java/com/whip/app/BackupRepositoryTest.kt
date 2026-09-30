@@ -600,6 +600,34 @@ class BackupRepositoryTest {
         assertEquals(localAreaId, tasks.tasks.first().single().areaId)
     }
 
+    @Test fun committedMergeKeepsImportedRowsWhenAreaRefreshFailsAndRetryDoesNotReimport() = runBlocking {
+        tasks.create(TaskDraft(title = "Committed despite refresh failure"))
+        val portable = backups.exportBackup()
+        backups.deleteAllData()
+        val realAreas = com.whip.app.data.RoomAreaRepository(database, FixedClock, SequentialIds())
+        var refreshFails = true
+        val failingAreas = object : com.whip.app.data.AreaRepository by realAreas {
+            override suspend fun ensureDefaultArea(): String {
+                if (refreshFails) error("Injected postcommit Area refresh failure")
+                return realAreas.ensureDefaultArea()
+            }
+        }
+        val importer = RoomBackupRepository(database, settings, failingAreas)
+        val receipt = importer.mergeBackup(portable)
+        assertTrue(receipt.importedRecords > 0)
+        assertEquals(listOf("Data is imported, but the default Area could not be refreshed."), receipt.warnings)
+        assertEquals("Committed despite refresh failure", tasks.tasks.first().single().title)
+        val committedId = tasks.tasks.first().single().id
+
+        refreshFails = false
+        assertTrue(importer.refreshAfterMerge().isEmpty())
+        assertEquals(committedId, tasks.tasks.first().single().id)
+        val repeat = importer.mergeBackup(portable)
+        assertEquals(0, repeat.importedRecords)
+        assertTrue(repeat.skippedExistingRecords > 0)
+        assertEquals(committedId, tasks.tasks.first().single().id)
+    }
+
     @Test fun mergeIsAtomicIdempotentRelationshipSafeAndKeepsCurrentSettings() = runBlocking {
         tasks.create(
             TaskDraft(

@@ -952,21 +952,22 @@ fun WhipScreen(
     var taskDayPlannerRequested by rememberSaveable { mutableStateOf(false) }
     var homeTasksRequested by rememberSaveable { mutableStateOf(false) }
     var taskPlanningViewRequest by rememberSaveable { mutableStateOf<TaskPlanningView?>(null) }
-    var taskEditorOpen by rememberSaveable { mutableStateOf(false) }
-    var taskEditorTaskId by rememberSaveable { mutableStateOf<Long?>(null) }
-    var taskEditorSnapshot by remember { mutableStateOf<com.whip.app.domain.WhipTask?>(null) }
-    var taskEditorBoundary by rememberSaveable { mutableStateOf<TaskEditBoundary?>(null) }
-    var taskEditorFromEpochDay by rememberSaveable { mutableStateOf<Long?>(null) }
-    var taskEditorSaveAndNew by rememberSaveable { mutableStateOf(false) }
-    var taskEditorCapture by rememberSaveable { mutableStateOf("") }
-    var taskEditorCaptureShortened by rememberSaveable { mutableStateOf(false) }
+    val taskEditorRouteStateHolder = rememberTaskEditorRouteState()
+    var taskEditorOpen by taskEditorRouteStateHolder.taskEditorOpen
+    var taskEditorTaskId by taskEditorRouteStateHolder.taskEditorTaskId
+    var taskEditorSnapshot by taskEditorRouteStateHolder.taskEditorSnapshot
+    var taskEditorBoundary by taskEditorRouteStateHolder.taskEditorBoundary
+    var taskEditorFromEpochDay by taskEditorRouteStateHolder.taskEditorFromEpochDay
+    var taskEditorSaveAndNew by taskEditorRouteStateHolder.taskEditorSaveAndNew
+    var taskEditorCapture by taskEditorRouteStateHolder.taskEditorCapture
+    var taskEditorCaptureShortened by taskEditorRouteStateHolder.taskEditorCaptureShortened
     val pendingTaskEditorLaunchState = rememberPendingTaskEditorLaunchState()
     val launchQueueOverflowState = rememberLaunchQueueOverflowState()
-    var taskEditorInitialScheduleEpochDay by rememberSaveable { mutableStateOf<Long?>(null) }
-    var taskEditorInitialPlacement by rememberSaveable { mutableStateOf<TaskPlacement?>(null) }
-    var taskEditorInitialAreaResolved by rememberSaveable { mutableStateOf(false) }
-    var taskEditorInitialAreaId by rememberSaveable { mutableStateOf<String?>(null) }
-    var taskEditorSessionId by rememberSaveable { mutableLongStateOf(0L) }
+    var taskEditorInitialScheduleEpochDay by taskEditorRouteStateHolder.taskEditorInitialScheduleEpochDay
+    var taskEditorInitialPlacement by taskEditorRouteStateHolder.taskEditorInitialPlacement
+    var taskEditorInitialAreaResolved by taskEditorRouteStateHolder.taskEditorInitialAreaResolved
+    var taskEditorInitialAreaId by taskEditorRouteStateHolder.taskEditorInitialAreaId
+    var taskEditorSessionId by taskEditorRouteStateHolder.taskEditorSessionId
     val actionItemKeyState = rememberSaveable { mutableStateOf<String?>(null) }
     var actionItemKey by actionItemKeyState
     val completedItemKeyState = rememberSaveable { mutableStateOf<String?>(null) }
@@ -981,6 +982,7 @@ fun WhipScreen(
     var createGoalRequested by rememberSaveable { mutableStateOf(false) }
     var createTrackRequested by rememberSaveable { mutableStateOf(false) }
     var gymAddRequest by rememberSaveable { mutableStateOf<GymAddRequest?>(null) }
+    var gymDestination by rememberSaveable { mutableStateOf(GymDestination.Workout) }
     var recordGoalIdRequested by rememberSaveable { mutableStateOf<Long?>(null) }
     var resetElapsedGoalIdRequested by rememberSaveable { mutableStateOf<Long?>(null) }
     var completeGoalIdRequested by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -990,6 +992,8 @@ fun WhipScreen(
     var settingsSearchAvailable by remember { mutableStateOf(false) }
     val openHabitIdRequestedState = rememberSaveable { mutableStateOf<Long?>(null) }
     var openHabitIdRequested by openHabitIdRequestedState
+    val openHabitEpochDayRequestedState = rememberSaveable { mutableStateOf<Long?>(null) }
+    var openHabitEpochDayRequested by openHabitEpochDayRequestedState
     var editHabitIdRequested by rememberSaveable { mutableStateOf<Long?>(null) }
     val openGoalIdRequestedState = rememberSaveable { mutableStateOf<Long?>(null) }
     var openGoalIdRequested by openGoalIdRequestedState
@@ -1077,6 +1081,11 @@ fun WhipScreen(
         completedItem = completedItem,
         loading = unscopedTaskState.loading,
         onClear = { completedItemKey = null },
+        onUnavailable = {
+            presentTransientFeedback(source = "completed-task", priority = 3) {
+                snackbarHostState.showSnackbar("This completed Task is no longer available.", withDismissAction = true)
+            }
+        },
     )
     var rescheduleItemSnapshot by remember { mutableStateOf<ScheduledTask?>(null) }
     var rescheduleSnapshotTitle by rememberSaveable { mutableStateOf("") }
@@ -1313,13 +1322,22 @@ fun WhipScreen(
                 }
                 is LaunchDeliveryCommand.OpenHabit -> {
                     openHabitIdRequested = command.id
+                    openHabitEpochDayRequested = command.date?.toEpochDay()
+                    if ((habitState.all + habitState.archivedProgress).none { it.habit.id == command.id }) {
+                        onTemporarilySelectAreaScope(AreaScope.All)
+                    }
                     appDestination = AppDestination.Habits
                 }
                 is LaunchDeliveryCommand.OpenGoal -> {
                     openGoalIdRequested = command.id
                     appDestination = AppDestination.Goals
                 }
-                LaunchDeliveryCommand.OpenGym -> appDestination = AppDestination.Gym
+                is LaunchDeliveryCommand.OpenGym -> {
+                    gymDestination = GymDestination.Workout
+                    openGymSearchDomain = command.sessionId?.let { SearchDomain.Workout }
+                    openGymSearchId = command.sessionId
+                    appDestination = AppDestination.Gym
+                }
                 is LaunchDeliveryCommand.OpenTrack -> {
                     openTrackIdRequested = command.id
                     appDestination = AppDestination.Tracks
@@ -1466,7 +1484,6 @@ fun WhipScreen(
         else onReopen(item)
     }
 
-    var gymDestination by rememberSaveable { mutableStateOf(GymDestination.Workout) }
     var requestedWorkoutExerciseId by rememberSaveable { mutableStateOf<Long?>(null) }
 
     fun selectPrimaryDestination(destination: AppDestination) {
@@ -1476,6 +1493,24 @@ fun WhipScreen(
         // its last destination, filters, and selected entity; explicit Home
         // shortcuts and deep links still opt into a precise destination.
         appDestination = destination
+    }
+
+    fun selectHomeSummary(destination: AppDestination) {
+        when (destination) {
+            AppDestination.Tasks -> {
+                homeTasksRequested = true
+                taskDestination = TaskDestination.Today
+            }
+            AppDestination.Habits -> habitDestinationState.value = HabitDestination.Today
+            AppDestination.Goals -> goalDestinationState.value = GoalDestination.Active
+            AppDestination.Tracks -> {
+                selectedTrackState.value = null
+                trackWorkspaceDestinationState.value = TrackWorkspaceDestination.Tracks
+            }
+            AppDestination.Gym -> gymDestination = GymDestination.Workout
+            else -> Unit
+        }
+        selectPrimaryDestination(destination)
     }
 
     val collectionStatusNowMillis = goalState.nowMillis
@@ -1719,7 +1754,7 @@ fun WhipScreen(
                 HomeSupportPane(
                     summary = adaptiveSummary,
                     retryActions = domainRetryActions,
-                    onSelect = ::selectPrimaryDestination,
+                    onSelect = ::selectHomeSummary,
                     modifier = supportModifier,
                 )
             }
@@ -2220,7 +2255,7 @@ fun WhipScreen(
                     onCreateArea = { name, color, result -> settingsViewModel?.createArea(name, color, result) },
                     onCreateCustomUnit = settingsViewModel.createCustomUnitAction(),
                     customIdentityEmojis = settingsState.settings.customIdentityEmojis,
-                    onSaveIdentityEmoji = { settingsViewModel?.upsertCustomIdentityEmoji(choice = it) },
+                    onSaveIdentityEmoji = identityEmojiSaveActions(settingsViewModel),
                     onRemoveSavedIdentityEmoji = { settingsViewModel?.removeCustomIdentityEmoji(it) },
                     onAreaChanged = { keepSavedItemVisible(it.areaId, it.areaVerified) },
                     showWorkspace = false,
@@ -2252,7 +2287,7 @@ fun WhipScreen(
                     onCreateArea = { name, color, result -> settingsViewModel?.createArea(name, color, result) },
                     onCreateCustomUnit = settingsViewModel.createCustomUnitAction(),
                     customIdentityEmojis = settingsState.settings.customIdentityEmojis,
-                    onSaveIdentityEmoji = { settingsViewModel?.upsertCustomIdentityEmoji(choice = it) },
+                    onSaveIdentityEmoji = identityEmojiSaveActions(settingsViewModel),
                     onRemoveSavedIdentityEmoji = { settingsViewModel?.removeCustomIdentityEmoji(it) },
                     onAreaChanged = { keepSavedItemVisible(it.areaId, it.areaVerified) },
                     showWorkspace = false,
@@ -2369,7 +2404,13 @@ fun WhipScreen(
                         createRequested = createHabitRequested,
                         onCreateRequestConsumed = { createHabitRequested = false },
                         openHabitIdRequest = openHabitIdRequested,
-                        onOpenHabitRequestConsumed = { openHabitIdRequested = null },
+                        openHabitDateRequest = openHabitEpochDayRequested?.let(LocalDate::ofEpochDay),
+                        onOpenHabitRequestConsumed = { openHabitIdRequested = null; openHabitEpochDayRequested = null },
+                        onOpenHabitUnavailable = { message ->
+                            presentTransientFeedback(source = "habit-source", priority = 3, recoverable = true) {
+                                snackbarHostState.showSnackbar(message, withDismissAction = true, duration = SnackbarDuration.Long)
+                            }
+                        },
                         editHabitIdRequest = editHabitIdRequested,
                         onEditHabitRequestConsumed = { editHabitIdRequested = null },
                         onRequestNotificationPermission = onRequestNotificationPermission,
@@ -2381,7 +2422,7 @@ fun WhipScreen(
                         onCreateArea = { name, color, result -> settingsViewModel?.createArea(name, color, result) },
                         onCreateCustomUnit = settingsViewModel.createCustomUnitAction(),
                         customIdentityEmojis = settingsState.settings.customIdentityEmojis,
-                        onSaveIdentityEmoji = { settingsViewModel?.upsertCustomIdentityEmoji(choice = it) },
+                        onSaveIdentityEmoji = identityEmojiSaveActions(settingsViewModel),
                         onRemoveSavedIdentityEmoji = { settingsViewModel?.removeCustomIdentityEmoji(it) },
                         areaScopeLabel = when (areaScope) {
                             AreaScope.All -> null
@@ -2407,6 +2448,11 @@ fun WhipScreen(
                         onExternalRequestConsumed = { gymAddRequest = null },
                         openSearchRequest = openGymSearchRequested,
                         onOpenSearchRequestConsumed = { openGymSearchDomain = null; openGymSearchId = null },
+                        onOpenSearchUnavailable = { message ->
+                            presentTransientFeedback(source = "gym-source", priority = 3, recoverable = true) {
+                                snackbarHostState.showSnackbar(message, withDismissAction = true, duration = SnackbarDuration.Long)
+                            }
+                        },
                         onRequestNotificationPermission = onRequestNotificationPermission,
                         onOpenBackupSettings = ::openSettings,
                         modifier = paneDialogModifier,
@@ -2452,7 +2498,7 @@ fun WhipScreen(
                     onCreateArea = { name, color, result -> settingsViewModel?.createArea(name, color, result) },
                         onCreateCustomUnit = settingsViewModel.createCustomUnitAction(),
                         customIdentityEmojis = settingsState.settings.customIdentityEmojis,
-                        onSaveIdentityEmoji = { settingsViewModel?.upsertCustomIdentityEmoji(choice = it) },
+                        onSaveIdentityEmoji = identityEmojiSaveActions(settingsViewModel),
                         onRemoveSavedIdentityEmoji = { settingsViewModel?.removeCustomIdentityEmoji(it) },
                         areaScopeLabel = when (areaScope) {
                         AreaScope.All -> null
@@ -2625,7 +2671,8 @@ fun WhipScreen(
     reviewSession.Content {
         val reviewNavigation = remember {
             ReviewNavigationState(appDestinationState, taskDestinationState, actionItemKeyState, completedItemKeyState,
-                openHabitIdRequestedState, openGoalIdRequestedState, openGymSearchDomainState, openGymSearchIdState)
+                openHabitIdRequestedState, openGoalIdRequestedState, openGymSearchDomainState, openGymSearchIdState,
+                openHabitEpochDayRequestedState)
         }
         ReviewAppRoute(
             tasks = state, habits = habitState, goals = goalState, gym = gymState,
@@ -2781,7 +2828,6 @@ fun WhipScreen(
             onDismiss = { completedItemKey = null },
             onEdit = {
                 openTaskEditor(item)
-                completedItemKey = null
             },
             onReopen = {
                 if (item.task.scheduleKind == ScheduleKind.Recurring) {
@@ -3455,7 +3501,7 @@ private fun TrackDefinitionEditorRouteHost(
         onCreateArea = { name, color, result -> settingsViewModel?.createArea(name, color, result) },
         onCreateCustomUnit = settingsViewModel.createCustomUnitAction(),
         customIdentityEmojis = settingsState.settings.customIdentityEmojis,
-        onSaveIdentityEmoji = { settingsViewModel?.upsertCustomIdentityEmoji(choice = it) },
+        onSaveIdentityEmoji = identityEmojiSaveActions(settingsViewModel),
         onRemoveSavedIdentityEmoji = { settingsViewModel?.removeCustomIdentityEmoji(it) },
         onRetryPreparation = {
             val trackId = route.trackId

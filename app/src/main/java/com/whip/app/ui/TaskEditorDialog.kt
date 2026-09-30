@@ -175,7 +175,7 @@ fun TaskEditorDialog(
     onCreateArea: (String, Long?, (Result<String>) -> Unit) -> Unit = { _, _, _ -> },
     knownTags: List<String> = emptyList(),
     customIdentityEmojis: List<CustomIdentityEmoji> = emptyList(),
-    onSaveIdentityEmoji: (CustomIdentityEmoji) -> Unit = {},
+    onSaveIdentityEmoji: IdentityEmojiSaveActions? = null,
     onRemoveSavedIdentityEmoji: (String) -> Unit = {},
     paneOffsetX: Dp = 0.dp,
     paneMaxWidth: Dp = WhipContentWidth.authoredForm,
@@ -318,7 +318,7 @@ fun TaskEditorDialog(
     val initialOffsets = initial.reminderOffsetsMinutes.toSet().ifEmpty {
         setOf(0).takeIf { initial.reminderEnabled }.orEmpty()
     }
-    val isDirty = request.initialCapture.isNotBlank() ||
+    val isDirty = request.initialCapture.isNotBlank() || newStepTitle.isNotBlank() ||
         title != initial.title || icon != initial.icon || notes != initial.notes ||
         scheduleKind != initial.scheduleKind ||
         (scheduleKind == ScheduleKind.Once && mainDate != (initial.date ?: today)) ||
@@ -390,15 +390,18 @@ fun TaskEditorDialog(
             anchor = recurrenceAnchor,
         )
     } else null
+    val stepsToSave = stepDrafts + if (newStepTitle.isNotBlank()) listOf(
+        TaskStepDraft(title = newStepTitle.trim(), position = stepDrafts.size),
+    ) else emptyList()
     val currentDraft = TaskDraft(
         title = title.trim(), icon = icon, notes = notes.trim(), scheduleKind = scheduleKind,
         date = mainDate.takeIf { scheduleKind == ScheduleKind.Once }, recurrence = recurrence,
         timeMinutes = timeMinutes.takeIf { hasTime && scheduleKind != ScheduleKind.Anytime },
         reminderEnabled = hasTime && reminderEnabled && scheduleKind != ScheduleKind.Anytime,
-        steps = stepDrafts.filter { it.title.isNotBlank() }.mapIndexed { position, step ->
+        steps = stepsToSave.filter { it.title.isNotBlank() }.mapIndexed { position, step ->
             step.copy(title = step.title.trim(), position = position)
         },
-        showSubtaskProgress = showSubtaskProgress && stepDrafts.isNotEmpty(),
+        showSubtaskProgress = showSubtaskProgress && stepsToSave.isNotEmpty(),
         progressDisplay = progressDisplay, autoCompleteFromSteps = autoCompleteFromSteps,
         repeatStepPolicy = repeatStepPolicy, priority = priority, areaId = areaId, area = area.trim(),
         tags = tagsText.split(',').map(String::trim).filter(String::isNotBlank).toSet(),

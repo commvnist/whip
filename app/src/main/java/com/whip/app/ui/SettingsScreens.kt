@@ -229,6 +229,7 @@ internal fun SettingsContent(
         rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
     }
     val settingsListState = settingsListStates.getValue(section)
+    val categoryListState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
     var observedOperation by remember { mutableStateOf(state.operation) }
     LaunchedEffect(state.operation) {
         val operationChanged = observedOperation != state.operation
@@ -450,6 +451,7 @@ internal fun SettingsContent(
                 }
                 LazyColumn(
                     modifier = Modifier.fillMaxSize().testTag("settings-category-list"),
+                    state = categoryListState,
                     contentPadding = whipPagePadding(top = WhipSpacing.sibling),
                     verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
                 ) {
@@ -561,6 +563,16 @@ internal fun SettingsContent(
                 modifier = Modifier.testTag("settings-completed-warning"),
             )
         } }
+        if (section == SettingsSection.DataPrivacy && state.mergeRefreshWarnings.isNotEmpty()) anchored.item {
+            WhipStatusCard(
+                kind = WhipStatusKind.Warning,
+                title = "Data Imported; Refresh Incomplete",
+                message = state.mergeRefreshWarnings.joinToString(" "),
+                actionLabel = "Retry Refresh",
+                onAction = viewModel::retryMergeRefresh,
+                modifier = Modifier.testTag("backup-merge-refresh-warning"),
+            )
+        }
 
         if (section == SettingsSection.Appearance) {
         anchored.item(key = "setting-theme") { SettingsHeading("Theme and Colors") }
@@ -812,7 +824,7 @@ internal fun SettingsContent(
         if (customUnitsExpanded) {
         anchored.item {
             Text(
-                "Create reusable units for Habit entries, Goal progress, and number fields in Tracks. You can also create a unit beside an item's Unit control.",
+                "Create reusable units for Habit entries, Goal progress, and number fields in Tracks. Archive removes a unit from new choices; existing uses and recorded history keep their meaning. Restore makes it available again.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -1382,6 +1394,12 @@ internal fun SettingsContent(
                 "${formatSettingsClock(requireNotNull(settings.quietStartMinutes))}–${formatSettingsClock(requireNotNull(settings.quietEndMinutes))}" +
                     if (requireNotNull(settings.quietEndMinutes) < requireNotNull(settings.quietStartMinutes)) " · overnight" else "",
                 style = MaterialTheme.typography.bodySmall)
+            if (enabled && settings.quietStartMinutes == settings.quietEndMinutes) Text(
+                "No quiet interval: choose different start and end times.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.testTag("settings-quiet-hours-empty-interval"),
+            )
             if (enabled || editingQuietHours) {
                 ClockSetting(
                     label = "Quiet hours start",
@@ -1391,7 +1409,7 @@ internal fun SettingsContent(
                         current.copy(
                             quietStartMinutes = minutes,
                             quietEndMinutes = current.quietEndMinutes ?: 7 * 60,
-                        )
+                        ).also { require(it.quietStartMinutes != it.quietEndMinutes) { "No quiet interval: choose different start and end times." } }
                     },
                 )
                 ClockSetting(
@@ -1402,7 +1420,7 @@ internal fun SettingsContent(
                         current.copy(
                             quietStartMinutes = current.quietStartMinutes ?: 22 * 60,
                             quietEndMinutes = minutes,
-                        )
+                        ).also { require(it.quietStartMinutes != it.quietEndMinutes) { "No quiet interval: choose different start and end times." } }
                     },
                 )
             }

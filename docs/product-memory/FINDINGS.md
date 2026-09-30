@@ -1,4 +1,6 @@
 # Durable findings
+Current resumed implementation checkpoint (2026-09-30): the source repairs and initial35 modified files are integrated; all754 JVM tests, local coverage/lint/build/static gate and affected readiness pass. Current native evidence and remaining gaps are in [UX_OVERHAUL_2026-09-30.md](../quality/UX_OVERHAUL_2026-09-30.md). Status text below preserves the earlier audit/delivery baseline and is not the current completion ledger. Full native aggregation and first commit/push are pending.
+
 
 ### FND-20260929-043 — Execution controls were hidden by collection management and disclosure
 
@@ -66,7 +68,7 @@
 
 ### FND-20260929-040 — Shared Home intent and emoji Save & Use bypass existing contracts
 
-- Severity/category: Two P2, daily navigation and confirmed persistence. Status: Confirmed; no remedy implemented.
+- Severity/category: Two P2, daily navigation and confirmed persistence. Status: In progress under FB-20260929-019; parent rechecks both current owners and reuses explicit daily routes and the existing typed Settings receipt. Runtime acceptance pending.
 - Observed: SH1 wide Home support's Tasks Today/Habit attention/Workout callbacks restore last root jobs unlike main Home's explicit Today/Workout. Tasks Calendar variant freshly reproduced. SH2 shared emoji Save & Use closes and changes entity value before an unchecked saved-library callback can confirm durability; failed/busy save has no retained local outcome.
 - Evidence: [56-disposition shared report](../quality/coherence-audit-2026-09-29/shared.md); wide originals, current picker/Settings persistence paths. SH2 disk failure/restart was not injected; dedicated Settings emoji manager already has the correct typed owner.
 - Recommended/root cause: Pass explicit daily intents at the support caller while keeping ordinary tab restoration; reuse existing confirmed custom-emoji receipt, retaining name/value on failure and independent Use Once.

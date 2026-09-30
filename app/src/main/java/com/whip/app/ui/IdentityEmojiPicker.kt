@@ -32,6 +32,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
@@ -54,7 +55,24 @@ import com.whip.app.domain.isDefaultIdentityEmoji
 import com.whip.app.domain.isIdentityEmoji
 import com.whip.app.domain.normalizeCustomIdentityEmojis
 import com.whip.app.domain.normalizedIdentityEmoji
+import com.whip.app.core.PersistenceRequestState
+import kotlinx.coroutines.flow.StateFlow
 import java.util.Locale
+
+data class IdentityEmojiSaveActions(
+    val state: StateFlow<PersistenceRequestState<SettingsMutationReceipt>>,
+    val save: (String, CustomIdentityEmoji) -> Boolean,
+    val consume: (String) -> Unit,
+)
+
+internal fun identityEmojiSaveActions(viewModel: SettingsViewModel?): IdentityEmojiSaveActions? =
+    viewModel?.let { owner ->
+        IdentityEmojiSaveActions(
+            state = owner.typedSettingMutationState,
+            save = { requestId, choice -> owner.upsertCustomIdentityEmojiMutation(requestId, null, choice) },
+            consume = owner::consumeTypedSettingMutation,
+        )
+    }
 
 @Composable
 internal fun WhipIdentityEmoji(
@@ -89,7 +107,7 @@ internal fun WhipEmojiPicker(
     modifier: Modifier = Modifier,
     label: String = "Emoji",
     customEmojis: List<CustomIdentityEmoji> = emptyList(),
-    onSaveEmoji: (CustomIdentityEmoji) -> Unit = {},
+    onSaveEmoji: IdentityEmojiSaveActions? = null,
     onRemoveSavedEmoji: (String) -> Unit = {},
 ) {
     var pickerOpen by rememberSaveable { mutableStateOf(false) }
@@ -150,13 +168,32 @@ internal fun WhipEmojiPicker(
             managingSaved = false
             searchQuery = ""
         }
+        val saveState = onSaveEmoji?.state?.collectAsStateWithLifecycle()?.value
+            ?: PersistenceRequestState.Idle
+        val saveCoordinator = rememberPersistenceRequestCoordinator(
+            state = saveState,
+            consume = { onSaveEmoji?.consume?.invoke(it) },
+            requestNamespace = "identity-emoji-picker",
+            onPersisted = {
+                onValueChange(customValue.trim())
+                closePicker()
+            },
+            orphanedMessage = "The previous emoji save was interrupted. Your name and emoji are still here. Check My Emojis before retrying.",
+        )
         fun useCustom(save: Boolean) {
+            if (saveCoordinator.saving) return
             customAttempted = true
             if (customEmojiValid && (!save || customNameValid)) {
                 val emoji = customValue.trim()
-                if (save) onSaveEmoji(CustomIdentityEmoji(emoji = emoji, name = customName.trim()))
-                onValueChange(emoji)
-                closePicker()
+                if (save) {
+                    val requestId = saveCoordinator.begin() ?: return
+                    if (onSaveEmoji?.save?.invoke(requestId, CustomIdentityEmoji(emoji, customName.trim())) != true) {
+                        saveCoordinator.finishFailure("Another setting is still saving. Your emoji draft is here; try again.")
+                    }
+                } else {
+                    onValueChange(emoji)
+                    closePicker()
+                }
             }
         }
         val customEditorControls: @Composable () -> Unit = {
@@ -220,11 +257,12 @@ internal fun WhipEmojiPicker(
 
         PaneAwareAlertDialog(
             modifier = Modifier.testTag("emoji-picker-dialog"),
-            onDismissRequest = ::closePicker,
+            onDismissRequest = { if (!saveCoordinator.saving) closePicker() },
             paneTitle = "Emoji Picker",
             stableHeight = true,
             title = { Text("Choose Emoji") },
             text = {
+                Box {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -233,6 +271,7 @@ internal fun WhipEmojiPicker(
                         .testTag("emoji-picker-presets"),
                     verticalArrangement = Arrangement.spacedBy(if (query.isBlank()) 12.dp else 4.dp),
                 ) {
+                    PersistenceFailureNotice(saveCoordinator.errorMessage)
                     WhipSearchField(
                         label = "Search Activities",
                         query = searchQuery,
@@ -306,13 +345,16 @@ internal fun WhipEmojiPicker(
                     }
                     if (query.isNotBlank()) customEditorControls()
                 }
+                PersistenceSavingOverlay(saveCoordinator.saving, "Saving Emoji…")
+                }
             },
             confirmButton = {
                 if (customOpen) {
                     WhipButton(
                         onClick = { useCustom(save = true) },
+                        enabled = !saveCoordinator.saving && onSaveEmoji != null,
                         modifier = Modifier.testTag("emoji-picker-custom-apply"),
-                    ) { Text("Save & Use", fontWeight = FontWeight.SemiBold) }
+                    ) { Text(if (saveCoordinator.saving) "Saving…" else "Save & Use", fontWeight = FontWeight.SemiBold) }
                 } else {
                     WhipTextButton(onClick = ::closePicker) { Text("Close") }
                 }
@@ -321,6 +363,7 @@ internal fun WhipEmojiPicker(
                 if (customOpen) {
                     WhipTextButton(
                         onClick = { useCustom(save = false) },
+                        enabled = !saveCoordinator.saving,
                         modifier = Modifier.testTag("emoji-picker-custom-use-once"),
                     ) { Text("Use Once") }
                 } else if (query.isNotBlank() && normalizedCustom.isNotEmpty()) {

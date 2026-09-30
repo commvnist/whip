@@ -18,6 +18,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertCountEquals
@@ -135,6 +136,32 @@ class AreaFeatureUiTest {
         compose.onNodeWithText("Rename").assertIsDisplayed()
         compose.waitForIdle()
         captureVisualCatalogSurface("organization.area.menu")
+    }
+
+    @Test
+    fun areaCreationRetainsChangedDraftThroughCancelAndRecreation() {
+        var dismisses = 0
+        val restoration = StateRestorationTester(compose)
+        restoration.setContent {
+            WhipTheme(dynamicColor = false) {
+                CreateAreaDialog(
+                    existingAreas = emptyList(),
+                    onDismiss = { dismisses += 1 },
+                    onCreate = { _, _, _ -> error("No save requested") },
+                )
+            }
+        }
+        compose.onNodeWithText("Area name").performTextInput("Research")
+        compose.onNodeWithText("Cancel").performClick()
+        compose.onNodeWithText("Discard Unsaved Changes?").assertIsDisplayed()
+        assertEquals(0, dismisses)
+        compose.onNodeWithText("Keep Editing").performClick()
+        restoration.emulateSavedInstanceStateRestore()
+        compose.onNodeWithText("Area name").assertTextContains("Research")
+        captureVisualCatalogSurface("overhaul.taxonomy.area-draft-restored")
+        compose.onNodeWithText("Cancel").performClick()
+        compose.onNodeWithText("Discard Changes").performClick()
+        assertEquals(1, dismisses)
     }
 
     @Test

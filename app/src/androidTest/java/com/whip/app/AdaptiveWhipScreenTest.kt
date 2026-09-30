@@ -1644,7 +1644,7 @@ class AdaptiveWhipScreenTest {
         compose.onNodeWithTag("habit-editor-name").assertIsDisplayed()
         compose.onNodeWithTag("habit-editor-name").performClick()
         captureVisualCatalogSurface("habits.editor.ime-large")
-        compose.assertEditorHeaderVisibleWithKeyboard("Create Habit", "Cancel Habit editing")
+        compose.assertEditorHeaderVisibleWithKeyboard("Create Habit", "Cancel Habit editing", titleAncestorTag = "habit-editor-surface")
         compose.onNodeWithText("Save").assertIsDisplayed()
         compose.onNodeWithTag("habit-editor-fields")
             .performScrollToNode(hasText("Reminders & Schedule Options"))
@@ -1652,7 +1652,7 @@ class AdaptiveWhipScreenTest {
         compose.onNodeWithTag("habit-schedule-options").assertIsDisplayed().performClick()
         compose.onNodeWithTag("habit-editor-fields").performScrollToNode(hasText("First Day of Week"))
         compose.onNodeWithText("First Day of Week").assertIsDisplayed()
-        compose.assertEditorHeaderVisibleWithKeyboard("Create Habit", "Cancel Habit editing")
+        compose.assertEditorHeaderVisibleWithKeyboard("Create Habit", "Cancel Habit editing", titleAncestorTag = "habit-editor-surface")
         compose.onNodeWithContentDescription("Cancel Habit editing").performClick()
     }
 

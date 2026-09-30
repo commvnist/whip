@@ -118,6 +118,8 @@ import com.whip.app.domain.toWhipDoubleOrNull
 import com.whip.app.domain.valueInUnit
 import com.whip.app.domain.validationErrors
 import com.whip.app.domain.dayStateOn
+import com.whip.app.domain.hasDiscreteTargetPeriod
+import com.whip.app.domain.discretePeriodOutcomes
 import com.whip.app.domain.successfulPeriodOutcomeDates
 import com.whip.app.domain.supportsQuickAddAmounts
 import java.time.DayOfWeek
@@ -152,7 +154,9 @@ fun HabitAreaContent(
     createRequested: Boolean = false,
     onCreateRequestConsumed: () -> Unit = {},
     openHabitIdRequest: Long? = null,
+    openHabitDateRequest: LocalDate? = null,
     onOpenHabitRequestConsumed: () -> Unit = {},
+    onOpenHabitUnavailable: (String) -> Unit = {},
     editHabitIdRequest: Long? = null,
     onEditHabitRequestConsumed: () -> Unit = {},
     onRequestNotificationPermission: () -> Unit = {},
@@ -162,7 +166,7 @@ fun HabitAreaContent(
     onCreateArea: (String, Long?, (Result<String>) -> Unit) -> Unit = { _, _, _ -> },
     onCreateCustomUnit: CreateCustomUnitAction = UnavailableCreateCustomUnitAction,
     customIdentityEmojis: List<CustomIdentityEmoji> = emptyList(),
-    onSaveIdentityEmoji: (CustomIdentityEmoji) -> Unit = {},
+    onSaveIdentityEmoji: IdentityEmojiSaveActions? = null,
     onRemoveSavedIdentityEmoji: (String) -> Unit = {},
     areaScopeLabel: String? = null,
     onShowAllAreasForReorder: () -> Unit = {},
@@ -202,10 +206,12 @@ fun HabitAreaContent(
     var editingHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
     var actionsHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
     var historyHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var requestedHistoryEpochDay by rememberSaveable { mutableStateOf<Long?>(null) }
     fun closeHabitActions() {
         actionsHabitId?.let { inspectorPages.removeState("habit-$it") }
         actionsHabitId = null
         historyHabitId = null
+        requestedHistoryEpochDay = null
     }
     var numericLogHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
     var numericLogAddsAmount by rememberSaveable { mutableStateOf(false) }
@@ -331,9 +337,12 @@ fun HabitAreaContent(
             onCreateRequestConsumed()
         }
     }
-    LaunchedEffect(openHabitIdRequest, state.all, state.archived) {
+    LaunchedEffect(openHabitIdRequest, openHabitDateRequest, editorState.all, editorState.archived, editorState.loading, editorState.errorMessage) {
         val requestedId = openHabitIdRequest ?: return@LaunchedEffect
-        val active = state.all.firstOrNull { it.habit.id == requestedId }
+        if (editorState.loading || editorState.errorMessage != null) return@LaunchedEffect
+        val active = editorState.all.firstOrNull { it.habit.id == requestedId }
+        requestedHistoryEpochDay = openHabitDateRequest?.takeIf { it < state.currentDate }?.toEpochDay()
+        historyHabitId = requestedId.takeIf { requestedHistoryEpochDay != null }
         when {
             active != null -> {
                 destination = HabitDestination.All
@@ -341,10 +350,14 @@ fun HabitAreaContent(
                 focusedArchivedHabitId = null
                 onOpenHabitRequestConsumed()
             }
-            state.archived.any { it.id == requestedId } -> {
+            editorState.archived.any { it.id == requestedId } -> {
                 destination = HabitDestination.Archived
                 actionsHabitId = requestedId
                 focusedArchivedHabitId = requestedId
+                onOpenHabitRequestConsumed()
+            }
+            else -> {
+                onOpenHabitUnavailable("This Habit is no longer available.")
                 onOpenHabitRequestConsumed()
             }
         }
@@ -397,7 +410,7 @@ fun HabitAreaContent(
                 customUnits = state.customUnits,
                 empty = when {
                     emptyArea -> "Your habits are saved in other Areas. Show all Areas to find them."
-                    state.all.isEmpty() -> "Choose a simple template or use + to create a Habit from scratch."
+                    state.all.isEmpty() -> "Choose a simple template or create a Habit from scratch."
                     else -> "No check-ins are expected today${areaScopeLabel?.let { " in $it" }.orEmpty()}. Your habits and their schedules are still saved."
                 },
                 emptyTitle = when {
@@ -417,6 +430,7 @@ fun HabitAreaContent(
                         else -> templatesOpen = true
                     }
                 },
+                onEmptyCreate = { creating = true }.takeIf { state.all.isEmpty() },
                 onOpen = { actionsHabitId = it.habit.id },
                 onEdit = { editingHabitId = it.habit.id },
                 onQuick = { item -> quickHabitAction(item, viewModel) { numericLogAddsAmount = false; numericLogHabitId = item.habit.id } },
@@ -441,12 +455,13 @@ fun HabitAreaContent(
                 customUnits = state.customUnits,
                 empty = if (emptyArea) {
                     "Your habits are saved in other Areas. Show all Areas to find them."
-                } else "Choose a simple template or use + to create a Habit from scratch.",
+                } else "Choose a simple template or create a Habit from scratch.",
                 emptyTitle = if (emptyArea) "No Habits in $areaScopeLabel" else "No Habits Here",
                 emptyActionLabel = if (emptyArea) "Show All Areas" else "Browse Templates",
                 onEmptyAction = {
                     if (emptyArea) onShowAllAreasForReorder() else templatesOpen = true
                 },
+                onEmptyCreate = { creating = true }.takeIf { state.all.isEmpty() },
                 onOpen = { actionsHabitId = it.habit.id },
                 onEdit = { editingHabitId = it.habit.id },
                 onQuick = { item -> quickHabitAction(item, viewModel) { numericLogAddsAmount = false; numericLogHabitId = item.habit.id } },
@@ -523,6 +538,7 @@ fun HabitAreaContent(
         HabitActionsDialog(
             item,
             openHistory = historyHabitId == item.habit.id,
+            historyDate = requestedHistoryEpochDay?.let(LocalDate::ofEpochDay),
             onChecklist = { habitId, itemId, date, completed ->
                 val requestId = mutationCoordinator.begin()
                 if (requestId != null && !viewModel.toggleChecklist(habitId, itemId, date, completed, requestId)) {
@@ -689,7 +705,8 @@ fun HabitAreaContent(
                 item = item,
                 customUnits = state.customUnits,
                 log = null,
-                initialDate = if (historicalLogForToday) state.currentDate else state.currentDate.minusDays(1),
+                initialDate = if (historicalLogForToday) state.currentDate else requestedHistoryEpochDay?.let(LocalDate::ofEpochDay) ?: state.currentDate.minusDays(1),
+                recordingToday = historicalLogForToday,
                 saving = authoredMutationCoordinator.saving,
                 persistenceError = authoredMutationCoordinator.errorMessage,
                 onDismiss = {
@@ -914,12 +931,7 @@ internal fun HabitPermanentDeleteDialog(
 }
 
 internal fun HabitDayProgress.compactCollectionStatus(lowPressureMode: Boolean = false, customUnits: List<UnitDefinition> = emptyList()): String {
-    val streakUnit = when (habit.scheduleType) {
-        HabitScheduleType.FlexibleTimesPerWeek -> "week"
-        HabitScheduleType.FlexibleTimesPerMonth -> "month"
-        else -> "day"
-    }
-    val streakLabel = "$streak $streakUnit streak"
+    val streakLabel = "${habit.streakUnitLabel(streak)} streak"
     fun withStreak(label: String) = if (lowPressureMode) label else "$label · $streakLabel"
     return when {
         dayState == HabitDayState.Skipped -> if (lowPressureMode) "Skipped · no check-in expected" else "Skipped · streak protected"
@@ -947,7 +959,7 @@ internal fun Habit.streakUnitLabel(count: Int): String {
     val unit = when (scheduleType) {
         HabitScheduleType.FlexibleTimesPerWeek -> "week"
         HabitScheduleType.FlexibleTimesPerMonth -> "month"
-        else -> "day"
+        else -> when (targetPeriod) { TargetPeriod.Week -> "week"; TargetPeriod.Month -> "month"; else -> "day" }
     }
     return "$count $unit${if (count == 1) "" else "s"}"
 }
@@ -960,13 +972,18 @@ internal fun habitUnitSymbol(unitId: String, customUnits: List<UnitDefinition> =
         (BuiltInUnits.get(unitId) ?: customUnits.firstOrNull { it.id == unitId })?.symbol ?: unitId.unitLabel()
 
 internal fun HabitDayProgress.targetProgressLabel(customUnits: List<UnitDefinition> = emptyList()): String {
+    return habit.targetProgressLabel(value, customUnits)
+}
+
+internal fun Habit.targetProgressLabel(value: Double, customUnits: List<UnitDefinition> = emptyList()): String {
+    val habit = this
     fun amount(number: Double?) = number?.let { formatHabitValue(it, habit.precision) } ?: "—"
     val target = when (habit.comparison) {
         TargetComparison.AtLeast -> "at least ${amount(habit.targetMin)}"
         TargetComparison.AtMost -> "at most ${amount(habit.targetMax)}"
         TargetComparison.Exactly -> "exactly ${amount(habit.targetMin)}"
         TargetComparison.WithinRange -> "${amount(habit.targetMin)}–${amount(habit.targetMax)}"
-        TargetComparison.None -> return "${amount(value)} ${habit.unitSymbol(customUnits)}".trim()
+        TargetComparison.None -> return "${amount(value)} ${habit.unitSymbol(customUnits)} · ${habit.periodTotalDescription()}".trim()
     }
     return "${amount(value)} ${habit.unitSymbol(customUnits)} · $target ${habit.unitSymbol(customUnits)} · ${habit.periodTotalDescription()}".replace("  ", " ")
 }
@@ -1118,11 +1135,6 @@ fun HabitProgressCard(
         (habit.archived || habit.paused || !item.scheduled || item.date != LocalWhipToday.current ||
             item.dayState in setOf(HabitDayState.Paused, HabitDayState.NotScheduled))
     val disclosure = rememberItemDisclosure(itemKey = habitDisclosureKey(habit.id, item.date))
-    val streakUnit = when (habit.scheduleType) {
-        HabitScheduleType.FlexibleTimesPerWeek -> "week"
-        HabitScheduleType.FlexibleTimesPerMonth -> "month"
-        else -> "day"
-    }
     val rateWindow = if (habit.scheduleType in setOf(
             HabitScheduleType.FlexibleTimesPerWeek,
             HabitScheduleType.FlexibleTimesPerMonth,
@@ -1226,7 +1238,7 @@ fun HabitProgressCard(
                     } else if (lowPressureMode) {
                         "${habit.trackingMode.uiLabel()} · ${(item.completionRate * 100).toInt()}% / $rateWindow"
                     } else {
-                        "${habit.trackingMode.uiLabel()} · ${item.streak} $streakUnit streak · ${(item.completionRate * 100).toInt()}% / $rateWindow"
+                        "${habit.trackingMode.uiLabel()} · ${habit.streakUnitLabel(item.streak)} streak · ${(item.completionRate * 100).toInt()}% / $rateWindow"
                     },
                 )
             }
@@ -1518,6 +1530,7 @@ private fun HabitList(
     emptyTitle: String,
     emptyActionLabel: String,
     onEmptyAction: () -> Unit,
+    onEmptyCreate: (() -> Unit)? = null,
     onOpen: (HabitDayProgress) -> Unit,
     onEdit: (HabitDayProgress) -> Unit,
     onQuick: (HabitDayProgress) -> Unit,
@@ -1580,6 +1593,8 @@ private fun HabitList(
                 supportingText = empty,
                 primaryActionLabel = emptyActionLabel,
                 onPrimaryAction = onEmptyAction,
+                secondaryActionLabel = "Create Habit".takeIf { onEmptyCreate != null },
+                onSecondaryAction = onEmptyCreate,
             )
         }
         if (separateCompleted && sections.actionNeeded.isEmpty() && sections.finished.isNotEmpty()) item {
@@ -1746,6 +1761,7 @@ internal fun HabitInsights(
                             Text(when {
                                 flexible -> "${outcomes.size} ${if (habit.scheduleType == HabitScheduleType.FlexibleTimesPerWeek) "weekly" else "monthly"} targets completed in the last 30 days"
                                 scoredStates.none { it in setOf(HabitDayState.Completed, HabitDayState.Missed, HabitDayState.BelowTarget) } -> "30-day completion: No scored periods"
+                                habit.hasDiscreteTargetPeriod -> "Target-period completion in the last 30 days: ${(item.completionRate * 100).toInt()}%"
                                 else -> "30-day completion: ${(item.completionRate * 100).toInt()}%"
                             }, style = MaterialTheme.typography.bodyMedium)
                         }
@@ -1760,14 +1776,26 @@ internal fun HabitInsights(
                     }
                     WhipGroupHeading(if (showOutcomes) "Eight-Week Consistency" else "Days with Entries", compact = true)
                     HabitRateChart(habit.name, rates, weekStarts,
-                        metricLabel = if (showOutcomes) "scheduled completion" else "recorded activity")
-                    Text(if (showOutcomes) "Completed scheduled days; pauses and skips are excluded. Gaps have no scored days."
-                        else "Share of days with a recorded entry each week; this is activity, not target success.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        metricLabel = when {
+                            showOutcomes && habit.hasDiscreteTargetPeriod -> "target-period completion"
+                            showOutcomes -> "scheduled completion"
+                            else -> "recorded activity"
+                        })
+                    Text(when {
+                        showOutcomes && habit.hasDiscreteTargetPeriod ->
+                            "Each target ${if (habit.targetPeriod == TargetPeriod.Week) "week" else "month"} counts once, on attainment or settlement. Pauses and skips are excluded; gaps have no scored periods."
+                        showOutcomes -> "Completed scheduled days; pauses and skips are excluded. Gaps have no scored days."
+                        else -> "Share of days with a recorded entry each week; this is activity, not target success."
+                    }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     WhipGroupHeading("Recent Activity", compact = true)
+                    if (habit.hasDiscreteTargetPeriod) Text(
+                        "The calendar shows entry days; each target period is scored once above.",
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                     HabitActivityGrid(
                         days = (27L downTo 0L).map { state.currentDate.minusDays(it) },
                         firstDayOfWeek = habit.weekStart,
-                        recordedDates = recordedDates.takeUnless { showOutcomes },
+                        recordedDates = recordedDates.takeUnless { showOutcomes && !habit.hasDiscreteTargetPeriod },
                         stateForDay = { day -> habit.dayStateOn(day, state.currentDate, logs, pauses, skips, state.customUnits) },
                     )
                 }
@@ -1787,7 +1815,11 @@ internal fun Habit.scheduledCompletionRateForDays(
     skips: List<HabitSkip> = emptyList(),
     customUnits: List<UnitDefinition> = emptyList(),
 ): Double? {
-    val outcomes = days.mapNotNull { day ->
+    val outcomes = if (hasDiscreteTargetPeriod) {
+        if (days.isEmpty()) return null
+        discretePeriodOutcomes(logs, days.min(), today, pauses, customUnits, skips)
+            .filter { it.date in days }.mapNotNull { it.success }
+    } else days.mapNotNull { day ->
         when (dayStateOn(day, today, logs, pauses, skips, customUnits)) {
             HabitDayState.Completed -> true
             HabitDayState.Missed, HabitDayState.BelowTarget -> false
@@ -2117,7 +2149,7 @@ internal fun HabitEditorDialog(
     onCreateArea: (String, Long?, (Result<String>) -> Unit) -> Unit = { _, _, _ -> },
     onCreateCustomUnit: CreateCustomUnitAction = UnavailableCreateCustomUnitAction,
     customIdentityEmojis: List<CustomIdentityEmoji> = emptyList(),
-    onSaveIdentityEmoji: (CustomIdentityEmoji) -> Unit = {},
+    onSaveIdentityEmoji: IdentityEmojiSaveActions? = null,
     onRemoveSavedIdentityEmoji: (String) -> Unit = {},
 ) {
     val weekdayFormatter = rememberWhipWeekdayFormatter()
@@ -2922,6 +2954,7 @@ internal fun HabitHistoryLogDialog(
     initialDate: LocalDate,
     onDismiss: () -> Unit,
     onSave: (Double?, HabitLogStatus, LocalDate, String) -> Unit,
+    recordingToday: Boolean = false,
     onDelete: (() -> Unit)? = null,
     saving: Boolean = false,
     persistenceError: String? = null,
@@ -2957,7 +2990,7 @@ internal fun HabitHistoryLogDialog(
     PaneAwareAlertDialog(
         testTag = "habit-history-dialog",
         onDismissRequest = ::requestDismiss,
-        title = { Text(item.habit.historyDialogTitle(editing = log != null)) },
+        title = { Text(item.habit.historyDialogTitle(editing = log != null, recordingToday = recordingToday)) },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
@@ -3088,6 +3121,7 @@ internal fun HabitActionsDialog(
     mutationSaving: Boolean = false,
     mutationError: String? = null,
     openHistory: Boolean = false,
+    historyDate: LocalDate? = null,
     customUnits: List<UnitDefinition> = emptyList(),
     onChecklist: (Long, Long, LocalDate, Boolean) -> Unit = { _, _, _, _ -> },
     onQuickValue: (Double) -> Unit = {},
@@ -3098,7 +3132,7 @@ internal fun HabitActionsDialog(
 ) {
     val activeZoneId = LocalWhipZone.current
     val historyLocale = LocalConfiguration.current.locales[0]
-    var historyQuery by rememberSaveable(item.habit.id) { mutableStateOf("") }
+    var historyQuery by rememberSaveable(item.habit.id, historyDate) { mutableStateOf(historyDate?.toString().orEmpty()) }
     val historyIndex = remember(logs, skips, pauses, item.date, item.habit, customUnits, historyLocale) {
         habitHistoryEvents(logs, skips, pauses, item.date).map {
             it to it.habitHistorySearchText(item.habit, item.date, customUnits, historyLocale)
@@ -3114,6 +3148,7 @@ internal fun HabitActionsDialog(
         mutableStateOf(if (item.habit.archived || openHistory) HabitDetailSection.History else HabitDetailSection.Today)
     }
     val skipAvailable = item.dayState == HabitDayState.Pending &&
+        item.checklistItems.none { it.second } &&
         item.habit.sourceMeasurementId == null &&
         item.habit.scheduleType !in setOf(
             HabitScheduleType.FlexibleTimesPerWeek,
@@ -3245,6 +3280,10 @@ internal fun HabitActionsDialog(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                                 HabitChecklist(item, onChecklist, enabled = editable)
+                                if (item.dayState == HabitDayState.Pending && item.checklistItems.any { it.second }) {
+                                    Text("Clear checked items before skipping today.", style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
                             }
                         }
                         if (skipAvailable) item {
@@ -3629,12 +3668,21 @@ internal fun Habit.pastCheckInActionLabel(): String = when (trackingMode) {
     else -> "Log an Earlier Day"
 }
 
-internal fun Habit.historyDialogTitle(editing: Boolean): String = if (editing) {
+internal fun Habit.historyDialogTitle(editing: Boolean, recordingToday: Boolean = false): String = if (editing) {
     when (trackingMode) {
         HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist -> "Edit Check-In"
         HabitTrackingMode.Rating -> "Edit Rating"
         HabitTrackingMode.LogOnly -> "Edit Entry"
         else -> "Edit Logged Progress"
+    }
+} else if (recordingToday) {
+    when (trackingMode) {
+        HabitTrackingMode.Duration -> "Enter Duration Manually"
+        HabitTrackingMode.CheckOff -> "Record Check-In"
+        HabitTrackingMode.Checklist -> "Record Completion"
+        HabitTrackingMode.Rating -> "Record Rating"
+        HabitTrackingMode.LogOnly -> "Add Entry"
+        else -> "Log Progress"
     }
 } else {
     when (trackingMode) {

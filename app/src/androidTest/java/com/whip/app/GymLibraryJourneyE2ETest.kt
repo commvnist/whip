@@ -21,6 +21,64 @@ class GymLibraryJourneyE2ETest {
     private val app: WhipApplication get() = ApplicationProvider.getApplicationContext()
     @After fun clean() = runBlocking { app.backupRepository.deleteAllData() }
 
+    @Test fun emptyWorkoutCreateExerciseAddsOneReusablePlacementAndSetAcrossRecreation() {
+        runBlocking { prepare() }
+        launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
+            compose.onNodeWithContentDescription("Gym tab").performClick()
+            compose.onNodeWithText("Start Empty Workout").performScrollTo().performClick()
+            compose.onNodeWithTag("workout-editor-name").performTextReplacement("Empty create acceptance")
+            closeSoftKeyboard()
+            compose.onNodeWithTag("workout-editor-confirm").performClick()
+            compose.waitUntil(10_000) { runBlocking { app.gymRepository.sessions.first() }.size == 1 }
+            val session = runBlocking { app.gymRepository.sessions.first().single() }
+            assertEquals(WorkoutSessionState.Active, session.state)
+            assertTrue(exercises().isEmpty())
+            assertTrue(history().second.isEmpty())
+            assertTrue(history().third.isEmpty())
+            compose.onNodeWithTag("active-workout-list").performScrollToNode(hasText("Create New Exercise"))
+            compose.onNodeWithTag("active-workout-empty-state").assertIsDisplayed()
+            captureVisualCatalogSurface("overhaul.gym.empty-workout-before-create")
+            compose.onNodeWithText("Create New Exercise").performClick()
+            compose.onNodeWithTag("exercise-editor-name").performTextInput("Empty workout authored row")
+            closeSoftKeyboard()
+            compose.onNodeWithText("Save", substring = false).performClick()
+            compose.waitUntil(10_000) {
+                runBlocking {
+                    app.gymRepository.exercises.first().size == 1 &&
+                        app.gymRepository.workoutExercises.first().size == 1 &&
+                        app.gymRepository.sets.first().size == 1
+                }
+            }
+            val exercise = exercises().single()
+            val placement = history().second.single()
+            val set = history().third.single()
+            assertEquals("Empty workout authored row", exercise.name)
+            assertEquals(session.id, placement.sessionId)
+            assertEquals(exercise.id, placement.exerciseId)
+            assertEquals(placement.id, set.workoutExerciseId)
+            assertFalse(set.completed)
+            assertEquals(session.id, history().first.single().id)
+            compose.onNodeWithTag("quick-set-${set.id}").performScrollTo().assertIsDisplayed()
+            captureVisualCatalogSurface("overhaul.gym.empty-workout-after-atomic-create")
+            scenario.recreate()
+            compose.onNodeWithTag("quick-set-${set.id}").performScrollTo().assertIsDisplayed()
+            assertEquals(listOf(exercise.id to exercise.uuid), exercises().map { it.id to it.uuid })
+            assertEquals(listOf(placement.id to placement.uuid), history().second.map { it.id to it.uuid })
+            assertEquals(listOf(set.id to set.uuid), history().third.map { it.id to it.uuid })
+            assertEquals(listOf(session.id to session.uuid), history().first.map { it.id to it.uuid })
+            open("Exercises")
+            compose.onNodeWithText(exercise.name, substring = false).performScrollTo().assertIsDisplayed()
+            captureVisualCatalogSurface("overhaul.gym.empty-workout-reusable-library")
+            compose.onNodeWithTag("gym-destination-Workout").performClick()
+            compose.onNodeWithTag("quick-set-${set.id}").performScrollTo().assertIsDisplayed()
+            assertEquals(session.id, history().first.single().id)
+            assertEquals(1, exercises().size)
+            assertEquals(1, history().second.size)
+            assertEquals(1, history().third.size)
+            captureVisualCatalogSurface("overhaul.gym.empty-workout-returned-original-session")
+        }
+    }
+
     @Test fun workoutLoggingPrecedesAdministrationAndOptionsRetainActionsAndTotals() {
         val setId = runBlocking {
             prepare()

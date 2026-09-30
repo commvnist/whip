@@ -32,6 +32,10 @@ class ProductivityExperienceTest {
         }
         assertFalse(projection.copy(goal = goal.copy(archived = true)).offersCompletion())
         assertTrue(projection.copy(goal = goal.copy(type = GoalType.WeightedMilestones)).offersCompletion())
+        val legacyReduce = goal.copy(type = GoalType.ReduceValue, baseline = null, direction = GoalDirection.Decrease, targetMin = 80.0)
+        assertFalse(projection.copy(goal = legacyReduce, progress = null, currentValue = 90.0).offersCompletion())
+        assertTrue(projection.copy(goal = legacyReduce, progress = null, currentValue = 70.0).offersCompletion())
+        assertFalse(projection.copy(goal = legacyReduce, progress = null, currentValue = null).offersCompletion())
     }
 
     @Test fun goalHistorySearchUsesOriginalObservationFacts() {

@@ -65,6 +65,8 @@ class HabitPresentationTest {
         val habit = habit(HabitTrackingMode.Decimal).copy(scheduleType = HabitScheduleType.FlexibleTimesPerMonth, targetPeriod = TargetPeriod.Month, unitId = "litre")
         assertEquals("2 months", habit.streakUnitLabel(2))
         assertEquals("1 week", habit.copy(scheduleType = HabitScheduleType.FlexibleTimesPerWeek).streakUnitLabel(1))
+        assertEquals("2 months", habit.copy(scheduleType = HabitScheduleType.Daily).streakUnitLabel(2))
+        assertEquals("1 week", habit.copy(scheduleType = HabitScheduleType.Daily, targetPeriod = TargetPeriod.Week).streakUnitLabel(1))
         val summary = progress(habit, 3.0).inspectorTodaySummary(0.0, ZoneId.of("UTC"), false)
         assertTrue(summary, "this month's total" in summary)
         assertFalse(summary, "logged today" in summary)

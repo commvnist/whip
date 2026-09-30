@@ -710,7 +710,7 @@ internal fun TrackAreaContent(
                     )
                     trackDeletionImpact == null -> Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         LinearProgressIndicator(Modifier.fillMaxWidth())
-                        Text("Whip is verifying the exact Track, history, fields, and integrations before deletion.")
+                        Text("Whip is verifying the exact Track, fields, choices, Entries, and saved values before deletion.")
                     }
                     else -> Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         val impact = requireNotNull(trackDeletionImpact)
@@ -1218,7 +1218,7 @@ private fun TrackActivityPage(
                 customUnits = customUnits,
                 editable = true,
                 onDismiss = { viewedEntryId = null },
-                onEdit = { viewedEntryId = null; onEditEntry(projection.track.id, entryId) },
+                onEdit = { onEditEntry(projection.track.id, entryId) },
             )
         }
     }
@@ -2303,7 +2303,7 @@ internal fun TrackEntriesPage(
                 customUnits = customUnits,
                 editable = !projection.track.archived,
                 onDismiss = { viewEntryId = null },
-                onEdit = { viewEntryId = null; onEditEntry(entryId) },
+                onEdit = { onEditEntry(entryId) },
             )
         }
     }
@@ -3103,7 +3103,7 @@ internal fun TrackEditor(
     onCreateArea: (String, Long?, (Result<String>) -> Unit) -> Unit,
     onCreateCustomUnit: CreateCustomUnitAction,
     customIdentityEmojis: List<CustomIdentityEmoji> = emptyList(),
-    onSaveIdentityEmoji: (CustomIdentityEmoji) -> Unit = {},
+    onSaveIdentityEmoji: IdentityEmojiSaveActions? = null,
     onRemoveSavedIdentityEmoji: (String) -> Unit = {},
     onRetryPreparation: () -> Unit,
     onReview: (TrackDraft, TrackDefinitionBoundary, Map<Long, Long>) -> Unit,
@@ -4159,11 +4159,11 @@ internal fun TrackEntryEditor(
                         projection.formattedValue(match, field, units)
                             .takeIf(String::isNotBlank)?.let { field.name to it }
                     }.take(4).forEach { (name, value) -> Text("$name · $value", style = MaterialTheme.typography.bodySmall) }
-                    Text("Editing the existing Entry will discard this unsaved new Entry.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(if (editing) "Switching to the other Entry will discard unsaved changes to this Entry." else "Editing the existing Entry will discard this unsaved new Entry.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             },
             confirmButton = { WhipTextButton(onClick = { possibleMatchId = null; stateHolder.clear(); onOpenExisting(matchId) }) { Text("Edit Existing") } },
-            dismissButton = { WhipTextButton(onClick = { possibleMatchId = null }) { Text("Keep New Entry") } },
+            dismissButton = { WhipTextButton(onClick = { possibleMatchId = null }) { Text(if (editing) "Keep Editing This Entry" else "Keep New Entry") } },
         )
     } }
     val deleteAction = onDelete

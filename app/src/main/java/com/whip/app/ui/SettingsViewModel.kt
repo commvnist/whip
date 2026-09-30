@@ -67,6 +67,7 @@ data class SettingsUiState(
     val tagUsage: Map<String, TagUsageCounts> = emptyMap(),
     val portableBackup: PortableBackupState = PortableBackupState(),
     val encryptedRestorePending: Boolean = false,
+    val mergeRefreshWarnings: List<String> = emptyList(),
 ) {
     val message: String? get() = when (val result = operation) {
         is OperationStatus.Succeeded -> result.message
@@ -267,6 +268,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             tagUsage = taxonomy.tagUsage,
             portableBackup = portableBackup,
             encryptedRestorePending = state.encryptedRestorePending,
+            mergeRefreshWarnings = state.mergeRefreshWarnings,
         )
     }.stateIn(
         viewModelScope,
@@ -303,29 +305,31 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun update(transform: (AppSettings) -> AppSettings) {
-        val preview = app.tryWithUserDataAccessNow {
-            val before = repository.current()
-            before to transform(before)
-        } ?: return
-
-        if (!reminderDeliverySemanticsChanged(preview.first, preview.second)) {
-            app.tryWithUserDataAccessNow { repository.update(transform) }
-            return
-        }
-
-        viewModelScope.launch {
-            reminderSettingsUpdateMutex.withLock {
-                val change = app.withUserDataAccess {
-                    app.reminderDeliveryCoordinator.withStateBoundary {
-                        val before = repository.current()
-                        repository.update(transform)
-                        before to repository.current()
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                reminderSettingsUpdateMutex.withLock {
+                    val change = app.withUserDataAccess {
+                        app.reminderDeliveryCoordinator.withStateBoundary {
+                            val before = repository.current()
+                            check(repository.updateAndConfirm(transform)) { "Local storage did not confirm the settings change. Your previous setting is retained; try again." }
+                            before to repository.current()
+                        }
+                    } ?: error("Whip data is temporarily unavailable; try again.")
+                    if (reminderDeliverySemanticsChanged(change.first, change.second)) {
+                        val warnings = refreshReminderDomains(
+                            "Task reminders" to suspend { app.reminderScheduler.syncAll() },
+                            "Habit reminders" to suspend { app.habitReminderScheduler.syncAll() },
+                            "Goal reminders" to suspend { app.goalReminderScheduler.syncAll() },
+                        )
+                        if (warnings.isNotEmpty()) runtime.value = runtime.value.copy(
+                            operation = OperationStatus.Succeeded("The setting was saved. ${warnings.joinToString(" ")}"),
+                        )
                     }
-                } ?: return@withLock
-                if (!reminderDeliverySemanticsChanged(change.first, change.second)) return@withLock
-                runCatching { app.reminderScheduler.syncAll() }
-                runCatching { app.habitReminderScheduler.syncAll() }
-                runCatching { app.goalReminderScheduler.syncAll() }
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                runtime.value = runtime.value.copy(operation = OperationStatus.Failed(error.message ?: "Whip could not save this setting. Try again."))
             }
         }
     }
@@ -661,7 +665,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         ) {
             val currentSourceScope = AreaScope.One(sourceId)
             if (repository.current().activeAreaScope == currentSourceScope.storageKey) {
-                repository.update { it.copy(activeAreaScope = AreaScope.One(targetId).storageKey) }
+                check(repository.updateAndConfirm { it.copy(activeAreaScope = AreaScope.One(targetId).storageKey) })
             }
         }
         AreaMutationReceipt(AreaMutationKind.MoveItems, sourceId, targetId, warnings)
@@ -678,12 +682,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         ) {
             val sourceScope = AreaScope.One(sourceId).storageKey
             val targetScope = AreaScope.One(targetId).storageKey
-            repository.update { current ->
+            check(repository.updateAndConfirm { current ->
                 current.copy(
                     activeAreaScope = if (current.activeAreaScope == sourceScope) targetScope else current.activeAreaScope,
                     chosenOpeningAreaScope = if (current.chosenOpeningAreaScope == sourceScope) targetScope else current.chosenOpeningAreaScope,
                 )
-            }
+            })
         }
         AreaMutationReceipt(AreaMutationKind.Merge, sourceId, targetId, warnings)
     }
@@ -697,7 +701,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         val warnings = if (archived) {
             areaFollowUpWarnings(
                 "The Area was archived, but Whip could not reset a saved view that used it. Reopen Areas to refresh it.",
-            ) { repository.update { it.withoutAreaReferences(areaId) } }
+            ) { check(repository.updateAndConfirm { it.withoutAreaReferences(areaId) }) }
         } else {
             emptyList()
         }
@@ -979,18 +983,18 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun confirmMerge() {
+        if (runtime.value.busy) return
+        runtime.value = runtime.value.copy(busy = true, operation = OperationStatus.Running("Importing new records"))
         viewModelScope.launch {
-            runtime.value = runtime.value.copy(busy = true, operation = OperationStatus.Running("Applying your changes"))
             runCatching {
                 withContext(Dispatchers.IO) {
                     app.withUserDataAccess {
                         val summary = app.reminderDeliveryCoordinator.withStateBoundary {
                             backups.mergeBackup(
                                 pendingRestoreJson ?: error("Choose a backup first"),
-                            ).also { NotificationManagerCompat.from(app).cancelAll() }
+                            )
                         }
-                        app.rebuildBackgroundState()
-                        summary
+                        summary.copy(warnings = summary.warnings + mergeBackgroundWarnings())
                     } ?: error("Whip data is unavailable while recovery is in progress")
                 }
             }.onSuccess { summary ->
@@ -998,11 +1002,41 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 runtime.value = runtime.value.copy(
                     preview = null,
                     busy = false,
+                    mergeRefreshWarnings = summary.warnings,
                     operation = OperationStatus.Succeeded("Imported ${summary.importedRecords} records · skipped ${summary.skippedExistingRecords} already present · kept current settings"),
                 )
             }.onFailure { error ->
                 runtime.value = runtime.value.copy(busy = false, operation = OperationStatus.Failed(error.message ?: "Merge failed", error))
             }
+        }
+    }
+
+    private suspend fun mergeBackgroundWarnings(): List<String> = buildList {
+        runCatching { NotificationManagerCompat.from(app).cancelAll() }.onFailure {
+            add("Imported data is saved, but old notifications could not be cleared.")
+        }
+        runCatching { app.rebuildBackgroundState() }.onFailure {
+            add("Imported data is saved, but reminder and background refresh is incomplete.")
+        }
+    }
+
+    fun retryMergeRefresh() {
+        if (runtime.value.busy) return
+        runtime.value = runtime.value.copy(busy = true, operation = OperationStatus.Running("Refreshing imported data"))
+        viewModelScope.launch {
+            val warnings = try {
+                withContext(Dispatchers.IO) {
+                    app.withUserDataAccess { backups.refreshAfterMerge() + mergeBackgroundWarnings() }
+                        ?: listOf("Imported data is saved. Refresh is unavailable while recovery is in progress.")
+                }
+            } catch (cancelled: CancellationException) {
+                runtime.value = runtime.value.copy(busy = false)
+                throw cancelled
+            } catch (error: Exception) {
+                listOf("Imported data is saved, but refresh could not finish. Try Retry Refresh again.")
+            }
+            runtime.value = runtime.value.copy(busy = false, mergeRefreshWarnings = warnings,
+                operation = OperationStatus.Succeeded(if (warnings.isEmpty()) "Imported data refresh completed" else "Imported data remains saved; refresh is incomplete"))
         }
     }
 
@@ -1250,6 +1284,7 @@ private data class SettingsRuntime(
     val busy: Boolean = false,
     val operation: OperationStatus = OperationStatus.Idle,
     val encryptedRestorePending: Boolean = false,
+    val mergeRefreshWarnings: List<String> = emptyList(),
 )
 
 private data class PendingDocumentExport(val kind: ExportKind, val passphrase: String?)

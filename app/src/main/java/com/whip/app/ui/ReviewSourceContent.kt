@@ -31,5 +31,5 @@ internal fun reviewSourceContent(tasks: TaskUiState, habits: HabitUiState, goals
         tasks.completed, tasks.archived, tasks.occurrences,
         habits.all.map { it.habit } + habits.archived, habits.logs, habits.pauses, habits.skips, habits.customUnits,
         (goals.active + goals.completed + goals.archived).map { Triple(it.goal, it.entries, it.milestones) },
-        gym.history,
+        reviewFinishedWorkouts(gym),
     )

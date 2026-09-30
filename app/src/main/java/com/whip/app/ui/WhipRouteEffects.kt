@@ -14,6 +14,7 @@ internal fun CompletedTaskRouteEffect(
     completedItem: ScheduledTask?,
     loading: Boolean,
     onClear: () -> Unit,
+    onUnavailable: () -> Unit = {},
 ) {
     LaunchedEffect(
         completedItemKey,
@@ -26,6 +27,7 @@ internal fun CompletedTaskRouteEffect(
             !loading &&
             (completedItem == null || completedItem.completedAtMillis == null)
         ) {
+            onUnavailable()
             onClear()
         }
     }

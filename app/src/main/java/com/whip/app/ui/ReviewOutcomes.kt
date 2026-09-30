@@ -66,7 +66,7 @@ internal fun reviewOutcomes(
         }
     }
     if (ReviewSection.Gym in sections) {
-        gym.history.filter { it.state == WorkoutSessionState.Finished && it.localDate in start..through }.forEach { workout ->
+        reviewFinishedWorkouts(gym).filter { it.state == WorkoutSessionState.Finished && it.localDate in start..through }.forEach { workout ->
             add(ReviewOutcome(ReviewSection.Gym, workout.id, workout.id.toString(), workout.name,
                 workout.localDate, 1.0, archived = workout.archived))
         }
@@ -77,3 +77,7 @@ internal fun List<ReviewOutcome>.dailyReviewValues(section: ReviewSection, dates
     val scores = filter { it.section == section }.groupBy { it.date }.mapValues { (_, rows) -> rows.sumOf { it.score } }
     return dates.map { scores[it] ?: 0.0 }
 }
+
+internal fun reviewFinishedWorkouts(gym: GymUiState) =
+    (gym.allSessions + gym.history + gym.archivedWorkouts).distinctBy { it.id }
+        .filter { it.state == WorkoutSessionState.Finished }

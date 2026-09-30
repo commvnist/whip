@@ -21,11 +21,49 @@ import com.whip.app.domain.HabitTimerStartRequest
 import com.whip.app.startup.MISSING_USER_DATA_GENERATION
 import com.whip.app.startup.USER_DATA_GENERATION_KEY
 import java.time.LocalDate
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+
+internal enum class WidgetActionStatus(val titleRes: Int, val messageRes: Int) {
+    Failed(R.string.widget_action_not_saved, R.string.widget_action_failed_message),
+    SavedWithWarning(R.string.widget_action_saved_warning, R.string.widget_action_warning_message),
+    Stale(R.string.widget_action_stale, R.string.widget_action_stale_message),
+}
+
+/** Both widget types keep write results separate from post-commit reminder repair. */
+internal suspend fun performWidgetMutation(
+    context: Context,
+    kind: WidgetSnapshotKind,
+    appWidgetId: Int,
+    mutate: suspend () -> Boolean,
+    synchronize: suspend () -> Unit,
+) {
+    var committed = false
+    try {
+        if (!mutate()) {
+            WidgetSnapshotCache.setActionStatus(context, kind, appWidgetId, WidgetActionStatus.Stale)
+            return
+        }
+        committed = true
+        WidgetSnapshotCache.setActionStatus(context, kind, appWidgetId, null)
+        synchronize()
+    } catch (cancelled: CancellationException) {
+        WidgetSnapshotCache.setActionStatus(
+            context, kind, appWidgetId,
+            if (committed) WidgetActionStatus.SavedWithWarning else WidgetActionStatus.Failed,
+        )
+        throw cancelled
+    } catch (_: Exception) {
+        WidgetSnapshotCache.setActionStatus(
+            context, kind, appWidgetId,
+            if (committed) WidgetActionStatus.SavedWithWarning else WidgetActionStatus.Failed,
+        )
+    }
+}
 
 private fun AppWidgetProvider.launchWidgetWork(
     context: Context,
@@ -113,6 +151,7 @@ class WhipWidgetProvider : AppWidgetProvider() {
                 AppWidgetManager.INVALID_APPWIDGET_ID,
             )
             if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
+                WidgetSnapshotCache.setActionStatus(context, WidgetSnapshotKind.TaskAgenda, appWidgetId, null)
                 AppWidgetManager.getInstance(context).notifyAppWidgetViewDataChanged(
                     appWidgetId,
                     R.id.widget_task_list,
@@ -153,50 +192,56 @@ class WhipWidgetProvider : AppWidgetProvider() {
                         AppWidgetManager.EXTRA_APPWIDGET_ID,
                         AppWidgetManager.INVALID_APPWIDGET_ID,
                     )
-                    if (!collectionClick || renderedDate == app.clock.today()) runCatching {
-                        when (resolvedAction) {
-                            ACTION_COMPLETE_TASK -> {
-                                val currentItem = if (collectionClick) currentTaskAgendaItem(
-                                    context = context,
-                                    appWidgetId = appWidgetId,
-                                    taskId = taskId,
-                                    originalDate = originalDate,
-                                ) else null
-                                val stillVisible = !collectionClick || currentItem != null
-                                val hasUnfinishedSubtasks = currentItem?.subtasks?.any { !it.completed } == true
-                                if (stillVisible && !hasUnfinishedSubtasks) {
-                                    app.taskRepository.completeOccurrence(taskId, originalDate)
-                                } else if (
-                                    hasUnfinishedSubtasks &&
-                                    appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID
-                                ) {
-                                    WhipWidgetPreferences.setTaskExpanded(
+                    if (!collectionClick || renderedDate == app.clock.today()) performWidgetMutation(
+                        context, WidgetSnapshotKind.TaskAgenda, appWidgetId,
+                        mutate = mutate@{
+                            when (resolvedAction) {
+                                ACTION_COMPLETE_TASK -> {
+                                    val currentItem = if (collectionClick) currentTaskAgendaItem(
                                         context = context,
                                         appWidgetId = appWidgetId,
-                                        taskKey = requireNotNull(currentItem).stableKey,
-                                        expanded = true,
-                                    )
+                                        taskId = taskId,
+                                        originalDate = originalDate,
+                                    ) else null
+                                    val stillVisible = !collectionClick || currentItem != null
+                                    val hasUnfinishedSubtasks = currentItem?.subtasks?.any { !it.completed } == true
+                                    if (stillVisible && !hasUnfinishedSubtasks) {
+                                        app.taskRepository.completeOccurrence(taskId, originalDate)
+                                    } else if (
+                                        hasUnfinishedSubtasks &&
+                                        appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID
+                                    ) {
+                                        WhipWidgetPreferences.setTaskExpanded(
+                                            context = context,
+                                            appWidgetId = appWidgetId,
+                                            taskKey = requireNotNull(currentItem).stableKey,
+                                            expanded = true,
+                                        )
+                                    } else return@mutate false
+                                }
+                                ACTION_TOGGLE_SUBTASK -> {
+                                    val item = currentTaskAgendaItem(
+                                        context = context,
+                                        appWidgetId = appWidgetId,
+                                        taskId = taskId,
+                                        originalDate = originalDate,
+                                    ) ?: return@mutate false
+                                    val stepId = intent.getLongExtra(EXTRA_STEP_ID, -1L)
+                                    if (stepId >= 0L && item.subtasks.any { it.step.id == stepId }) {
+                                        app.taskRepository.setStepCompleted(
+                                            item = item,
+                                            stepId = stepId,
+                                            completed = intent.getBooleanExtra(EXTRA_COMPLETED, true),
+                                        )
+                                    } else return@mutate false
                                 }
                             }
-                            ACTION_TOGGLE_SUBTASK -> {
-                                val item = currentTaskAgendaItem(
-                                    context = context,
-                                    appWidgetId = appWidgetId,
-                                    taskId = taskId,
-                                    originalDate = originalDate,
-                                ) ?: return@runCatching
-                                val stepId = intent.getLongExtra(EXTRA_STEP_ID, -1L)
-                                if (stepId >= 0L && item.subtasks.any { it.step.id == stepId }) {
-                                    app.taskRepository.setStepCompleted(
-                                        item = item,
-                                        stepId = stepId,
-                                        completed = intent.getBooleanExtra(EXTRA_COMPLETED, true),
-                                    )
-                                }
-                            }
-                        }
+                            true
+                    }, synchronize = {
                         app.reminderScheduler.syncTask(taskId, allowDuringRecovery = true)
-                    }
+                    }) else WidgetSnapshotCache.setActionStatus(
+                        context, WidgetSnapshotKind.TaskAgenda, appWidgetId, WidgetActionStatus.Stale,
+                    )
                 }
                 updateAll(context)
             }
@@ -371,6 +416,7 @@ class HabitTrackingWidgetProvider : AppWidgetProvider() {
                 AppWidgetManager.INVALID_APPWIDGET_ID,
             )
             if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
+                WidgetSnapshotCache.setActionStatus(context, WidgetSnapshotKind.HabitTracking, appWidgetId, null)
                 AppWidgetManager.getInstance(context).notifyAppWidgetViewDataChanged(
                     appWidgetId,
                     R.id.widget_habit_list,
@@ -433,58 +479,66 @@ class HabitTrackingWidgetProvider : AppWidgetProvider() {
                     renderedDate == today &&
                     appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID
                 ) {
-                    runCatching {
-                        val current = currentHabitTrackingContent(context, appWidgetId)
-                        val parent = current.rows.firstOrNull { row ->
-                            !row.isChecklistItem && row.habit.id == habitId
-                        } ?: return@runCatching
-                        val habit = parent.habit
-                        when (resolvedAction) {
-                            ACTION_TOGGLE_HABIT -> {
-                                val completed = intent.getBooleanExtra(EXTRA_COMPLETED, true)
-                                if (parent.action != HabitWidgetAction.ToggleHabit || parent.completed == completed) {
-                                    return@runCatching
+                    performWidgetMutation(
+                        context, WidgetSnapshotKind.HabitTracking, appWidgetId,
+                        mutate = mutate@{
+                            val current = currentHabitTrackingContent(context, appWidgetId)
+                            val parent = current.rows.firstOrNull { row ->
+                                !row.isChecklistItem && row.habit.id == habitId
+                            } ?: return@mutate false
+                            val habit = parent.habit
+                            when (resolvedAction) {
+                                ACTION_TOGGLE_HABIT -> {
+                                    val completed = intent.getBooleanExtra(EXTRA_COMPLETED, true)
+                                    if (parent.action != HabitWidgetAction.ToggleHabit || parent.completed == completed) {
+                                        return@mutate false
+                                    }
+                                    app.habitRepository.setCheckOff(habitId, today, completed)
                                 }
-                                app.habitRepository.setCheckOff(habitId, today, completed)
+                                ACTION_TOGGLE_CHECKLIST_ITEM -> {
+                                    val itemId = intent.getLongExtra(EXTRA_CHECKLIST_ITEM_ID, -1L)
+                                    val child = current.rows.firstOrNull { row ->
+                                        row.habit.id == habitId && row.checklistItem?.id == itemId
+                                    } ?: return@mutate false
+                                    val completed = intent.getBooleanExtra(EXTRA_COMPLETED, true)
+                                    if (
+                                        child.action != HabitWidgetAction.ToggleChecklistItem ||
+                                        child.completed == completed
+                                    ) return@mutate false
+                                    app.habitRepository.toggleChecklistItem(habitId, itemId, today, completed)
+                                }
+                                ACTION_INCREMENT_HABIT -> if (parent.action == HabitWidgetAction.Increment) {
+                                    app.habitRepository.log(habitId, habit.quickIncrement, date = today)
+                                } else return@mutate false
+                                ACTION_START_HABIT -> if (parent.action == HabitWidgetAction.StartTimer) {
+                                    val habitUuid = intent.getStringExtra(EXTRA_HABIT_UUID)
+                                    val requestId = intent.getStringExtra(EXTRA_TIMER_REQUEST_ID)
+                                    if (habit.uuid != habitUuid || requestId.isNullOrBlank()) return@mutate false
+                                    app.habitRepository.startTimer(
+                                        HabitTimerStartRequest(habit.id, habit.uuid, requestId),
+                                    )
+                                } else return@mutate false
+                                ACTION_STOP_HABIT -> if (parent.action == HabitWidgetAction.StopTimer) {
+                                    val habitUuid = intent.getStringExtra(EXTRA_HABIT_UUID)
+                                    val sessionId = intent.getStringExtra(EXTRA_TIMER_SESSION_ID)
+                                    if (
+                                        habit.uuid != habitUuid || sessionId.isNullOrBlank() ||
+                                        habit.timerSessionId != sessionId
+                                    ) return@mutate false
+                                    app.habitRepository.stopTimer(
+                                        HabitTimerBoundary(habit.id, habit.uuid, sessionId),
+                                        today,
+                                    )
+                                } else return@mutate false
                             }
-                            ACTION_TOGGLE_CHECKLIST_ITEM -> {
-                                val itemId = intent.getLongExtra(EXTRA_CHECKLIST_ITEM_ID, -1L)
-                                val child = current.rows.firstOrNull { row ->
-                                    row.habit.id == habitId && row.checklistItem?.id == itemId
-                                } ?: return@runCatching
-                                val completed = intent.getBooleanExtra(EXTRA_COMPLETED, true)
-                                if (
-                                    child.action != HabitWidgetAction.ToggleChecklistItem ||
-                                    child.completed == completed
-                                ) return@runCatching
-                                app.habitRepository.toggleChecklistItem(habitId, itemId, today, completed)
-                            }
-                            ACTION_INCREMENT_HABIT -> if (parent.action == HabitWidgetAction.Increment) {
-                                app.habitRepository.log(habitId, habit.quickIncrement, date = today)
-                            }
-                            ACTION_START_HABIT -> if (parent.action == HabitWidgetAction.StartTimer) {
-                                val habitUuid = intent.getStringExtra(EXTRA_HABIT_UUID)
-                                val requestId = intent.getStringExtra(EXTRA_TIMER_REQUEST_ID)
-                                if (habit.uuid != habitUuid || requestId.isNullOrBlank()) return@runCatching
-                                app.habitRepository.startTimer(
-                                    HabitTimerStartRequest(habit.id, habit.uuid, requestId),
-                                )
-                            }
-                            ACTION_STOP_HABIT -> if (parent.action == HabitWidgetAction.StopTimer) {
-                                val habitUuid = intent.getStringExtra(EXTRA_HABIT_UUID)
-                                val sessionId = intent.getStringExtra(EXTRA_TIMER_SESSION_ID)
-                                if (
-                                    habit.uuid != habitUuid || sessionId.isNullOrBlank() ||
-                                    habit.timerSessionId != sessionId
-                                ) return@runCatching
-                                app.habitRepository.stopTimer(
-                                    HabitTimerBoundary(habit.id, habit.uuid, sessionId),
-                                    today,
-                                )
-                            }
-                        }
+                            true
+                    }, synchronize = {
                         app.habitReminderScheduler.syncHabit(habitId, allowDuringRecovery = true)
-                    }
+                    })
+                } else if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
+                    WidgetSnapshotCache.setActionStatus(
+                        context, WidgetSnapshotKind.HabitTracking, appWidgetId, WidgetActionStatus.Stale,
+                    )
                 }
                 WhipWidgetProvider.updateAll(context)
             }

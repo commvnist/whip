@@ -13,6 +13,7 @@ import android.widget.RemoteViewsService
 import com.whip.app.R
 import com.whip.app.WhipApplication
 import com.whip.app.core.calculateHabitTimerElapsedSeconds
+import com.whip.app.ui.formatHabitValue
 import com.whip.app.domain.HabitTrackingMode
 import com.whip.app.startup.USER_DATA_GENERATION_KEY
 import java.time.LocalDate
@@ -103,6 +104,7 @@ internal class HabitWidgetRemoteViewsFactory(
             is WidgetCollectionEntry.RefreshError -> refreshErrorRow(
                 context = context,
                 hasCachedRows = entry.hasCachedRows,
+                actionStatus = entry.actionStatus,
                 retryActionKey = HabitTrackingWidgetProvider.EXTRA_COLLECTION_ACTION,
                 retryAction = HabitTrackingWidgetProvider.COLLECTION_REFRESH_HABITS,
             )
@@ -117,7 +119,7 @@ internal class HabitWidgetRemoteViewsFactory(
         is WidgetCollectionEntry.Current ->
             "${entry.row.habit.id}:${entry.row.checklistItem?.id ?: "habit"}".hashCode().toLong()
         is WidgetCollectionEntry.Cached -> "cached:${entry.row.title}:${entry.row.meta}".hashCode().toLong()
-        is WidgetCollectionEntry.RefreshError -> Long.MIN_VALUE
+        is WidgetCollectionEntry.RefreshError -> entry.actionStatus?.let { Long.MIN_VALUE + 1 + it.ordinal } ?: Long.MIN_VALUE
         null -> position.toLong()
     }
 
@@ -179,7 +181,7 @@ private fun habitCollectionRow(
         }
         views.setContentDescription(
             R.id.widget_row_body,
-            context.getString(R.string.widget_open_habit, row.habit.name),
+            listOf(context.getString(R.string.widget_open_habit, row.habit.name), today.toString(), habitMeta(context, row)).joinToString(" \u00b7 "),
         )
 
         bindHabitAction(
@@ -253,7 +255,7 @@ private fun bindHabitAction(views: RemoteViews, row: HabitWidgetRow, iconOnly: B
         }
     }
     val label = if (iconOnly) null else when (row.action) {
-        HabitWidgetAction.Increment -> "+${formatWidgetNumber(row.habit.quickIncrement)}"
+        HabitWidgetAction.Increment -> "+${formatHabitValue(row.habit.quickIncrement, row.habit.precision)}"
         HabitWidgetAction.StartTimer -> "Start"
         HabitWidgetAction.StopTimer -> if (row.habit.timerNeedsReview) "Review" else "Stop"
         HabitWidgetAction.Open -> when {
@@ -325,13 +327,13 @@ private fun habitActionDescription(context: Context, row: HabitWidgetRow): Strin
         )
         HabitWidgetAction.Increment -> context.getString(
             R.string.widget_increment_habit,
-            formatWidgetNumber(row.habit.quickIncrement),
+            formatHabitValue(row.habit.quickIncrement, row.habit.precision),
             row.habit.name,
         )
         HabitWidgetAction.StartTimer -> context.getString(R.string.widget_start_habit, row.habit.name)
         HabitWidgetAction.StopTimer -> if (row.habit.timerNeedsReview) {
             "Review timer for ${row.habit.name}; ${widgetTimerElapsed(row.habit)} estimated"
-        } else "Stop and log ${row.habit.name}; ${widgetTimerElapsed(row.habit)} elapsed"
+        } else "Stop and log ${row.habit.name}; ${widgetTimerElapsed(row.habit)} elapsed at widget refresh"
         HabitWidgetAction.Open -> context.getString(R.string.widget_open_habit, row.habit.name)
         HabitWidgetAction.ReadOnly -> if (row.habit.sourceMeasurementId != null) {
             "${row.habit.name} is synced and read-only"
@@ -352,15 +354,12 @@ private fun habitMeta(context: Context, row: HabitWidgetRow): String = when {
     row.habit.trackingMode == HabitTrackingMode.CheckOff -> if (row.completed) "Completed" else "Due today"
     row.habit.trackingMode == HabitTrackingMode.Duration -> when {
         row.habit.timerNeedsReview -> "Review · ${widgetTimerElapsed(row.habit)} estimated"
-        row.action == HabitWidgetAction.StopTimer -> "${widgetTimerElapsed(row.habit)} elapsed"
-        else -> context.getString(R.string.widget_start)
+        row.action == HabitWidgetAction.StopTimer -> "${widgetTimerElapsed(row.habit)} elapsed at widget refresh"
+        else -> row.progressSummary.ifBlank { context.getString(R.string.widget_start) }
     }
     row.habit.trackingMode in setOf(HabitTrackingMode.Rating, HabitTrackingMode.LogOnly) ->
         context.getString(R.string.widget_log)
-    else -> listOfNotNull(
-        formatWidgetNumber(row.value),
-        row.habit.targetMin?.let { "of ${formatWidgetNumber(it)}" },
-    ).joinToString(" ")
+    else -> row.progressSummary.ifBlank { formatWidgetNumber(row.value) }
 }
 
 private fun widgetTimerElapsed(habit: com.whip.app.domain.Habit): String {

@@ -279,6 +279,8 @@ internal fun FiveThreeOneCycleReviewDialog(
     }
     PaneAwareAlertDialog(
         onDismissRequest = { if (!saving) onDismiss() },
+        inputBlocked = saving,
+        inputBlockedLabel = "Applying Training Max Decisions",
         title = { Text("Review Cycle ${review.cycle} Training Maxes") },
         text = {
             Column(

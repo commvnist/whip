@@ -663,13 +663,14 @@ object HabitReminderNotifications {
             Intent(context, MainActivity::class.java)
                 .setAction(WhipLaunchActions.ACTION_OPEN_HABIT)
                 .putExtra(WhipLaunchActions.EXTRA_ENTITY_ID, habit.id)
+                .putExtra(WhipLaunchActions.EXTRA_OCCURRENCE_EPOCH_DAY, logicalDate.toEpochDay())
                 .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         val dataGeneration = (context.applicationContext as WhipApplication).currentUserDataGeneration()
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification).setContentTitle(habit.name)
-            .setContentText("Time for your habit check-in").setContentIntent(intent)
+            .setContentText("Habit check-in for ${logicalDate.format(java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM))}").setContentIntent(intent)
             .setAutoCancel(true).setCategory(NotificationCompat.CATEGORY_REMINDER)
             .apply {
                 val actionToken = System.currentTimeMillis()

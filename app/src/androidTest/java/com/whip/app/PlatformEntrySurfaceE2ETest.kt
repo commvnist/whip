@@ -27,6 +27,9 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
 import com.whip.app.domain.AreaScope
+import com.whip.app.domain.HabitDraft
+import com.whip.app.domain.HabitTrackingMode
+import com.whip.app.domain.HabitTimerStartRequest
 import com.whip.app.core.AreaOpeningMode
 import com.whip.app.core.SharedTaskCapturePolicy
 import com.whip.app.core.WhipLaunchActions
@@ -55,6 +58,81 @@ class PlatformEntrySurfaceE2ETest {
         app = ApplicationProvider.getApplicationContext()
         app.backupRepository.deleteAllData()
         app.settingsRepository.update { it.copy(setupCompleted = true) }
+    }
+
+    @Test
+    fun deferredHabitEntryOpensTheOriginalLogicalDateAndRetainsItAfterRecreation(): Unit = runBlocking {
+        val yesterday = app.clock.today().minusDays(1)
+        val id = app.habitRepository.create(HabitDraft(
+            name = "Dated reminder", trackingMode = HabitTrackingMode.Count, startDate = yesterday,
+        ))
+        app.habitRepository.log(id, 1.0, date = yesterday)
+        app.habitRepository.log(id, 2.0, date = app.clock.today())
+        val intent = Intent(app, MainActivity::class.java)
+            .setAction(WhipLaunchActions.ACTION_OPEN_HABIT)
+            .putExtra(WhipLaunchActions.EXTRA_ENTITY_ID, id)
+            .putExtra(WhipLaunchActions.EXTRA_OCCURRENCE_EPOCH_DAY, yesterday.toEpochDay())
+        ActivityScenario.launch<MainActivity>(intent).use { scenario ->
+            compose.waitUntil(10_000) {
+                compose.onAllNodesWithTag("habit-history-search").fetchSemanticsNodes().size == 1
+            }
+            compose.onNodeWithTag("habit-history-search").assertTextContains(yesterday.toString())
+            captureVisualCatalogSurface("overhaul.platform.habit-original-date")
+            scenario.recreate()
+            compose.waitUntil(10_000) {
+                compose.onAllNodesWithTag("habit-history-search").fetchSemanticsNodes().size == 1
+            }
+            compose.onNodeWithTag("habit-history-search").assertTextContains(yesterday.toString())
+        }
+    }
+
+    @Test
+    fun outOfAreaRunningHabitOpensItsExactInspectorWithoutChangingSavedArea() = runBlocking {
+        val mainArea = app.areaRepository.areas.first().first { !it.archived }.id
+        val otherArea = app.areaRepository.create("Other timer Area")
+        assertTrue(app.settingsRepository.updateAndConfirm { it.copy(activeAreaScope = AreaScope.One(mainArea).storageKey) })
+        val id = app.habitRepository.create(HabitDraft(
+            name = "Outside running timer", trackingMode = HabitTrackingMode.Duration,
+            dimension = com.whip.app.domain.UnitDimension.Duration, unitId = "min",
+            areaId = otherArea, startDate = app.clock.today(),
+        ))
+        val habit = app.habitRepository.habits.first().first { it.id == id }
+        app.habitRepository.startTimer(HabitTimerStartRequest(id, habit.uuid, "outside-timer-entry"))
+        val intent = Intent(app, MainActivity::class.java)
+            .setAction(WhipLaunchActions.ACTION_OPEN_HABIT)
+            .putExtra(WhipLaunchActions.EXTRA_ENTITY_ID, id)
+            .putExtra(WhipWidgetProvider.EXTRA_AREA_SCOPE, AreaScope.One(mainArea).storageKey)
+        ActivityScenario.launch<MainActivity>(intent).use {
+            compose.waitUntil(10_000) {
+                compose.onAllNodesWithTag("habit-detail-surface").fetchSemanticsNodes().size == 1
+            }
+            compose.onNodeWithTag("entity-inspector-title").assertTextContains("Outside running timer").assertIsDisplayed()
+            assertEquals(AreaScope.One(mainArea).storageKey, app.settingsRepository.current().activeAreaScope)
+            captureVisualCatalogSurface("overhaul.platform.outside-area-timer")
+        }
+    }
+
+    @Test
+    fun restEntryOpensItsFinishedOriginalSessionInsteadOfAnUnrelatedActiveWorkout(): Unit = runBlocking {
+        val original = app.gymRepository.startWorkout(name = "Original rest session")
+        app.gymRepository.finishWorkout(original)
+        app.gymRepository.startWorkout(name = "Unrelated current workout")
+        val intent = Intent(app, MainActivity::class.java)
+            .setAction(WhipLaunchActions.ACTION_OPEN_GYM)
+            .putExtra(WhipLaunchActions.EXTRA_ENTITY_ID, original)
+        ActivityScenario.launch<MainActivity>(intent).use { scenario ->
+            compose.waitUntil(10_000) {
+                compose.onAllNodesWithText("Original rest session").fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithText("Original rest session").assertIsDisplayed()
+            compose.onAllNodesWithText("Unrelated current workout").assertCountEquals(0)
+            captureVisualCatalogSurface("overhaul.platform.original-rest-session")
+            scenario.recreate()
+            compose.waitUntil(10_000) {
+                compose.onAllNodesWithText("Original rest session").fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithText("Original rest session").assertIsDisplayed()
+        }
     }
 
     @Test

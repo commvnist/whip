@@ -1,5 +1,19 @@
 # Durable product and engineering decisions
 
+### DEC-20260930-001 - Integrate the preserved overhaul through existing shared owners
+
+- Decision: Continue in the actual Arch checkout from the 35-file preserved baseline. Integration owns shared primitives and builds; routines/tasks and goals/habits have distinct feature ownership and explicit emulator serials. Retain the existing visual language and recognizable functions, improving concrete inconsistencies rather than replacing the theme.
+- Semantics: Ordinary tab navigation retains its job. Explicit daily/source intent preserves the exact day/entity/session. Visible pending input belongs to the draft; protected submission closes only on confirmed receipt. Committed success with ancillary repair warnings differs from failed writes.
+- Verification: Retain original screenshots, first failures, exact package/source provenance and method accounting. Frozen native campaigns must reject source drift; final aggregate checks follow the owner's extensive scope. Compose restoration, actual Activity recreation and spoken/OEM/physical acceptance remain distinct.
+- Related: FB-20260930-001, IMP-20260930-001. Status: In progress; [acceptance record](../quality/UX_OVERHAUL_2026-09-30.md).
+
+### DEC-20260929-006 — Extensive QA uses three isolated native lanes and a measured fast edit loop
+
+- Decision: After the accepted0.3.91 phone release and upstream push, FB-20260929-019 authorizes three GPT-6.1 Sol/high agents on explicit disposable API34 emulators. Divide Goals/Tracks/Settings, Habits/Review/platform, and Tasks/Gym; parent owns shared integration and QA research. Recheck and repair the49 remaining grounded audit findings and inspect complete main jobs with retained error/lifecycle/history/large-text boundaries.
+- Verification: Freeze related source/APKs before native execution; retain exact invocation XML, source signatures, failures and original captures. Account for the union of native methods, rather than adding duplicate passes. Run affected readiness once after stable implementation and the extensive requested suite; routine edit checks remain55seconds. No physical-phone instrumentation or automatic second phone release.
+- Speed/coverage: Measure whole known-scope commands including compilation and device overhead. Reuse deterministic selection and existing request/test owners; retain fresh full acceptance for broad integration and fail-closed unknown scope. A warm cached task is not a fresh test execution. Primary-source research, measured outcomes and explicitly untested boundaries belong to the QA report.
+- Related/status: FND-20260929-034–043, IMP-20260929-024 / VER-20260929-021; In progress, paused at explicit owner request on2026-09-29. [QA plan](../quality/EXTENSIVE_QA_2026-09-29.md), [safe-stop handoff](../quality/QA_PAUSED_HANDOFF_2026-09-29.md). Do not resume QA without owner instruction.
+
 ### DEC-20260929-005 — Primary execution stays visible; supplemental details remain optional
 
 - Decision: FB-20260929-018 supersedes hiding primary execution behind item disclosure or a collection-management summary. Eligible check-off, item checklists/milestones, numeric input/presets, timer and primary lifecycle actions are directly accessible. Required input and consequential confirmation open focused forms rather than inspectors.

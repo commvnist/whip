@@ -100,6 +100,7 @@ internal class TaskWidgetRemoteViewsFactory(
             is WidgetCollectionEntry.RefreshError -> refreshErrorRow(
                 context = context,
                 hasCachedRows = entry.hasCachedRows,
+                actionStatus = entry.actionStatus,
                 retryActionKey = WhipWidgetProvider.EXTRA_TASK_COLLECTION_ACTION,
                 retryAction = WhipWidgetProvider.COLLECTION_REFRESH_TASKS,
             )
@@ -114,7 +115,7 @@ internal class TaskWidgetRemoteViewsFactory(
         is WidgetCollectionEntry.Current ->
             "${entry.row.item.stableKey}:${entry.row.subtask?.step?.id ?: "task"}".hashCode().toLong()
         is WidgetCollectionEntry.Cached -> "cached:${entry.row.title}:${entry.row.meta}".hashCode().toLong()
-        is WidgetCollectionEntry.RefreshError -> Long.MIN_VALUE
+        is WidgetCollectionEntry.RefreshError -> entry.actionStatus?.let { Long.MIN_VALUE + 1 + it.ordinal } ?: Long.MIN_VALUE
         null -> position.toLong()
     }
 
@@ -186,7 +187,7 @@ private fun taskCollectionRow(
         )
         views.setContentDescription(
             R.id.widget_row_body,
-            context.getString(R.string.widget_open_task, row.item.task.title),
+            listOf(context.getString(R.string.widget_open_task, row.item.task.title), taskMeta(context, row, today)).joinToString(" \u00b7 "),
         )
         views.setImageViewResource(
             R.id.widget_row_action_icon,

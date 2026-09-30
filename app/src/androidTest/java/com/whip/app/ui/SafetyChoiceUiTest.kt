@@ -82,7 +82,7 @@ class SafetyChoiceUiTest {
                             session = null,
                             initialDate = LocalDate.of(2026, 9, 6),
                             onDismiss = {},
-                            onStart = { _, _, _, _, _ -> },
+                            onStart = { _, _, _, _, _ -> false },
                         )
                         else -> WorkoutGroupDialog(
                             exercises = listOf(workoutExerciseUi(1), workoutExerciseUi(2)),
@@ -288,7 +288,7 @@ class SafetyChoiceUiTest {
                             dismissals.incrementAndGet()
                             showEditor = false
                         },
-                        onStart = { _, _, _, _, _ -> },
+                        onStart = { _, _, _, _, _ -> false },
                     )
                 }
             }
@@ -342,20 +342,25 @@ class SafetyChoiceUiTest {
     fun workoutSaveSubmissionBlocksDuplicateActionsAndDismissal() {
         val starts = AtomicInteger(0)
         val dismissals = AtomicInteger(0)
+        val state = mutableStateOf<com.whip.app.core.PersistenceRequestState<GymSessionMutationReceipt>>(
+            com.whip.app.core.PersistenceRequestState.Idle)
         compose.setContent {
             WhipTheme(dynamicColor = false) {
                 WorkoutEditorDialog(
-                    session = null,
-                    initialDate = LocalDate.of(2026, 8, 29),
+                    session = null, initialDate = LocalDate.of(2026, 8, 29),
                     onDismiss = { dismissals.incrementAndGet() },
-                    onStart = { _, _, _, _, _ -> starts.incrementAndGet() },
+                    saveState = state.value, consumeSave = { state.value = com.whip.app.core.PersistenceRequestState.Idle },
+                    onStart = { _, _, _, _, id ->
+                        starts.incrementAndGet()
+                        state.value = com.whip.app.core.PersistenceRequestState.Running(id)
+                        true
+                    },
                 )
             }
         }
-
-        compose.onNodeWithTag("workout-editor-confirm").performClick().assertIsNotEnabled()
+        compose.onNodeWithTag("workout-editor-confirm").performClick()
+        compose.onNodeWithTag("persistence-saving-overlay").assertIsDisplayed()
         assertEquals(1, starts.get())
-        compose.onNodeWithText("Cancel").assertIsNotEnabled()
         assertEquals(0, dismissals.get())
     }
 
@@ -363,41 +368,50 @@ class SafetyChoiceUiTest {
     fun workoutSaveFailureKeepsParentAndDraftOpenForRetry() {
         val starts = AtomicInteger(0)
         val dismissals = AtomicInteger(0)
-        val completion = AtomicReference<(WhipResult<Unit>) -> Unit>()
-        compose.setContent {
+        val state = mutableStateOf<com.whip.app.core.PersistenceRequestState<GymSessionMutationReceipt>>(
+            com.whip.app.core.PersistenceRequestState.Idle)
+        var pending: String? = null
+        val restoration = androidx.compose.ui.test.junit4.StateRestorationTester(compose)
+        restoration.setContent {
             WhipTheme(dynamicColor = false) {
                 WorkoutEditorDialog(
-                    session = null,
-                    initialDate = LocalDate.of(2026, 8, 29),
+                    session = null, initialDate = LocalDate.of(2026, 8, 29),
                     onDismiss = { dismissals.incrementAndGet() },
-                    onStart = { _, _, _, _, onFinished ->
+                    saveState = state.value, consumeSave = { state.value = com.whip.app.core.PersistenceRequestState.Idle },
+                    onStart = { _, _, _, _, id ->
                         starts.incrementAndGet()
-                        completion.set(onFinished)
+                        pending = id
+                        state.value = com.whip.app.core.PersistenceRequestState.Running(id)
+                        true
                     },
                 )
             }
         }
-
         compose.onNodeWithTag("workout-editor-name").performTextInput("Retry draft")
-        compose.onNodeWithTag("workout-editor-confirm")
-            .assertIsEnabled()
-            .performSemanticsAction(SemanticsActions.OnClick)
+        androidx.test.espresso.Espresso.closeSoftKeyboard()
+        captureVisualCatalogSurface("overhaul.gym.workout-before-save")
+        compose.onNodeWithTag("workout-editor-confirm").performClick()
+        compose.onNodeWithTag("persistence-saving-overlay").assertIsDisplayed()
+        androidx.test.espresso.Espresso.pressBack()
+        compose.onNodeWithTag("persistence-saving-overlay").assertIsDisplayed()
+        restoration.emulateSavedInstanceStateRestore()
+        compose.onNodeWithTag("persistence-saving-overlay").assertIsDisplayed()
+        captureVisualCatalogSurface("overhaul.gym.workout-saving-restored")
         compose.runOnIdle {
             assertEquals(1, starts.get())
-            checkNotNull(completion.get())
+            assertEquals(0, dismissals.get())
+            state.value = com.whip.app.core.PersistenceRequestState.Finished(checkNotNull(pending),
+                WhipResult.Failure("Database unavailable"))
         }
-        compose.onNodeWithTag("workout-editor-confirm").assertIsNotEnabled()
-        compose.runOnIdle { completion.get().invoke(WhipResult.Failure("Database unavailable")) }
-
         compose.onNodeWithTag("workout-editor-save-error").assertTextContains("Database unavailable")
         compose.onNodeWithTag("workout-editor-name").assertTextContains("Retry draft")
-        compose.onNodeWithTag("workout-editor-confirm").assertIsEnabled()
-        assertEquals(0, dismissals.get())
-
-        compose.onNodeWithTag("workout-editor-confirm")
-            .assertIsEnabled()
-            .performSemanticsAction(SemanticsActions.OnClick)
-        compose.runOnIdle { completion.get().invoke(WhipResult.Success(Unit)) }
+        captureVisualCatalogSurface("overhaul.gym.workout-failed-retained")
+        compose.onNodeWithTag("workout-editor-confirm").assertIsEnabled().performClick()
+        compose.runOnIdle {
+            state.value = com.whip.app.core.PersistenceRequestState.Finished(checkNotNull(pending),
+                WhipResult.Success(GymSessionMutationReceipt(GymSessionMutationKind.WorkoutStarted, 77)))
+        }
+        compose.waitForIdle()
         assertEquals(2, starts.get())
         assertEquals(1, dismissals.get())
     }

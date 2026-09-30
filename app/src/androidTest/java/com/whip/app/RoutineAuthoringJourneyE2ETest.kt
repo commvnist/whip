@@ -250,7 +250,10 @@ class RoutineAuthoringJourneyE2ETest {
             backToOutline()
             compose.onNodeWithContentDescription("Close routine editor").performClick()
             compose.onNodeWithTag("gym-destination-History").performClick()
-            compose.onNodeWithTag("history-workout-toggle-${session.id}").performScrollTo().performClick()
+            val historyToggle = compose.onNodeWithTag("history-workout-toggle-${session.id}").performScrollTo()
+            val expanded = historyToggle.fetchSemanticsNode().config[
+                androidx.compose.ui.semantics.SemanticsProperties.StateDescription] == "Expanded"
+            if (!expanded) historyToggle.performClick()
             compose.onNodeWithTag("history-set-card-$setId").performScrollTo()
             compose.onNodeWithTag("history-set-performed-$setId").assertTextContains("40 kg × 7 reps")
             prescriptionCapture("history")

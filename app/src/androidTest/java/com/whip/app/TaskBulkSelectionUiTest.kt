@@ -4,6 +4,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsEnabled
@@ -215,7 +217,14 @@ class TaskBulkSelectionUiTest {
             date = today,
             completed = true,
             recurring = true,
-        )
+        ).copy(subtasks = listOf(ScheduledSubtask(
+            step = TaskStep(
+                id = 9301, taskId = 93, title = "Renamed current definition", position = 0,
+                notes = "Changed current instructions", createdAtMillis = 1, updatedAtMillis = 2,
+            ),
+            completed = false, completedAtMillis = null,
+            title = "Saved historical step", notes = "Frozen dose instructions",
+        )))
         compose.setContent {
             WhipTheme(dynamicColor = false) {
                 WhipScreen(
@@ -234,8 +243,20 @@ class TaskBulkSelectionUiTest {
         compose.onNodeWithTag("task-destination-History").performClick()
         compose.onNodeWithText(completed.task.title).performClick()
 
-        compose.onNodeWithContentDescription("Edit Series").assertIsDisplayed()
+        compose.onNodeWithText("Saved historical step").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Frozen dose instructions").performScrollTo().assertIsDisplayed()
+        compose.onAllNodesWithText("Renamed current definition").assertCountEquals(0)
+        compose.onAllNodesWithText("Changed current instructions").assertCountEquals(0)
+        captureVisualCatalogSurface("overhaul.tasks.frozen-historical-step")
+        compose.onNodeWithTag("completed-task-detail-section-Schedule").performClick().assertIsSelected()
+        compose.onNodeWithContentDescription("Edit Series").assertIsDisplayed().performClick()
+        compose.onNodeWithTag("task-editor-title").assertIsDisplayed()
         compose.onAllNodesWithText("Edit This and Future").assertCountEquals(0)
+        androidx.test.espresso.Espresso.closeSoftKeyboard()
+        compose.onNodeWithContentDescription("Cancel Task editing").performClick()
+        compose.onNodeWithTag("completed-task-surface").assertIsDisplayed()
+        compose.onNodeWithTag("completed-task-detail-section-Schedule").assertIsSelected()
+        captureVisualCatalogSurface("overhaul.tasks.completed-edit-return")
     }
 
     @Test

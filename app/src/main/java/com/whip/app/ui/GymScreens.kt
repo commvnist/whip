@@ -608,6 +608,7 @@ fun GymAreaContent(
     onExternalRequestConsumed: () -> Unit = {},
     openSearchRequest: WhipSearchResult? = null,
     onOpenSearchRequestConsumed: () -> Unit = {},
+    onOpenSearchUnavailable: (String) -> Unit = {},
     onRequestNotificationPermission: () -> Unit = {},
     onOpenBackupSettings: () -> Unit = {},
     onRoutineEditorStateChange: (Boolean) -> Unit = {},
@@ -696,6 +697,8 @@ fun GymAreaContent(
         mutableStateOf<WorkoutPlacementMutationBoundary?>(null)
     }
     var focusedWorkoutId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var historyOpenedFromInsights by rememberSaveable { mutableStateOf(false) }
+    val destinationStateHolder = rememberSaveableStateHolder()
     var historyWorkoutEditorId by rememberSaveable { mutableStateOf<Long?>(null) }
     var focusedRoutineId by rememberSaveable { mutableStateOf<Long?>(null) }
     var exerciseDeleteCandidateId by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -800,6 +803,8 @@ fun GymAreaContent(
             "The previous workout change was interrupted. Check the active workout or History before retrying.",
         onPersisted = { receipt ->
             when (receipt.kind) {
+                GymSessionMutationKind.WorkoutStarted,
+                GymSessionMutationKind.WorkoutDetailsUpdated -> Unit
                 GymSessionMutationKind.ExerciseAdded,
                 GymSessionMutationKind.ExerciseSubstituted,
                 -> {
@@ -1230,25 +1235,48 @@ fun GymAreaContent(
         }
         onExternalRequestConsumed()
     }
-    LaunchedEffect(openSearchRequest, state.exercises, state.archivedExercises, state.allSessions, state.routines, state.archivedRoutines) {
+    LaunchedEffect(
+        openSearchRequest, state.loading, state.exercises, state.archivedExercises,
+        state.machines, state.archivedMachines, state.allSessions, state.routines, state.archivedRoutines,
+    ) {
         val request = openSearchRequest ?: return@LaunchedEffect
+        if (state.loading) return@LaunchedEffect
+        if (request.domain !in setOf(SearchDomain.Exercise, SearchDomain.Machine, SearchDomain.Workout, SearchDomain.Routine)) {
+            return@LaunchedEffect
+        }
+        historyOpenedFromInsights = false
+        focusedWorkoutId = null
+        focusedRoutineId = null
+        fun unavailable(target: GymDestination, label: String) {
+            destination = target
+            onOpenSearchUnavailable("This $label is no longer available.")
+            onOpenSearchRequestConsumed()
+        }
         when (request.domain) {
             SearchDomain.Exercise -> {
-                val exercise = (state.exercises + state.archivedExercises)
-                    .firstOrNull { it.id == request.id } ?: return@LaunchedEffect
+                val exercise = (state.exercises + state.archivedExercises).firstOrNull { it.id == request.id }
+                if (exercise == null) {
+                    unavailable(GymDestination.Exercises, "Exercise")
+                    return@LaunchedEffect
+                }
                 destination = GymDestination.Exercises
                 exerciseActionsId = exercise.id
             }
             SearchDomain.Machine -> {
-                val machine = (state.machines + state.archivedMachines)
-                    .firstOrNull { it.id == request.id } ?: return@LaunchedEffect
+                val machine = (state.machines + state.archivedMachines).firstOrNull { it.id == request.id }
+                if (machine == null) {
+                    unavailable(GymDestination.Machines, "Machine")
+                    return@LaunchedEffect
+                }
                 destination = GymDestination.Machines
                 machineEditorId = machine.id
             }
             SearchDomain.Workout -> {
-                if (state.allSessions.none { it.id == request.id }) return@LaunchedEffect
+                if (state.allSessions.none { it.id == request.id }) {
+                    unavailable(GymDestination.History, "Workout")
+                    return@LaunchedEffect
+                }
                 if (state.activeSession?.id == request.id) {
-                    focusedWorkoutId = null
                     destination = GymDestination.Workout
                 } else {
                     focusedWorkoutId = request.id
@@ -1256,7 +1284,10 @@ fun GymAreaContent(
                 }
             }
             SearchDomain.Routine -> {
-                if ((state.routines + state.archivedRoutines).none { it.id == request.id }) return@LaunchedEffect
+                if ((state.routines + state.archivedRoutines).none { it.id == request.id }) {
+                    unavailable(GymDestination.Routines, "Routine")
+                    return@LaunchedEffect
+                }
                 focusedRoutineId = request.id
                 destination = GymDestination.Routines
             }
@@ -1279,6 +1310,14 @@ fun GymAreaContent(
         destination = GymDestination.Library
         focusedRoutineId = null
     }
+    fun returnToInsights() {
+        historyOpenedFromInsights = false
+        focusedWorkoutId = null
+        destination = GymDestination.Progress
+    }
+    BackHandler(enabled = destination == GymDestination.History && historyOpenedFromInsights && !routineEditorOpen) {
+        returnToInsights()
+    }
 
     GymDestinationHost(
         destination = destination,
@@ -1295,6 +1334,7 @@ fun GymAreaContent(
             if (sessionMutationCoordinator.saving || historyCopyCoordinator.saving) return@selectDestination
             sessionMutationCoordinator.clear()
             destination = it
+            historyOpenedFromInsights = false
             focusedWorkoutId = null
             focusedRoutineId = null
         },
@@ -1305,6 +1345,10 @@ fun GymAreaContent(
             }
         },
     ) {
+        if (destination == GymDestination.History && historyOpenedFromInsights) {
+            WhipTextButton(onClick = ::returnToInsights, modifier = Modifier.testTag("gym-history-back-insights")) { Text("Back to Insights") }
+        }
+        destinationStateHolder.SaveableStateProvider(destination.name) {
         when (destination) {
             GymDestination.Library -> GymLibraryLanding(onOpen = { destination = it })
             GymDestination.Workout -> GymWorkoutRoute(
@@ -1351,6 +1395,11 @@ fun GymAreaContent(
                     onCreateExercise = {
                         if (!workoutMutationBusy) {
                             sessionMutationCoordinator.clear()
+                            createForSubstitutionBoundary = null
+                            createExerciseAddBoundary = state.captureWorkoutStructureBoundary()
+                            requestedWorkoutExerciseUuid = UuidWhipIdGenerator.nextId()
+                            requestedInitialSetUuid = UuidWhipIdGenerator.nextId()
+                            workoutAuthorshipGeneration = viewModel.currentDataGeneration()
                             exerciseEditorNameSeed = ""
                             creatingExercise = true
                         }
@@ -1505,6 +1554,7 @@ fun GymAreaContent(
                 onOpenExercises = { destination = GymDestination.Exercises },
                 onOpenWorkout = { destination = GymDestination.Workout },
                 onOpenWorkoutHistory = { workoutId ->
+                    historyOpenedFromInsights = true
                     focusedWorkoutId = workoutId
                     destination = GymDestination.History
                 },
@@ -1539,6 +1589,7 @@ fun GymAreaContent(
                 onDeletePreset = viewModel::deletePlatePreset,
                 modifier = dialogModifier,
             )
+        }
         }
     }
 
@@ -1990,11 +2041,11 @@ fun GymAreaContent(
             initialDate = LocalWhipToday.current,
             initialKeepAwake = state.appSettings.keepScreenAwake,
             onDismiss = { showStartWorkout = false },
-            onStart = { name, notes, date, keepAwake, onFinished ->
-                viewModel.startWorkout(name, notes, date, keepAwake) { succeeded ->
-                    if (succeeded) destination = GymDestination.Workout
-                    onFinished(gymPersistenceResult(succeeded, viewModel.operationStatus.value))
-                }
+            saveState = sessionMutationState,
+            consumeSave = viewModel::consumeSessionMutationResult,
+            onPersisted = { destination = GymDestination.Workout },
+            onStart = { name, notes, date, keepAwake, requestId ->
+                viewModel.startWorkoutConfirmed(name, notes, date, keepAwake, requestId)
             },
         )
     }
@@ -2006,10 +2057,10 @@ fun GymAreaContent(
                 session = session,
                 initialDate = session.localDate,
                 onDismiss = { showEditWorkout = false },
-                onStart = { name, notes, _, keepAwake, onFinished ->
-                    viewModel.updateWorkout(session.id, name, notes, keepAwake) { succeeded ->
-                        onFinished(gymPersistenceResult(succeeded, viewModel.operationStatus.value))
-                    }
+                saveState = sessionMutationState,
+                consumeSave = viewModel::consumeSessionMutationResult,
+                onStart = { name, notes, _, keepAwake, requestId ->
+                    viewModel.updateWorkoutConfirmed(session.id, name, notes, keepAwake, requestId)
                 },
             )
         }
@@ -2021,10 +2072,10 @@ fun GymAreaContent(
             session = session,
             initialDate = session.localDate,
             onDismiss = { historyWorkoutEditorId = null },
-            onStart = { name, notes, _, keepAwake, onFinished ->
-                viewModel.updateWorkout(session.id, name, notes, keepAwake) { succeeded ->
-                    onFinished(gymPersistenceResult(succeeded, viewModel.operationStatus.value))
-                }
+            saveState = sessionMutationState,
+            consumeSave = viewModel::consumeSessionMutationResult,
+            onStart = { name, notes, _, keepAwake, requestId ->
+                viewModel.updateWorkoutConfirmed(session.id, name, notes, keepAwake, requestId)
             },
         )
     }
@@ -2526,6 +2577,14 @@ private fun GymWorkoutRoute(
     lastSkippedOptionalSetId: Long?,
     actions: GymWorkoutRouteActions,
 ) {
+    val settingsOwner: SettingsViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    val presetMutationState by settingsOwner.typedSettingMutationState.collectAsStateWithLifecycle()
+    var confirmedPresetRevision by rememberSaveable { mutableIntStateOf(0) }
+    val presetCoordinator = rememberPersistenceRequestCoordinator(
+        state = presetMutationState, consume = settingsOwner::consumeTypedSettingMutation,
+        key = "gym-rest-presets", requestNamespace = "gym-rest-presets",
+        onPersisted = { confirmedPresetRevision++ },
+    )
     WorkoutContent(
         state = state,
         requestedWorkoutExerciseId = actions.requestedWorkoutExerciseId,
@@ -2639,7 +2698,15 @@ private fun GymWorkoutRoute(
         },
         onAdjustTimer = viewModel::adjustRestTimer,
         onStopTimer = viewModel::stopRestTimer,
-        onRestTimerPresetsChange = viewModel::updateRestTimerPresets,
+        onRestTimerPresetsChange = { presets ->
+            val requestId = presetCoordinator.begin()
+            if (requestId != null && !settingsOwner.updateTypedSetting(requestId) { it.copy(restTimerPresetSeconds = presets) }) {
+                presetCoordinator.finishFailure("Another Settings change is still finishing. Your presets are still here; try again.")
+            }
+        },
+        restPresetsSaving = presetCoordinator.saving,
+        restPresetsError = presetCoordinator.errorMessage,
+        restPresetsSaveRevision = confirmedPresetRevision,
         onGroupExercises = actions.onGroupExercises,
     )
 }
@@ -2857,6 +2924,9 @@ private fun WorkoutContent(
     onAdjustTimer: (Long, Int) -> Unit,
     onStopTimer: (Long) -> Unit,
     onRestTimerPresetsChange: (List<Int>) -> Unit,
+    restPresetsSaving: Boolean,
+    restPresetsError: String?,
+    restPresetsSaveRevision: Int,
     onGroupExercises: () -> Unit,
 ) {
     val session = state.activeSession
@@ -3263,6 +3333,9 @@ private fun WorkoutContent(
                         timerVibration = state.appSettings.timerVibration,
                         onSelectedSecondsChange = { workoutRestOverrideSeconds = it },
                         onPresetSecondsChange = onRestTimerPresetsChange,
+                        presetsSaving = restPresetsSaving,
+                        presetsError = restPresetsError,
+                        presetsSaveRevision = restPresetsSaveRevision,
                         onStart = onStartTimer,
                         onAdjust = onAdjustTimer,
                         onStop = onStopTimer,
@@ -3276,7 +3349,7 @@ private fun WorkoutContent(
                 Box(Modifier.testTag("active-workout-empty-state")) {
                     WhipEmptyState(
                         title = "Add Your First Exercise",
-                        supportingText = "Choose a reusable exercise from your library or create one without leaving this workout. This changes only this workout; logged work remains in History.",
+                        supportingText = "Choose an exercise from your library or create a reusable Library exercise and add it to this workout. Logged work remains in History.",
                         primaryActionLabel = "Add Exercise to This Workout",
                         onPrimaryAction = onAddExercise,
                         secondaryActionLabel = "Create New Exercise",
@@ -4596,6 +4669,9 @@ internal fun RestTimerCard(
     compactNotificationNotice: Boolean = false,
     timerSound: Boolean = true,
     timerVibration: Boolean = true,
+    presetsSaving: Boolean = false,
+    presetsError: String? = null,
+    presetsSaveRevision: Int = 0,
 ) {
     var showDurationEditor by rememberSaveable(session.id) { mutableStateOf(false) }
     val notificationAvailable = restTimerNotificationsAvailable(timerSound, timerVibration)
@@ -4704,6 +4780,9 @@ internal fun RestTimerCard(
             presetSeconds = presetSeconds,
             onDismiss = { showDurationEditor = false },
             onPresetSecondsChange = onPresetSecondsChange,
+            saving = presetsSaving,
+            error = presetsError,
+            presetSaveRevision = presetsSaveRevision,
             onConfirm = { seconds ->
                 onSelectedSecondsChange(seconds)
                 showDurationEditor = false
@@ -4741,6 +4820,7 @@ internal fun RestDurationDialog(
     presetsOnly: Boolean = false,
     saving: Boolean = false,
     error: String? = null,
+    presetSaveRevision: Int = 0,
 ) {
     var secondsText by rememberSaveable(initialSeconds) { mutableStateOf(initialSeconds.coerceAtLeast(15).toString()) }
     var editingPresets by rememberSaveable { mutableStateOf(presetsOnly) }
@@ -4750,8 +4830,32 @@ internal fun RestDurationDialog(
     val valid = seconds != null && seconds in 15..3_600
     val newPreset = newPresetText.toIntOrNull()
     val newPresetValid = newPreset != null && newPreset in 15..3_600 && newPreset !in presetDraft && presetDraft.size < 12
+    var showDiscardConfirmation by rememberSaveable { mutableStateOf(false) }
+    var discardPresetPage by rememberSaveable { mutableStateOf(false) }
+    val presetsDirty = presetDraft != normalizeRestTimerPresets(presetSeconds) || newPresetText.isNotBlank()
+    var handledPresetSaveRevision by rememberSaveable { mutableIntStateOf(presetSaveRevision) }
+    LaunchedEffect(presetSaveRevision) {
+        if (presetSaveRevision != handledPresetSaveRevision) {
+            handledPresetSaveRevision = presetSaveRevision
+            presetDraft = normalizeRestTimerPresets(presetSeconds)
+            newPresetText = ""
+            if (!presetsOnly) editingPresets = false
+        }
+    }
+    fun dismissPresetPage() {
+        presetDraft = normalizeRestTimerPresets(presetSeconds)
+        newPresetText = ""
+        editingPresets = false
+    }
+    fun requestDismiss(backToDuration: Boolean = false) {
+        if (saving) return
+        if (editingPresets && presetsDirty) {
+            discardPresetPage = backToDuration
+            showDiscardConfirmation = true
+        } else if (backToDuration) dismissPresetPage() else onDismiss()
+    }
     PaneAwareAlertDialog(
-        onDismissRequest = { if (!saving) onDismiss() },
+        onDismissRequest = { requestDismiss() },
         inputBlocked = saving,
         inputBlockedLabel = "Saving rest presets",
         title = { Text(if (editingPresets) "Manage Rest Presets" else "Rest Time for This Workout") },
@@ -4856,11 +4960,9 @@ internal fun RestDurationDialog(
         },
         confirmButton = {
             if (editingPresets) {
-                WhipTextButton(enabled = !saving, onClick = {
-                    val normalized = normalizeRestTimerPresets(presetDraft)
-                    presetDraft = normalized
+                WhipTextButton(enabled = !saving && (newPresetText.isBlank() || newPresetValid), onClick = {
+                    val normalized = normalizeRestTimerPresets(presetDraft + listOfNotNull(newPreset.takeIf { newPresetValid }))
                     onPresetSecondsChange(normalized)
-                    if (!presetsOnly) editingPresets = false
                 }) { Text(if (saving) "Saving…" else "Save Presets") }
             } else {
                 WhipTextButton(enabled = valid, onClick = { onConfirm(requireNotNull(seconds)) }) {
@@ -4870,13 +4972,15 @@ internal fun RestDurationDialog(
         },
         dismissButton = {
             WhipTextButton(enabled = !saving, onClick = {
-                if (editingPresets && !presetsOnly) {
-                    presetDraft = normalizeRestTimerPresets(presetSeconds)
-                    editingPresets = false
-                } else {
-                    onDismiss()
-                }
+                requestDismiss(backToDuration = editingPresets && !presetsOnly)
             }) { Text(if (editingPresets && !presetsOnly) "Back" else "Cancel") }
+        },
+    )
+    if (showDiscardConfirmation) UnsavedChangesDialog(
+        subject = "rest presets", onKeepEditing = { showDiscardConfirmation = false },
+        onDiscard = {
+            showDiscardConfirmation = false
+            if (discardPresetPage) dismissPresetPage() else onDismiss()
         },
     )
 }
@@ -6594,6 +6698,20 @@ private fun ExerciseCategoryContent(
             editingCategoryId = null
         },
     )
+    var showDiscardConfirmation by rememberSaveable(editorKey) { mutableStateOf(false) }
+    val categoryDirty = name != editing?.name.orEmpty() || kind != (editing?.kind ?: "Category")
+    fun closeCategoryEditor() {
+        categoryCoordinator.clear()
+        creating = false
+        editingCategoryId = null
+        name = ""
+        kind = "Category"
+    }
+    val requestDismissCategory = {
+        if (!categoryCoordinator.saving) {
+            if (categoryDirty) showDiscardConfirmation = true else closeCategoryEditor()
+        }
+    }
     val visible = if (showArchived) state.archivedCategories else state.categories
     BackHandler(enabled = reordering) { reordering = false }
     DisposableEffect(reordering) {
@@ -6671,13 +6789,7 @@ private fun ExerciseCategoryContent(
             paneTitle = if (editing == null) "Create Category" else "Edit Category",
             inputBlocked = categoryCoordinator.saving,
             inputBlockedLabel = "Saving Category",
-            onDismissRequest = {
-                if (!categoryCoordinator.saving) {
-                    categoryCoordinator.clear()
-                    creating = false
-                    editingCategoryId = null
-                }
-            },
+            onDismissRequest = requestDismissCategory,
             title = { Text(if (editing == null) "Create Category" else "Edit Category") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -6716,13 +6828,13 @@ private fun ExerciseCategoryContent(
             dismissButton = {
                 WhipTextButton(
                     enabled = !categoryCoordinator.saving,
-                    onClick = {
-                        categoryCoordinator.clear()
-                        creating = false
-                        editingCategoryId = null
-                    },
+                    onClick = requestDismissCategory,
                 ) { Text("Cancel") }
             },
+        )
+        if (showDiscardConfirmation) UnsavedChangesDialog(
+            subject = "Category", onKeepEditing = { showDiscardConfirmation = false },
+            onDiscard = { showDiscardConfirmation = false; closeCategoryEditor() }, modifier = dialogModifier,
         )
     }
 }
@@ -8574,7 +8686,6 @@ internal fun GymProgressContent(
                     point.sourceSessionId?.let { sessionId ->
                         WhipOutlinedButton(
                             onClick = {
-                                selectedChartPointDate = null
                                 onOpenWorkoutHistory(sessionId)
                             },
                             modifier = Modifier.fillMaxWidth().testTag("gym-chart-point-open-workout"),
@@ -8757,7 +8868,13 @@ private fun GymToolsContent(
                             selected = selectedPreset == preset.name,
                             onClick = {
                                 selectedPreset = preset.name
-                                plateUnit = if (preset.unitId == "pound") "lb" else "kg"
+                                val presetUnit = if (preset.unitId == "pound") "lb" else "kg"
+                                if (presetUnit != plateUnit) {
+                                    targetWeight = targetWeight.toWhipDoubleOrNull()?.let {
+                                        editableNumber(convertPracticalMassValue(it, unitId(plateUnit), unitId(presetUnit)))
+                                    } ?: targetWeight
+                                }
+                                plateUnit = presetUnit
                                 barWeight = editableNumber(preset.barWeight)
                                 plates = preset.plates.joinToString(",", transform = ::editableNumber)
                                 plateQuantities = preset.plateQuantities.entries.sortedByDescending { it.key }.joinToString(",") { "${editableNumber(it.key)}:${it.value}" }
@@ -8895,6 +9012,8 @@ private fun RoutineContent(
     reorderDismissRequest: Int = 0,
 ) {
     val dialogModifier = modifier
+    val settingsOwner: SettingsViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    val prescriptionMutationState by settingsOwner.typedSettingMutationState.collectAsStateWithLifecycle()
     var showEditor by rememberSaveable { mutableStateOf(false) }
     var editingRoutineId by rememberSaveable { mutableStateOf<Long?>(null) }
     val editing = editingRoutineId?.let { id -> (state.routines + state.archivedRoutines).firstOrNull { it.id == id } }
@@ -8947,9 +9066,31 @@ private fun RoutineContent(
             onSave = { draft, complete -> viewModel.saveRoutineFromBuilder(editing?.id, draft, complete) },
             onCreateExercise = viewModel::createExerciseForRoutine,
             onCreateMachine = viewModel::createMachineForRoutine,
-            onSavePrescriptionScheme = viewModel::saveRepPrescriptionScheme,
-            onReorderPrescriptionSchemes = viewModel::reorderRepPrescriptionSchemes,
-            onDeletePrescriptionScheme = viewModel::deleteRepPrescriptionScheme,
+            prescriptionMutationState = prescriptionMutationState,
+            consumePrescriptionMutation = settingsOwner::consumeTypedSettingMutation,
+            onSavePrescriptionScheme = { scheme, requestId ->
+                settingsOwner.updateTypedSetting(requestId) { current ->
+                    require(scheme.isValid()) { "Invalid rep prescription scheme" }
+                    val existingIndex = current.repPrescriptionSchemes.indexOfFirst { it.id == scheme.id }
+                    current.copy(repPrescriptionSchemes = if (existingIndex < 0) {
+                        current.repPrescriptionSchemes + scheme
+                    } else current.repPrescriptionSchemes.toMutableList().also { it[existingIndex] = scheme })
+                }
+            },
+            onReorderPrescriptionSchemes = { schemes, requestId ->
+                settingsOwner.updateTypedSetting(requestId) { current ->
+                    val order = schemes.mapIndexed { index, scheme -> scheme.id to index }.toMap()
+                    require(order.keys.all { id -> current.repPrescriptionSchemes.any { it.id == id } }) {
+                        "The prescription library changed. Review its current schemes before reordering."
+                    }
+                    current.copy(repPrescriptionSchemes = current.repPrescriptionSchemes.sortedBy { order[it.id] ?: Int.MAX_VALUE })
+                }
+            },
+            onDeletePrescriptionScheme = { id, requestId ->
+                settingsOwner.updateTypedSetting(requestId) { current ->
+                    current.copy(repPrescriptionSchemes = current.repPrescriptionSchemes.filterNot { it.id == id })
+                }
+            },
         )
         return
     }
@@ -10423,6 +10564,8 @@ internal fun WorkoutSetEditorDialog(
     ProductivityEditorDialog(
         modifier = modifier,
         testTag = "workout-set-editor",
+        inputBlocked = saving,
+        inputBlockedLabel = "Saving Set",
         primary = true,
         paneTitle = "Edit Set",
         onDismissRequest = ::requestDismiss,
@@ -10844,7 +10987,10 @@ internal fun WorkoutEditorDialog(
     initialDate: LocalDate,
     initialKeepAwake: Boolean = false,
     onDismiss: () -> Unit,
-    onStart: (String, String, LocalDate, Boolean, (WhipResult<Unit>) -> Unit) -> Unit,
+    onStart: (String, String, LocalDate, Boolean, String) -> Boolean,
+    saveState: PersistenceRequestState<GymSessionMutationReceipt> = PersistenceRequestState.Idle,
+    consumeSave: (String) -> Unit = {},
+    onPersisted: () -> Unit = {},
 ) {
     val editorKey = "workout-${session?.id ?: "new"}"
     var name by rememberSaveable(editorKey) { mutableStateOf(session?.name.orEmpty()) }
@@ -10853,9 +10999,14 @@ internal fun WorkoutEditorDialog(
     var keepAwake by rememberSaveable(editorKey) { mutableStateOf(session?.keepScreenAwake ?: initialKeepAwake) }
     var showDatePicker by rememberSaveable(editorKey) { mutableStateOf(false) }
     var showDiscardConfirmation by rememberSaveable(editorKey) { mutableStateOf(false) }
-    var saving by remember(editorKey) { mutableStateOf(false) }
-    var saveError by rememberSaveable(editorKey) { mutableStateOf<String?>(null) }
+    val saveCoordinator = rememberPersistenceRequestCoordinator(
+        state = saveState, consume = consumeSave, key = editorKey, requestNamespace = editorKey,
+        orphanedMessage = "The previous Workout save was interrupted. Your draft is still here; check the workout or History before retrying.",
+        onPersisted = { onPersisted(); onDismiss() },
+    )
+    val saving = saveCoordinator.saving
     val fallbackSaveError = stringResource(R.string.gym_workout_save_failed)
+    val saveError = saveCoordinator.errorMessage?.ifBlank { fallbackSaveError }
     val editorFingerprint = listOf(name, notes, date, keepAwake).joinToString("\u001f")
     val initialFingerprint by rememberSaveable(editorKey) { mutableStateOf(editorFingerprint) }
     val requestDismiss = {
@@ -10868,6 +11019,8 @@ internal fun WorkoutEditorDialog(
         modifier = modifier,
         onDismissRequest = requestDismiss,
         title = { Text(if (session == null) "Start Workout" else "Workout Details") },
+        inputBlocked = saving,
+        inputBlockedLabel = "Saving Workout",
         text = {
             Column(
                 modifier = Modifier
@@ -10902,14 +11055,9 @@ internal fun WorkoutEditorDialog(
                 enabled = !saving,
                 onClick = {
                     if (!saving) {
-                        saving = true
-                        saveError = null
-                        onStart(name, notes, date, keepAwake) { result ->
-                            saving = false
-                            when (result) {
-                                is WhipResult.Success -> onDismiss()
-                                is WhipResult.Failure -> saveError = result.message.ifBlank { fallbackSaveError }
-                            }
+                        val requestId = saveCoordinator.begin()
+                        if (requestId != null && !onStart(name, notes, date, keepAwake, requestId)) {
+                            saveCoordinator.finishFailure("Another workout change is still finishing. Your draft is still here; try again.")
                         }
                     }
                 },
@@ -11461,11 +11609,18 @@ internal fun workoutShareText(session: WorkoutSession, state: GymUiState): Strin
             val sourceExercise = exerciseById[workoutExercise.exerciseId]
             appendLine(sourceExercise?.name ?: "Exercise")
             if (workoutExercise.machineNameSnapshot.isNotBlank()) appendLine("Machine: ${workoutExercise.machineNameSnapshot}")
+            val exerciseStatus = when (workoutExercise.outcome) {
+                WorkoutExerciseOutcome.Active -> "Included"
+                WorkoutExerciseOutcome.Removed -> "Removed"
+                WorkoutExerciseOutcome.Substituted -> "Substituted"
+            }
+            appendLine("Exercise Status: $exerciseStatus")
             if (workoutExercise.notes.isNotBlank()) appendLine("> ${workoutExercise.notes}")
             state.allSets.filter { it.workoutExerciseId == workoutExercise.id && it.deletedAtMillis == null }
                 .sortedBy { it.position }
                 .forEachIndexed { index, set ->
                     append("${index + 1}. ${set.shortLabel(state.appSettings.gymWeightUnitId, state.appSettings.distanceUnitId, state.appSettings.numberPrecision, workoutExercise, sourceExercise?.weightUnitId ?: state.appSettings.gymWeightUnitId)}")
+                    append(if (set.completed) " · Completed" else if (set.planned) " · Planned, not performed" else " · Not completed")
                     if (set.classification != WorkoutSetClassification.Working) append(" · ${set.classification.uiLabel()}")
                     set.rpe?.let { append(" · RPE $it") }
                     if (set.note.isNotBlank()) append(" · ${set.note}")

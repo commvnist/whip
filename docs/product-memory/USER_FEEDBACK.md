@@ -1,12 +1,19 @@
 # User feedback and acceptance criteria
 
+### FB-20260930-001 - Resume the comprehensive Whip UX overhaul in Arch
+
+- Source: Owner resumes the preserved Whip work and explicitly selects Arch WSL execution, exactly three GPT-6.1 Sol/high overhaul agents and three isolated disposable emulators.
+- Acceptance: The twelve-category [acceptance record](../quality/UX_OVERHAUL_2026-09-30.md) covers consistent visual/interaction design, appropriate shared reuse, retained drafts/context, truthful states, data safety, actual native adverse flows and reviewable before/after evidence. Visual consistency leads priority; green tests alone do not establish completion.
+- Authorization: Preserve existing work, implement and validate, commit sensible verified batches and push normally to the established intended repository/branch. No owner-phone installation/reset/instrumentation, credential change, force push, release, publication or deployment.
+- Status: Implementation/native acceptance in progress. Original paused handoff remains historical; final aggregate gates and upstream delivery are not yet claimed.
+
 ### FB-20260929-019 — Release first, then extensive QA/UX/design and faster scoped verification
 
 - Date/source: 2026-09-29, owner explicitly requests first release to the phone and push to the remote, followed by extensive functional QA, UX and design acceptance and research into greater QA coverage with the fastest practical SDLC; known-scope changes should ideally verify in under one minute.
 - Acceptance: Deliver the current direct-execution source as a signed in-place phone update with exact artifact/identity/startup evidence and normal upstream push. Then inspect and execute complete main flows across components, ground and repair confirmed defects, include lifecycle/error/history/large-text/platform boundaries, and preserve exact failures/exclusions rather than claiming absolute bug freedom. Research primary sources and measure the current harness before adopting coverage/speed improvements; preserve correctness and fail closed on unknown scopes.
 - Scope: The release-first sequence is explicit. Full QA and a final stable readiness batch may exceed a minute; routine implementation checks stay bounded at55seconds. Owner subsequently authorizes three GPT-6.1 Sol/high agents with three disposable emulators for parallel QA. No Play publication or physical-phone instrumentation/data reset. A subsequent phone delivery of QA fixes is not yet requested.
 - Related: FB-20260929-017/018, IMP-20260929-023, VER-20260929-020, FND-20260929-034–043, existing testing-speed plan. Baseline `b8c6495e`.
-- Status: In progress. Release-first phone acceptance is completed under IMP-20260929-024 / VER-20260929-021; source was already pushed and release metadata receives normal upstream delivery. Extensive QA/remediation/research follows this release.
+- Status: In progress, paused at explicit owner request on2026-09-29: “Cancel all current runs and bring it to a safe stopping point.” Release-first phone acceptance remains completed under IMP-20260929-024 / VER-20260929-021; HEAD/origin/main are `0030c226`. All agents, QA emulators and Gradle daemon stopped; unfinished fixes preserved uncommitted. [Handoff](../quality/QA_PAUSED_HANDOFF_2026-09-29.md) records failed/incomplete checks and integration still required. No later product acceptance or phone delivery is claimed.
 
 ### FB-20260929-018 — Execute routine work directly without opening or expanding items
 

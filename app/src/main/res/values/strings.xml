@@ -226,6 +226,12 @@
     <string name="widget_habit_empty">No habits scheduled today\nYour next scheduled Habits will appear here.</string>
     <string name="widget_habits_complete">All Habits complete\nYou’re done for today.</string>
     <string name="widget_habits_none_selected">No Habits selected\nEdit the widget to choose which Habits appear.</string>
+    <string name="widget_action_not_saved">Action Not Saved</string>
+    <string name="widget_action_saved_warning">Action Saved</string>
+    <string name="widget_action_stale">Previous Action Not Applied</string>
+    <string name="widget_action_failed_message">Open Whip to review and try again. Tap here to refresh and dismiss this message.</string>
+    <string name="widget_action_warning_message">Your change is saved, but reminders need a refresh. Open Whip to review. Tap here to dismiss this message.</string>
+    <string name="widget_action_stale_message">The item changed since this widget was shown. Review the current items before acting again. Tap here to dismiss this message.</string>
     <string name="widget_refresh_failed">Couldn’t refresh</string>
     <string name="widget_refresh_failed_with_cache">Showing the last saved items. Tap to retry.</string>
     <string name="widget_refresh_failed_without_cache">Whip couldn’t load this widget. Tap to retry.</string>

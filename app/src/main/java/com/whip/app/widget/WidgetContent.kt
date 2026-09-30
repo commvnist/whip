@@ -28,6 +28,7 @@ import com.whip.app.domain.valueForPeriod
 import com.whip.app.ui.buildUiState
 import com.whip.app.ui.mirrorMeasurementEntriesAsHabitLogs
 import com.whip.app.ui.withRecurringOccurrenceVisibility
+import com.whip.app.ui.targetProgressLabel
 import java.time.LocalDate
 import java.time.ZoneId
 
@@ -114,6 +115,7 @@ internal data class HabitWidgetRow(
     val completedChecklistItems: Int = 0,
     val checklistItemCount: Int = 0,
     val expanded: Boolean = false,
+    val progressSummary: String = "",
 ) {
     val isChecklistItem: Boolean get() = checklistItem != null
     val expandable: Boolean get() = !isChecklistItem && checklistItemCount > 0
@@ -171,7 +173,7 @@ internal fun calculateHabitTrackingContent(
             value = habit.valueForPeriod(logs, today, customUnits),
         )
     }
-    val eligible = scheduled.filter { showCompleted || !it.completed }
+    val eligible = scheduled.filter { showCompleted || !it.completed || it.habit.timerSessionId != null }
     val visible = eligible.filterNot(ScheduledHabit::completed) + eligible.filter(ScheduledHabit::completed)
     val rows = buildList {
         visible.forEach { scheduledHabit ->
@@ -202,6 +204,7 @@ internal fun calculateHabitTrackingContent(
                     completedChecklistItems = completedItems,
                     checklistItemCount = items.size,
                     expanded = habit.id in expandedHabitIds,
+                    progressSummary = habit.targetProgressLabel(scheduledHabit.value, customUnits),
                 ),
             )
             if (habit.trackingMode == HabitTrackingMode.Checklist && habit.id in expandedHabitIds) {

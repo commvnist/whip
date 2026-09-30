@@ -101,6 +101,30 @@ class RoutineWarmupTest {
         assertEquals(listOf("7", "5", "3", "1"), result.map { it.load })
     }
 
+    @Test
+    fun phaseWarmupsUseSelectedLoadAndPreserveEveryCommonAndSiblingPrescription() {
+        val untouched = listOf(
+            RoutineBuilderSetState(1, load = "10", classification = "WarmUp", note = "Common"),
+            RoutineBuilderSetState(2, load = "100", routinePhaseIndex = 0),
+            RoutineBuilderSetState(3, load = "15", classification = "WarmUp", routinePhaseIndex = 0),
+            RoutineBuilderSetState(6, load = "120", routinePhaseIndex = 2),
+        )
+        val selected = listOf(
+            RoutineBuilderSetState(4, load = "5", classification = "WarmUp", routinePhaseIndex = 1),
+            RoutineBuilderSetState(5, load = "50", repetitionsMin = "5", note = "Keep working", routinePhaseIndex = 1),
+        )
+        val placement = RoutineBuilderPlacementState(1, 1, "Press", sets = untouched.take(2) + selected + untouched.drop(2))
+        val result = generateWarmupSets(placement, exercise(5.0), null, phaseIndex = 1)
+        assertEquals(untouched, result.filter { it.routinePhaseIndex != 1 })
+        assertEquals(listOf("20", "30", "40", "50"), result.filter { it.routinePhaseIndex == 1 }.map { it.load })
+        assertEquals(selected.last(), result.first { it.key == 5L })
+        assertEquals(result.size, result.map { it.key }.distinct().size)
+        val regenerated = generateWarmupSets(placement.copy(sets = result), exercise(5.0), null, phaseIndex = 1)
+        assertEquals(untouched, regenerated.filter { it.routinePhaseIndex != 1 })
+        assertEquals(3, regenerated.count { it.routinePhaseIndex == 1 && it.classification == "WarmUp" })
+        assertEquals(placement.sets, generateWarmupSets(placement, exercise(5.0), null, phaseIndex = 3))
+    }
+
     private fun exercise(increment: Double) = Exercise(
         id = 1,
         uuid = "exercise",
