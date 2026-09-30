@@ -1,0 +1,19 @@
+{
+  "serial": "emulator-5556",
+  "avd": "whip_api34_parallel",
+  "source_manifest": "b3d457cc1503334a79c4a4f3dd43085bf1bdcdd132935c9559e894e168e40090",
+  "installs": [
+    {
+      "name": "app-debug.apk",
+      "sha256": "b264e33f81f2d3e6021d5da8f1202bc02797f4e90a4a267d340afb33bbd954a8",
+      "returncode": 0,
+      "output": "Performing Streamed Install\nSuccess\n"
+    },
+    {
+      "name": "app-debug-androidTest.apk",
+      "sha256": "20c094b0b525bf70a228d5921c13809bcb0c920ed48559704c47b04f297f2c09",
+      "returncode": 0,
+      "output": "Performing Streamed Install\nSuccess\n"
+    }
+  ]
+}

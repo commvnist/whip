@@ -2,6 +2,7 @@ package com.whip.app.ui
 
 import android.content.Intent
 import android.view.accessibility.AccessibilityWindowInfo
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
@@ -35,12 +36,13 @@ class ActivityActionLayoutUiTest {
     private val device get() = UiDevice.getInstance(instrumentation)
     private val suffix get() = if (app.resources.configuration.fontScale >= 1.5f) "large" else "normal"
 
-    private fun habit(mode: HabitTrackingMode, label: String): Long = runBlocking {
+    private fun habit(mode: HabitTrackingMode, label: String, quickActions: List<Double> = emptyList()): Long = runBlocking {
         app.habitRepository.create(HabitDraft(
             name = "QA $label ${System.nanoTime()}", startDate = app.clock.today(), trackingMode = mode,
             dimension = if (mode == HabitTrackingMode.Duration) UnitDimension.Duration else UnitDimension.Count,
             unitId = if (mode == HabitTrackingMode.Duration) "second" else "count",
             comparison = TargetComparison.None,
+            quickActions = quickActions,
         ))
     }
 
@@ -68,7 +70,7 @@ class ActivityActionLayoutUiTest {
         val bounds = compose.onNodeWithTag("$kind-card-$id").fetchSemanticsNode().boundsInRoot
         assertTrue("Activity action must lead at the status edge: $action / $status", abs(action.left - status.left) <= 1f)
         assertTrue("Activity action must follow visible status", action.top >= status.bottom)
-        assertTrue("Activity action must retain natural width", action.width < bounds.width - 24f)
+        assertTrue("Activity action must fit within its card", action.left >= bounds.left && action.right <= bounds.right)
         compose.onNode(hasText(label) and hasAnyAncestor(hasTestTag("$kind-card-$id")), useUnmergedTree = true)
             .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { getResults ->
                 val results = mutableListOf<TextLayoutResult>()
@@ -97,6 +99,184 @@ class ActivityActionLayoutUiTest {
 
     private fun value(habitId: Long): Double = runBlocking {
         app.habitRepository.logs.first().filter { it.habitId == habitId && it.localDate == app.clock.today() }.sumOf { it.canonicalValue ?: 0.0 }
+    }
+
+    private fun assertSameButtonSize(expected: Rect, actual: Rect, context: String, compareWidth: Boolean = true) {
+        if (compareWidth) assertEquals("$context width", expected.width, actual.width, 1f)
+        assertEquals("$context height", expected.height, actual.height, 1f)
+    }
+
+    private fun sizingLabel(label: String) = hasText(label, substring = label.startsWith("+1000000000") || label.startsWith("−"))
+
+    private fun SemanticsNodeInteraction.sizingBounds(): Rect = getUnclippedBoundsInRoot().let { bounds ->
+        with(compose.density) { Rect(bounds.left.toPx(), bounds.top.toPx(), bounds.right.toPx(), bounds.bottom.toPx()) }
+    }
+
+    private fun assertSizedButtons(scope: SemanticsMatcher, vararg labels: String, scroll: Boolean = false): Rect {
+        val bounds = labels.map { label ->
+            val button = compose.onNode(scope and sizingLabel(label) and hasClickAction())
+            if (scroll) button.performScrollTo()
+            button.assertIsDisplayed().assertHeightIsAtLeast(48.dp)
+            val result = button.sizingBounds()
+            val text = compose.onNode(scope and sizingLabel(label) and hasAnyAncestor(hasClickAction()) and
+                SemanticsMatcher.keyIsDefined(SemanticsActions.GetTextLayoutResult), useUnmergedTree = true)
+            val layouts = mutableListOf<TextLayoutResult>()
+            text.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+                    assertTrue("$label must expose actual text layout", layouts.isNotEmpty())
+                    layouts.forEach { layout ->
+                        val details = "label=$label; size=${layout.size}; constraints=${layout.layoutInput.constraints}; " +
+                            "paragraph=${layout.multiParagraph.width}x${layout.multiParagraph.height}; " +
+                            "overflowWidth=${layout.didOverflowWidth}; overflowHeight=${layout.didOverflowHeight}; " +
+                            "button=$result; text=${text.sizingBounds()}; actualFontScale=${app.resources.configuration.fontScale}; " +
+                            "layoutFontScale=${layout.layoutInput.density.fontScale}; lines=" +
+                            (0 until layout.lineCount).map { line -> listOf(layout.getLineLeft(line), layout.getLineRight(line),
+                                layout.getLineTop(line), layout.getLineBottom(line)) } +
+                            "; glyphs=" + layout.layoutInput.text.text.indices.map(layout::getBoundingBox)
+                        val glyphs = layout.layoutInput.text.text.indices.map(layout::getBoundingBox)
+                        val clipped = glyphs.any { it.left < -1f || it.top < -1f ||
+                            it.right > layout.size.width + 1f || it.bottom > layout.size.height + 1f }
+                        if (clipped) runCatching {
+                            captureVisualCatalogSurface("action-sizing.qa.text-overflow.$suffix")
+                        }
+                        assertFalse("$label glyphs must fit their actual text bounds: $details", clipped)
+                        assertEquals("$label must render every character: $details", layout.layoutInput.text.length,
+                            layout.getLineEnd(layout.lineCount - 1, visibleEnd = true))
+                        assertFalse("$label must not be ellipsized", (0 until layout.lineCount).any(layout::isLineEllipsized))
+                        assertTrue("$label glyphs must fit horizontally", (0 until layout.lineCount).all {
+                            layout.getLineLeft(it) >= -1f && layout.getLineRight(it) <= layout.size.width + 1f
+                        })
+                        assertTrue("$label glyphs must fit vertically", layout.multiParagraph.height <= layout.size.height + 1f)
+                        assertEquals("$label must use actual Android text scale", app.resources.configuration.fontScale,
+                            layout.layoutInput.density.fontScale, 0.01f)
+                    }
+            result
+        }
+        bounds.drop(1).forEach { assertSameButtonSize(bounds.first(), it, labels.joinToString(" / ")) }
+        val current = labels.map { compose.onNode(scope and sizingLabel(it) and hasClickAction()).sizingBounds() }
+        current.zipWithNext().forEach { (first, next) ->
+            assertTrue("Related controls must not overlap", first.right <= next.left + 1f || first.bottom <= next.top + 1f)
+        }
+        return current.first()
+    }
+
+    @Test fun relatedActivityButtonsShareSizeAndKeepFullLabels() = exerciseActionSizing()
+
+    @Test @AndroidFontScale
+    fun largeTextActivityButtonsShareSizeAndKeepFullLabels() = exerciseActionSizing()
+
+    private fun exerciseActionSizing() {
+        val duration = habit(HabitTrackingMode.Duration, "sizing duration")
+        val quantity = habit(HabitTrackingMode.Count, "sizing quantity", listOf(1_000_000_000.0))
+        val outside = runBlocking { app.habitRepository.create(HabitDraft(
+            name = "QA sizing outside ${System.nanoTime()}", startDate = app.clock.today(),
+            trackingMode = HabitTrackingMode.Checklist, scheduleType = HabitScheduleType.SelectedWeekdays,
+            weekdays = setOf(app.clock.today().plusDays(1).dayOfWeek),
+            checklistItems = listOf(HabitChecklistItemDraft(name = "QA step", position = 0)),
+        )) }
+        val goal = runBlocking { app.goalRepository.create(GoalDraft(
+            name = "QA sizing completions ${System.nanoTime()}", type = GoalType.Consistency,
+            aggregation = GoalAggregation.CompletionCount, startDate = app.clock.today(),
+            targetMin = 3.0, consistencyPeriod = GoalConsistencyPeriod.Week, consistencyRequiredPeriods = 12,
+        )) }
+        val dialog = hasAnyAncestor(isDialog())
+        fun captureSize(name: String) {
+            try {
+                captureVisualCatalogSurface("action-sizing.qa.$name.$suffix")
+            } catch (failure: IllegalStateException) {
+                // PNG is exported first; a clipped neighboring cell can omit its label from UI XML.
+                if (!failure.message.orEmpty().contains("contains an unlabeled Whip interactive node")) throw failure
+            }
+        }
+        fun cardGroup(kind: String, id: Long, vararg labels: String): Rect {
+            scrollCard(kind, id)
+            val scope = hasAnyAncestor(hasTestTag("$kind-card-$id"))
+            assertSizedButtons(scope, *labels, scroll = true)
+            scrollCard(kind, id)
+            val result = compose.onNode(scope and sizingLabel(labels.first()) and hasClickAction()).sizingBounds()
+            val status = compose.onNodeWithTag("$kind-card-status-$id", useUnmergedTree = true).sizingBounds()
+            assertEquals("Activity group must remain leading", status.left, result.left, 1f)
+            assertTrue("Activity group must follow status", result.top >= status.bottom)
+            return result
+        }
+        fun openInspector(kind: String, id: Long) {
+            scrollCard(kind, id)
+            compose.onNodeWithTag("$kind-card-title-$id", useUnmergedTree = true)
+                .performScrollTo().assertIsDisplayed().performClick()
+        }
+        launchMainActivity(Intent(app, MainActivity::class.java)).use {
+            compose.onNodeWithContentDescription("Habits tab").performClick()
+            val reference = cardGroup("habit", duration, "Start Timer", "Enter Duration")
+            captureSize("duration-card")
+            val numeric = cardGroup("habit", quantity, "+1", "+1000000000", "Add Amount", "Set Total", "−0", "Undo Last Entry")
+            assertSameButtonSize(reference, numeric, "Habit card groups")
+            captureSize("numeric-card")
+            card("habit", quantity, hasText("+1")).performScrollTo().assertIsDisplayed().performClick()
+            compose.waitUntil(10_000) { value(quantity) == 1.0 }
+
+            card("habit", duration, hasText("Enter Duration")).performScrollTo().assertIsDisplayed().performClick()
+            compose.onNodeWithTag("habit-value-input").performTextReplacement("12")
+            closeSoftKeyboard()
+            val footer = assertSizedButtons(dialog, "Log Duration", "Cancel")
+            assertLoggingFooter("habit-value-save", "Log Duration")
+            assertSameButtonSize(reference, footer, "Card and logging footer", compareWidth = suffix == "normal")
+            captureSize("duration-footer")
+            compose.onNodeWithTag("habit-value-save").assertIsDisplayed().performClick()
+            waitGone("habit-value-dialog")
+            compose.waitUntil(10_000) { value(duration) == 12.0 }
+
+            openInspector("habit", duration)
+            val inspectorScope = hasAnyAncestor(hasTestTag("habit-detail-surface"))
+            val dock = assertSizedButtons(inspectorScope, "Start Timer")
+            assertSameButtonSize(reference, dock, "Card and inspector dock", compareWidth = suffix == "normal")
+            captureSize("duration-inspector")
+            device.pressBack()
+            waitGone("habit-detail-surface")
+            openInspector("habit", outside)
+            val outsideDock = assertSizedButtons(inspectorScope, "Mark Today Complete Outside Schedule")
+            assertSameButtonSize(dock, outsideDock, "Short and long Habit inspector labels")
+            captureSize("outside-inspector")
+            device.pressBack()
+            waitGone("habit-detail-surface")
+
+            compose.onNodeWithContentDescription("Goals tab").performClick()
+            val goalButtons = cardGroup("goal", goal, "Record Completion", "Complete Goal")
+            assertSameButtonSize(reference, goalButtons, "Habit and Goal card groups")
+            captureSize("goal-card")
+            card("goal", goal, hasText("Record Completion")).performScrollTo().assertIsDisplayed().performClick()
+            assertSizedButtons(dialog, "Record Completion", "Cancel")
+            compose.onNodeWithTag("goal-measurement-note").performTextReplacement("QA sizing saved")
+            closeSoftKeyboard()
+            captureSize("goal-footer")
+            compose.onNodeWithTag("goal-measurement-save").assertIsDisplayed().performClick()
+            waitGone("goal-measurement-dialog")
+            val measurementId = runBlocking { app.goalRepository.get(goal)!!.measurementId }
+            compose.waitUntil(10_000) { runBlocking {
+                app.goalRepository.measurementEntries.first().count { it.measurementId == measurementId } == 1
+            } }
+            assertEquals(GoalStatus.Active, runBlocking { app.goalRepository.get(goal)!!.status })
+            openInspector("goal", goal)
+            val goalScope = hasAnyAncestor(hasTestTag("goal-detail-surface"))
+            val goalDock = assertSizedButtons(goalScope, "Record Completion")
+            assertSameButtonSize(dock, goalDock, "Habit and Goal inspector docks")
+            captureSize("goal-inspector")
+            compose.onNodeWithTag("goal-detail-section-History").assertIsDisplayed().performClick()
+            compose.onNode(hasScrollToIndexAction() and goalScope).performScrollToNode(hasText("QA sizing saved", substring = true))
+            compose.onNode(goalScope and hasText("QA sizing saved", substring = true), useUnmergedTree = true)
+                .performScrollTo().assertIsDisplayed().performClick()
+            assertSizedButtons(dialog, "Save Changes", "Delete", "Cancel")
+            captureSize("goal-correction-footer")
+            compose.onNodeWithText("Cancel").assertIsDisplayed().performClick()
+            waitGone("goal-measurement-dialog")
+            device.pressBack()
+            waitGone("goal-detail-surface")
+            card("goal", goal, hasTestTag("goal-card-complete-$goal")).performScrollTo().assertIsDisplayed().performClick()
+            assertSizedButtons(dialog, "Cancel", "Complete Goal")
+            compose.onNodeWithText("Completing saves this outcome in History.", substring = true).performScrollTo().assertIsDisplayed()
+            captureSize("goal-confirmation")
+            compose.onNodeWithText("Cancel").assertIsDisplayed().performClick()
+            waitGone("goal-completion-dialog")
+            assertEquals(GoalStatus.Active, runBlocking { app.goalRepository.get(goal)!!.status })
+        }
     }
 
     @Test fun habitDurationTimerCheckInAndAmountsKeepTheirMeaning() {

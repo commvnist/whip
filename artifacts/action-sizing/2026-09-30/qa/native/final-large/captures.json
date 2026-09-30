@@ -1,0 +1,22 @@
+[
+  {
+    "file": "action-sizing.qa.duration-card.large.png",
+    "sha256": "aea511ed672522bd28bd9eca26976ee6b7bf684619e2e6e0e7942c4ef7fbe84a",
+    "bytes": 153763
+  },
+  {
+    "file": "action-sizing.qa.duration-card.large.xml",
+    "sha256": "507dc2a1f43f18767be8112f229ff7a1ab55f5cd5d870715d1886473dc14d009",
+    "bytes": 57095
+  },
+  {
+    "file": "action-sizing.qa.numeric-card.large.png",
+    "sha256": "810361a551efefd316a74d60a19624bf6d308cd8af3aa3b0504eae8c2d3c747b",
+    "bytes": 113871
+  },
+  {
+    "file": "action-sizing.qa.numeric-card.large.xml",
+    "sha256": "5d924990a5af10824129c65d0b18c0324c9357b50f5bf43d58434252be83bc12",
+    "bytes": 54693
+  }
+]

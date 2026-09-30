@@ -1,0 +1,22 @@
+{
+  "head": "16f1146859614146798745885f7a7726f482d495",
+  "source_manifest_sha256": "b3d457cc1503334a79c4a4f3dd43085bf1bdcdd132935c9559e894e168e40090",
+  "source_file_count": 563,
+  "changed_inputs_from_initial": [
+    "app/src/androidTest/java/com/whip/app/ui/ActivityActionLayoutUiTest.kt",
+    "app/src/androidTest/java/com/whip/app/ui/HabitDirectExecutionUiTest.kt"
+  ],
+  "apks": {
+    "app-debug.apk": {
+      "path": "/root/repos/whip/build/action-sizing/2026-09-30/frozen/app-debug.apk",
+      "sha256": "b264e33f81f2d3e6021d5da8f1202bc02797f4e90a4a267d340afb33bbd954a8",
+      "bytes": 44731490
+    },
+    "app-debug-androidTest.apk": {
+      "path": "/root/repos/whip/build/action-sizing/2026-09-30/frozen-test-final/app-debug-androidTest.apk",
+      "sha256": "20c094b0b525bf70a228d5921c13809bcb0c920ed48559704c47b04f297f2c09",
+      "bytes": 11086809
+    }
+  },
+  "phone_receipt_sha256": "05e34843fb7926a88d04b25e3c4f0e926e9eb85a1f5f3a84d85a93f858e6adbe"
+}

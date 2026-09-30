@@ -1,0 +1,573 @@
+/root/repos/whip/app/src/main/java/com/whip/app/data/PortableBackupManager.kt:426: Warning: Consider using apply() instead; commit writes its data to persistent storage immediately, whereas apply will handle it in the background [ApplySharedPref]
+        val persisted = if (confirm) editor.commit() else {
+                                            ~~~~~~~~
+
+   Explanation for issues of type "ApplySharedPref":
+   Consider using apply() instead of commit on shared preferences. Whereas
+   commit blocks and writes its data to persistent storage immediately, apply
+   will handle it in the background.
+
+/root/repos/whip/app/src/main/res/xml/habit_tracking_widget_info.xml:9: Warning: Attribute previewLayout is only used in API level 31 and higher (current min is 28) [UnusedAttribute]
+    android:previewLayout="@layout/widget_habit_tracking"
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/res/xml/habit_tracking_widget_info.xml:12: Warning: Attribute targetCellHeight is only used in API level 31 and higher (current min is 28) [UnusedAttribute]
+    android:targetCellHeight="3"
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/res/xml/habit_tracking_widget_info.xml:13: Warning: Attribute targetCellWidth is only used in API level 31 and higher (current min is 28) [UnusedAttribute]
+    android:targetCellWidth="3"
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/res/xml/whip_widget_info.xml:9: Warning: Attribute previewLayout is only used in API level 31 and higher (current min is 28) [UnusedAttribute]
+    android:previewLayout="@layout/widget_task_agenda"
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/res/xml/whip_widget_info.xml:12: Warning: Attribute targetCellHeight is only used in API level 31 and higher (current min is 28) [UnusedAttribute]
+    android:targetCellHeight="3"
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/res/xml/whip_widget_info.xml:13: Warning: Attribute targetCellWidth is only used in API level 31 and higher (current min is 28) [UnusedAttribute]
+    android:targetCellWidth="3"
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "UnusedAttribute":
+   This check finds attributes set in XML files that were introduced in a
+   version newer than the oldest version targeted by your application (with
+   the minSdkVersion attribute).
+
+   This is not an error; the application will simply ignore the attribute.
+   However, if the attribute is important to the appearance or functionality
+   of your application, you should consider finding an alternative way to
+   achieve the same result with only available attributes, and then you can
+   optionally create a copy of the layout in a layout-vNN folder which will be
+   used on API NN or higher where you can take advantage of the newer
+   attribute.
+
+   Note: This check does not only apply to attributes. For example, some tags
+   can be unused too, such as the new <tag> element in layouts introduced in
+   API 21.
+
+/root/repos/whip/app/src/main/java/com/whip/app/ui/GymViewModel.kt:474: Warning: This method should only be accessed from tests or within private scope [VisibleForTests]
+    savedStateHandle: SavedStateHandle = SavedStateHandle(),
+                                         ~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/HabitViewModel.kt:201: Warning: This method should only be accessed from tests or within private scope [VisibleForTests]
+    private val savedStateHandle: SavedStateHandle = SavedStateHandle(),
+                                                     ~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/HabitViewModel.kt:201: Warning: This method should only be accessed from tests or within private scope [VisibleForTests]
+    private val savedStateHandle: SavedStateHandle = SavedStateHandle(),
+                                                     ~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/TrackEditorSessionViewModel.kt:36: Warning: This method should only be accessed from tests or within private scope [VisibleForTests]
+    val definition = TrackEditorViewModel(SavedStateHandle())
+                                          ~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/TrackEditorSessionViewModel.kt:37: Warning: This method should only be accessed from tests or within private scope [VisibleForTests]
+    val entry = TrackEntryEditorViewModel(SavedStateHandle())
+                                          ~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "VisibleForTests":
+   This check looks for accesses from production code (e.g. not tests) where
+   the access would not have been allowed with the intended production
+   visibility.
+
+   Depending on your development environment, you may be able to use an
+   @VisibleForTesting annotation to specify the intended visibility if the
+   method had not been more widely visible for the tests.
+
+   When using androidx.annotations.VisibleForTesting, the production
+   visibility is assumed to be private unless specified with the otherwise=
+   parameter. com.google.common.annotations.VisibleForTesting and
+   com.android.internal.annotations.VisibleForTesting work similarly with
+   their own parameters called productionVisibility and visibility.
+
+   If instead you use org.jetbrains.annotations.VisibleForTesting, there is no
+   such parameter, and the production visibility is instead assumed to be "one
+   step down" from the testing visibility. For example, if the testing
+   visibility is public, the production visibility is assumed to be
+   package-private.
+
+/root/repos/whip/app/src/main/java/com/whip/app/ui/FocusTimerUi.kt:264: Warning: Using Configuration.screenHeightDp instead of LocalWindowInfo.current.containerSize [ConfigurationScreenWidthHeight from androidx.compose.ui]
+            val compactMetadata = maxHeight < 400.dp || LocalConfiguration.current.screenHeightDp < 650
+                                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/ProductivityEditorComponents.kt:848: Warning: Using Configuration.screenHeightDp instead of LocalWindowInfo.current.containerSize [ConfigurationScreenWidthHeight from androidx.compose.ui]
+    val preferKeyboard = LocalConfiguration.current.screenHeightDp < 600 || LocalDensity.current.fontScale >= 1.5f
+                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/WhipDatePickerDialog.kt:80: Warning: Using Configuration.screenWidthDp instead of LocalWindowInfo.current.containerSize [ConfigurationScreenWidthHeight from androidx.compose.ui]
+        ?: (LocalConfiguration.current.screenWidthDp < 384 || density.fontScale >= 1.5f)
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "ConfigurationScreenWidthHeight":
+   Configuration.screenWidthDp and Configuration.screenHeightDp have different
+   insets behaviour depending on target SDK version, and are rounded to the
+   nearest Dp. This means that using these values in composition to size a
+   layout can result in issues, as these values do not accurately represent
+   the actual available window size. Instead it is recommended to use
+   WindowInfo.containerSize which accurately represents the window size.
+
+   Vendor: Jetpack Compose
+   Identifier: androidx.compose.ui
+   Feedback: https://issuetracker.google.com/issues/new?component=612128
+
+/root/repos/whip/app/src/main/java/com/whip/app/ui/UnifiedSearchDialog.kt:309: Warning: Reading Resources using LocalContext.current.resources is not configuration-aware and may return stale values if the Configuration changes [LocalContextResourcesRead from androidx.compose.ui]
+    val resources = LocalContext.current.resources
+                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "LocalContextResourcesRead":
+   Changes to the Configuration object will not cause
+   LocalContext.current.resources reads to be invalidated, so calls to APIs
+   such as Resources.getString() will not be updated when the Configuration
+   changes. Instead, use LocalResources.current to retrieve the Resources -
+   this will invalidate callers when the Configuration changes, to ensure that
+   these calls reflect the latest values.
+
+   Vendor: Jetpack Compose
+   Identifier: androidx.compose.ui
+   Feedback: https://issuetracker.google.com/issues/new?component=612128
+
+/root/repos/whip/app/src/main/java/com/whip/app/ui/FocusedInputVisibility.kt:19: Warning: Modifier factory functions should be extensions on Modifier [ModifierFactoryExtensionFunction from androidx.compose.ui]
+internal fun rememberFocusedInputVisibility(
+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/WhipManagementHeader.kt:76: Warning: Modifier factory functions should be extensions on Modifier [ModifierFactoryExtensionFunction from androidx.compose.ui]
+private fun WhipManagementAction.modifier(): Modifier = testTag?.let { Modifier.testTag(it) } ?: Modifier
+                                 ~~~~~~~~
+
+   Explanation for issues of type "ModifierFactoryExtensionFunction":
+   Modifier factory functions should be defined as extension functions on
+   Modifier to allow modifiers to be fluently chained.
+
+   Vendor: Jetpack Compose
+   Identifier: androidx.compose.ui
+   Feedback: https://issuetracker.google.com/issues/new?component=612128
+
+/root/repos/whip/app/src/main/java/com/whip/app/ui/EntityInspector.kt:95: Warning: Modifier parameter should be the first optional parameter [ModifierParameter from androidx.compose.ui]
+    modifier: Modifier = Modifier,
+    ~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/GoalScreens.kt:172: Warning: Modifier parameter should be the first optional parameter [ModifierParameter from androidx.compose.ui]
+    modifier: Modifier = Modifier,
+    ~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/GymDestinationHost.kt:27: Warning: Modifier parameter should be the first optional parameter [ModifierParameter from androidx.compose.ui]
+    modifier: Modifier = Modifier,
+    ~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/GymScreens.kt:6858: Warning: Modifier parameter should be the first optional parameter [ModifierParameter from androidx.compose.ui]
+    modifier: Modifier = Modifier,
+    ~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/GymScreens.kt:7216: Warning: Modifier parameter should be the first optional parameter [ModifierParameter from androidx.compose.ui]
+    modifier: Modifier = Modifier,
+    ~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/HabitScreens.kt:152: Warning: Modifier parameter should be the first optional parameter [ModifierParameter from androidx.compose.ui]
+    modifier: Modifier = Modifier,
+    ~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/ItemControlPatterns.kt:907: Warning: Modifier parameter should be the first optional parameter [ModifierParameter from androidx.compose.ui]
+    modifier: Modifier = Modifier,
+    ~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/ProductivityEditorComponents.kt:107: Warning: Modifier parameter should be the first optional parameter [ModifierParameter from androidx.compose.ui]
+    modifier: Modifier = Modifier,
+    ~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/ProductivityEditorComponents.kt:836: Warning: Modifier parameter should be the first optional parameter [ModifierParameter from androidx.compose.ui]
+    modifier: Modifier = Modifier,
+    ~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/ProductivityEditorSections.kt:18: Warning: Modifier parameter should be the first optional parameter [ModifierParameter from androidx.compose.ui]
+    modifier: Modifier = Modifier,
+    ~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/ProductivityEditorSections.kt:40: Warning: Modifier parameter should be the first optional parameter [ModifierParameter from androidx.compose.ui]
+    modifier: Modifier = Modifier,
+    ~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/SettingsScreens.kt:2246: Warning: Modifier parameter should be the first optional parameter [ModifierParameter from androidx.compose.ui]
+    modifier: Modifier = Modifier,
+    ~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/StartupRecoveryScreen.kt:44: Warning: Modifier parameter should be the first optional parameter [ModifierParameter from androidx.compose.ui]
+    modifier: Modifier = Modifier,
+    ~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/TaskComponents.kt:1050: Warning: Modifier parameter should be the first optional parameter [ModifierParameter from androidx.compose.ui]
+    modifier: Modifier = Modifier,
+    ~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/TaskEditorRouteHost.kt:93: Warning: Modifier parameter should be named modifier [ModifierParameter from androidx.compose.ui]
+    pendingDialogModifier: Modifier,
+    ~~~~~~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/TrackScreens.kt:309: Warning: Modifier parameter should be named modifier [ModifierParameter from androidx.compose.ui]
+    dialogModifier: Modifier = Modifier,
+    ~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/TrackScreens.kt:309: Warning: Modifier parameter should be the first optional parameter [ModifierParameter from androidx.compose.ui]
+    dialogModifier: Modifier = Modifier,
+    ~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/TrackScreens.kt:1066: Warning: Modifier parameter should be named modifier [ModifierParameter from androidx.compose.ui]
+    dialogModifier: Modifier,
+    ~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/TrackScreens.kt:1854: Warning: Modifier parameter should be named modifier [ModifierParameter from androidx.compose.ui]
+    dialogModifier: Modifier,
+    ~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/TrackScreens.kt:1960: Warning: Modifier parameter should be named modifier [ModifierParameter from androidx.compose.ui]
+    dialogModifier: Modifier = Modifier,
+    ~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/TrackScreens.kt:1960: Warning: Modifier parameter should be the first optional parameter [ModifierParameter from androidx.compose.ui]
+    dialogModifier: Modifier = Modifier,
+    ~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/TrackScreens.kt:2452: Warning: Modifier parameter should be named modifier [ModifierParameter from androidx.compose.ui]
+    dialogModifier: Modifier = Modifier,
+    ~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/TrackScreens.kt:4540: Warning: Modifier parameter should be the first optional parameter [ModifierParameter from androidx.compose.ui]
+    modifier: Modifier = Modifier,
+    ~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/UnifiedSearchDialog.kt:773: Warning: Modifier parameter should be named modifier [ModifierParameter from androidx.compose.ui]
+    queryModifier: Modifier,
+    ~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/WhipApp.kt:4679: Warning: Modifier parameter should be the first optional parameter [ModifierParameter from androidx.compose.ui]
+    modifier: Modifier = Modifier,
+    ~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/WhipApp.kt:5774: Warning: Modifier parameter should be the first optional parameter [ModifierParameter from androidx.compose.ui]
+    modifier: Modifier = Modifier,
+    ~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/WhipItemBuilders.kt:86: Warning: Modifier parameter should be the first optional parameter [ModifierParameter from androidx.compose.ui]
+    modifier: Modifier = Modifier,
+    ~~~~~~~~
+
+   Explanation for issues of type "ModifierParameter":
+   The first (or only) Modifier parameter in a Composable function should
+   follow the following rules:
+   - Be named modifier
+   - Have a type of Modifier
+   - Either have no default value, or have a default value of Modifier
+   - If optional, be the first optional parameter in the parameter list
+
+   Vendor: Jetpack Compose
+   Identifier: androidx.compose.ui
+   Feedback: https://issuetracker.google.com/issues/new?component=612128
+
+/root/repos/whip/app/src/main/java/com/whip/app/ui/HabitScreens.kt:1580: Warning: Creating a MutableState object with a mutable collection type [MutableCollectionMutableState from androidx.compose.runtime]
+    var knownFinishedIds by remember(title, dateKey) { mutableStateOf(finishedIds) }
+                                                       ~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/WhipApp.kt:5114: Warning: Creating a MutableState object with a mutable collection type [MutableCollectionMutableState from androidx.compose.runtime]
+    var knownHomeFinishedHabitIds by remember(habitState.currentDate) { mutableStateOf(homeFinishedHabitIds) }
+                                                                        ~~~~~~~~~~~~~~
+
+   Explanation for issues of type "MutableCollectionMutableState":
+   Writes to mutable collections inside a MutableState will not cause a
+   recomposition - only writes to the MutableState itself will. In most cases
+   you should either use a read-only collection (such as List or Map) and
+   assign a new instance to the MutableState when your data changes, or you
+   can use an snapshot-backed collection such as SnapshotStateList or
+   SnapshotStateMap which will correctly cause a recomposition when their
+   contents are modified.
+
+   Vendor: Jetpack Compose
+   Identifier: androidx.compose.runtime
+   Feedback: https://issuetracker.google.com/issues/new?component=612128
+
+/root/repos/whip/app/src/main/res/values/strings.xml:176: Warning: Formatting %d followed by words ("mapped"): This should probably be a plural rather than a string [PluralsCandidate]
+    <string name="track_csv_review_field_mapping">Review Field Mapping (%1$d mapped)</string>
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/res/values/strings.xml:248: Warning: Formatting %d followed by words ("complete"): This should probably be a plural rather than a string [PluralsCandidate]
+    <string name="widget_habit_subtitle">%1$d of %2$d complete · %3$s</string>
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/res/values/strings.xml:256: Warning: Formatting %d followed by words ("items"): This should probably be a plural rather than a string [PluralsCandidate]
+    <string name="widget_items_progress">%1$d of %2$d items</string>
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/res/values/strings.xml:334: Warning: Formatting %d followed by words ("More"): This should probably be a plural rather than a string [PluralsCandidate]
+    <string name="search_show_more">Show %1$d More · %2$d Remaining</string>
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/res/values/strings.xml:345: Warning: Formatting %d followed by words ("Entries"): This should probably be a plural rather than a string [PluralsCandidate]
+    <string name="search_entry_count">%1$d Entries</string>
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "PluralsCandidate":
+   This lint check looks for potential errors in internationalization where
+   you have translated a message which involves a quantity and it looks like
+   other parts of the string may need grammatical changes.
+
+   For example, rather than something like this:
+     <string name="try_again">Try again in %d seconds.</string>
+   you should be using a plural:
+      <plurals name="try_again">
+           <item quantity="one">Try again in %d second</item>
+           <item quantity="other">Try again in %d seconds</item>
+       </plurals>
+   This will ensure that in other languages the right set of translations are
+   provided for the different quantity classes.
+
+   (This check depends on some heuristics, so it may not accurately determine
+   whether a string really should be a quantity. You can use tools:ignore to
+   filter out false positives.
+
+   https://developer.android.com/guide/topics/resources/string-resource.html#Plurals
+
+/root/repos/whip/app/src/main/java/com/whip/app/ui/GoalScreens.kt:1728: Hint: Prefer mutableLongStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
+        mutableStateOf(goal?.elapsedStartMillis ?: initialDraft?.elapsedStartMillis ?: nowMillis)
+        ~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/GymScreens.kt:741: Hint: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
+    var workoutArrangementCommitGeneration by rememberSaveable { mutableStateOf(0) }
+                                                                 ~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/GymScreens.kt:9186: Hint: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
+                mutableStateOf(routine.currentProgramPhaseIndex)
+                ~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/GymScreens.kt:9565: Hint: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
+    var phaseIndex by rememberSaveable(routine.id) { mutableStateOf(routine.currentProgramPhaseIndex) }
+                                                     ~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/GymScreens.kt:9566: Hint: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
+    var dayPosition by rememberSaveable(routine.id) { mutableStateOf(routine.nextProgramDayPosition) }
+                                                      ~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/HabitScreens.kt:184: Hint: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
+    var localReorderDismiss by rememberSaveable { mutableStateOf(0) }
+                                                  ~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/ItemControlPatterns.kt:180: Hint: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
+    var previewMovement by mutableStateOf(0)
+                           ~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/LaunchQueueOverflowDialog.kt:23: Hint: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
+    var rejectedShareCount by mutableStateOf(0)
+                              ~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/LaunchQueueOverflowDialog.kt:29: Hint: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
+    var acknowledgedShareCount by mutableStateOf(0)
+                                  ~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/LaunchQueueOverflowDialog.kt:31: Hint: Prefer mutableLongStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
+    var revision by mutableStateOf(0L)
+                    ~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/PendingTaskEditorLaunchDialog.kt:31: Hint: Prefer mutableLongStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
+    var revision by mutableStateOf(0L)
+                    ~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/RoutineBuilder.kt:873: Hint: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
+    var selectedPhase by rememberSaveable(builder.token) { mutableStateOf(savedCurrentPhase ?: 0) }
+                                                           ~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/RoutineBuilder.kt:2300: Hint: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
+    var visibleProgramPhase by rememberSaveable(placement.key) { mutableStateOf(0) }
+                                                                 ~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/RoutineBuilder.kt:3496: Hint: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
+    var visibleCount by rememberSaveable { mutableStateOf(50) }
+                                           ~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/widget/WhipWidgetConfigureActivity.kt:128: Hint: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
+                mutableStateOf(
+                ~~~~~~~~~~~~~~
+
+   Explanation for issues of type "AutoboxingStateCreation":
+   Calling mutableStateOf<T>() when T is either backed by a primitive type on
+   the JVM or is a value class results in a state implementation that requires
+   all state values to be boxed. This usually causes an additional allocation
+   for each state write, and adds some additional work to auto-unbox values
+   when reading the value of the state. Instead, prefer to use a specialized
+   primitive state implementation for Int, Long, Float, and Double when the
+   state does not need to track null values and does not override the default
+   SnapshotMutationPolicy. See mutableIntStateOf(), mutableLongStateOf(),
+   mutableFloatStateOf(), and mutableDoubleStateOf() for more information.
+
+   Vendor: Jetpack Compose
+   Identifier: androidx.compose.runtime
+   Feedback: https://issuetracker.google.com/issues/new?component=612128
+
+/root/repos/whip/app/src/main/res/layout/widget_habit_row_large_text.xml:9: Warning: Set android:baselineAligned="false" on this element for better performance [DisableBaselineAlignment]
+    <LinearLayout
+     ~~~~~~~~~~~~
+/root/repos/whip/app/src/main/res/layout/widget_task_row_large_text.xml:9: Warning: Set android:baselineAligned="false" on this element for better performance [DisableBaselineAlignment]
+    <LinearLayout
+     ~~~~~~~~~~~~
+
+   Explanation for issues of type "DisableBaselineAlignment":
+   When a LinearLayout is used to distribute the space proportionally between
+   nested layouts, the baseline alignment property should be turned off to
+   make the layout computation faster.
+
+/root/repos/whip/app/src/main/res/values/strings.xml:126: Warning: The resource R.string.settings_reset_confirm_message appears to be unused [UnusedResources]
+    <string name="settings_reset_confirm_message">This deletes every task, Habit, Goal, Track, workout, and local setting; disconnects the portable backup folder; and returns Whip to setup. Existing backup files outside Whip are not deleted. This cannot be undone.</string>
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/res/values/strings.xml:132: Warning: The resource R.string.settings_resetting appears to be unused [UnusedResources]
+    <string name="settings_resetting">Resetting…</string>
+            ~~~~~~~~~~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/res/values/strings.xml:133: Warning: The resource R.string.settings_backup_replace_pane_title appears to be unused [UnusedResources]
+    <string name="settings_backup_replace_pane_title">Confirm Backup Replacement</string>
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/res/values/strings.xml:135: Warning: The resource R.string.settings_backup_replace_warning appears to be unused [UnusedResources]
+    <string name="settings_backup_replace_warning">Everything currently in Whip—including tasks, Habits, Goals, Tracks, workouts, settings, reminders, and scheduled work—will be replaced by this backup. Whip creates a private recovery snapshot before replacement starts. If replacement fails, Whip rolls back immediately; if the app or device is interrupted, Whip recovers on next launch. After replacement succeeds, your previous local data can be recovered only from a backup you exported.</string>
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/res/values/strings.xml:238: Warning: The resource R.string.widget_retry_refresh appears to be unused [UnusedResources]
+    <string name="widget_retry_refresh">Retry widget refresh</string>
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/res/values/strings.xml:254: Warning: The resource R.string.widget_stop appears to be unused [UnusedResources]
+    <string name="widget_stop">Stop</string>
+            ~~~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/res/values/strings.xml:267: Warning: The resource R.string.widget_stop_habit appears to be unused [UnusedResources]
+    <string name="widget_stop_habit">Stop %1$s</string>
+            ~~~~~~~~~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/res/values/strings.xml:270: Warning: The resource R.plurals.widget_more_tasks appears to be unused [UnusedResources]
+    <plurals name="widget_more_tasks">
+             ~~~~~~~~~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/res/values/strings.xml:274: Warning: The resource R.plurals.widget_more_habits appears to be unused [UnusedResources]
+    <plurals name="widget_more_habits">
+             ~~~~~~~~~~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/res/values/strings.xml:291: Warning: The resource R.plurals.widget_tasks_due appears to be unused [UnusedResources]
+    <plurals name="widget_tasks_due">
+             ~~~~~~~~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/res/values/strings.xml:295: Warning: The resource R.plurals.widget_habits_due appears to be unused [UnusedResources]
+    <plurals name="widget_habits_due">
+             ~~~~~~~~~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/res/values/strings.xml:307: Warning: The resource R.string.action_more appears to be unused [UnusedResources]
+    <string name="action_more">More</string>
+            ~~~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/res/values/widget_colors.xml:11: Warning: The resource R.color.widget_outline_variant appears to be unused [UnusedResources]
+    <color name="widget_outline_variant">#CCC6BC</color>
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/res/values/widget_colors.xml:17: Warning: The resource R.color.widget_error appears to be unused [UnusedResources]
+    <color name="widget_error">#BA1A1A</color>
+           ~~~~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/res/drawable/widget_ic_checklist.xml:2: Warning: The resource R.drawable.widget_ic_checklist appears to be unused [UnusedResources]
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+^
+
+   Explanation for issues of type "UnusedResources":
+   Unused resources make applications larger and slow down builds.
+
+
+   The unused resource check can ignore tests. If you want to include
+   resources that are only referenced from tests, consider packaging them in a
+   test source set instead.
+
+   You can include test sources in the unused resource check by setting the
+   system property lint.unused-resources.include-tests=true, and to exclude
+   them (usually for performance reasons), use
+   lint.unused-resources.exclude-tests=true.
+
+   Available options:
+
+   **skip-libraries** (default is true):
+   Whether the unused resource check should skip reporting unused resources in libraries.
+
+   Many libraries will declare resources that are part of the library surface; other modules depending on the library will also reference the resources. To avoid reporting all these resources as unused (in the context of a library), the unused resource check normally skips reporting unused resources in libraries. Instead, run the unused resource check on the consuming app module (along with `checkDependencies=true`).
+
+   However, there are cases where you want to check that all the resources declared in a library are used; in that case, you can disable the skip option.
+
+   To configure this option, use a `lint.xml` file with an <option> like this:
+
+   ```xml
+   <lint>
+       <issue id="UnusedResources">
+           <option name="skip-libraries" value="true" />
+       </issue>
+   </lint>
+   ```
+
+/root/repos/whip/app/src/main/res/values/strings.xml:320: Warning: Replace "-" with an "en dash" character (–, &#8211;) ? [TypographyDashes]
+    <string name="search_query_help">Use tag:work, area:home, status:completed, before:2026-09-01, after:2026-08-01, or deadline:true.</string>
+                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "TypographyDashes":
+   The "n dash" (u2013, &#8211;) and the "m dash" (u2014, &#8212;) characters
+   are used for ranges (n dash) and breaks (m dash). Using these instead of
+   plain hyphens can make text easier to read and your application will look
+   more polished.
+
+   https://en.wikipedia.org/wiki/Dash
+
+/root/repos/whip/app/src/main/java/com/whip/app/reminders/FocusTimerNotifications.kt:210: Warning: Use the KTX extension function String.toUri instead? [UseKtx]
+            .setData(Uri.parse("whip://focus-stop/$generation/$taskId/$deadlineMillis"))
+                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/reminders/FocusTimerNotifications.kt:295: Warning: Use the KTX extension function String.toUri instead? [UseKtx]
+        .setData(Uri.parse("whip://focus-open/$generation/$taskId/${deadlineMillis ?: "complete"}"))
+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/startup/LocalDataResetter.kt:48: Warning: Use the KTX extension function SharedPreferences.edit instead? [UseKtx]
+            context.getSharedPreferences(RECOVERY_RUNTIME_PREFERENCES, Context.MODE_PRIVATE)
+            ^
+/root/repos/whip/app/src/main/java/com/whip/app/startup/LocalDataResetter.kt:77: Warning: Use the KTX extension function String.toUri instead? [UseKtx]
+                Uri.parse(stored),
+                ~~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/startup/LocalDataResetter.kt:90: Warning: Use the KTX extension function SharedPreferences.edit instead? [UseKtx]
+            check(context.getSharedPreferences(name, Context.MODE_PRIVATE).edit().clear().commit()) {
+                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/reminders/ReminderAlarmScheduler.kt:333: Warning: Use the KTX extension function String.toUri instead? [UseKtx]
+            Uri.parse("whip://reminder-alarm/${Uri.encode(identity)}")
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/reminders/ReminderDeletionCleanupStore.kt:34: Warning: Use the KTX extension function SharedPreferences.edit instead? [UseKtx]
+        check(preferences.edit().putStringSet(PENDING_KEYS, transform(current)).commit()) {
+              ~~~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/reminders/TimerAlarmScheduler.kt:223: Warning: Use the KTX extension function String.toUri instead? [UseKtx]
+        private fun identityUri(identity: String): Uri = Uri.parse("whip://timer-alarm/${Uri.encode(identity)}")
+                                                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/TrackViewModel.kt:1878: Warning: Use the KTX extension function String.toUri instead? [UseKtx]
+            importUri = Uri.parse(descriptor.uri)
+                        ~~~~~~~~~~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/ui/TrackViewModel.kt:1924: Warning: Use the KTX extension function String.toUri instead? [UseKtx]
+                        readCsvText(Uri.parse(savedUri))
+                                    ~~~~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/WhipApplication.kt:596: Warning: Use the KTX extension function SharedPreferences.edit instead? [UseKtx]
+        check(recoveryPreferences.edit().putLong(USER_DATA_GENERATION, next).commit()) {
+              ~~~~~~~~~~~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/widget/WhipWidgetProvider.kt:445: Warning: Use the KTX extension function String.toUri instead? [UseKtx]
+                                    .setData(Uri.parse("whip://widget/$appWidgetId/habit/$habitId"))
+                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/widget/WhipWidgetProvider.kt:827: Warning: Use the KTX extension function String.toUri instead? [UseKtx]
+        .setData(Uri.parse("whip://widget/$widgetId/$path"))
+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/widget/WhipWidgetProvider.kt:844: Warning: Use the KTX extension function String.toUri instead? [UseKtx]
+        .setData(Uri.parse("whip://widget/$widgetId/task-collection"))
+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/widget/WhipWidgetProvider.kt:852: Warning: Use the KTX extension function String.toUri instead? [UseKtx]
+            .setData(Uri.parse("whip://widget/$widgetId/task-collection-click"))
+                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/widget/WhipWidgetProvider.kt:860: Warning: Use the KTX extension function String.toUri instead? [UseKtx]
+        .setData(Uri.parse("whip://widget/$widgetId/habit-collection"))
+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/widget/WhipWidgetProvider.kt:868: Warning: Use the KTX extension function String.toUri instead? [UseKtx]
+            .setData(Uri.parse("whip://widget/$widgetId/habit-collection-click"))
+                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/java/com/whip/app/widget/WhipWidgetProvider.kt:890: Warning: Use the KTX extension function String.toUri instead? [UseKtx]
+                .setData(Uri.parse("whip://widget/$appWidgetId/$path"))
+                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "UseKtx":
+   The Android KTX libraries decorates the Android platform SDK as well as
+   various libraries with more convenient extension functions available from
+   Kotlin, allowing you to use default parameters, named parameters, and
+   more.
+
+   Available options:
+
+   **remove-defaults** (default is true):
+   Whether to skip arguments that match the defaults provided by the extension.
+
+   Extensions often provide default values for some of the parameters. For example:
+   ```kotlin
+   fun Path.readLines(charset: Charset = Charsets.UTF_8): List<String> { return Files.readAllLines(this, charset) }
+   ```
+   This lint check will by default automatically omit parameters that match the default, so if your code was calling
+
+   ```kotlin
+   Files.readAllLines(file, Charset.UTF_8)
+   ```
+   lint would replace this with
+   ```kotlin
+   file.readLines()
+   ```
+   rather than
+
+   ```kotlin
+   file.readLines(Charset.UTF_8
+   ```
+   You can turn this behavior off using this option.
+
+   To configure this option, use a `lint.xml` file with an <option> like this:
+
+   ```xml
+   <lint>
+       <issue id="UseKtx">
+           <option name="remove-defaults" value="true" />
+       </issue>
+   </lint>
+   ```
+
+   **require-present** (default is true):
+   Whether to only offer extensions already available.
+
+   This option lets you only have lint suggest extension replacements if those extensions are already available on the class path (in other words, you're already depending on the library containing the extension method.)
+
+   To configure this option, use a `lint.xml` file with an <option> like this:
+
+   ```xml
+   <lint>
+       <issue id="UseKtx">
+           <option name="require-present" value="true" />
+       </issue>
+   </lint>
+   ```
+
+/root/repos/whip/app/src/main/res/layout/widget_habit_tracking.xml:45: Warning: When you define paddingStart you should probably also define paddingEnd for right-to-left symmetry [RtlSymmetry]
+                android:paddingStart="6dp">
+                ~~~~~~~~~~~~~~~~~~~~
+/root/repos/whip/app/src/main/res/layout/widget_task_agenda.xml:45: Warning: When you define paddingStart you should probably also define paddingEnd for right-to-left symmetry [RtlSymmetry]
+                android:paddingStart="6dp">
+                ~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "RtlSymmetry":
+   If you specify padding or margin on the left side of a layout, you should
+   probably also specify padding on the right side (and vice versa) for
+   right-to-left layout symmetry.
+
+0 errors, 90 warnings, 15 hints

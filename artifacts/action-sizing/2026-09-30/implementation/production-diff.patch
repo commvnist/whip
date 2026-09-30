@@ -1,0 +1,277 @@
+diff --git a/app/src/main/java/com/whip/app/ui/EntityInspector.kt b/app/src/main/java/com/whip/app/ui/EntityInspector.kt
+index 19565b0a..f2f412bf 100644
+--- a/app/src/main/java/com/whip/app/ui/EntityInspector.kt
++++ b/app/src/main/java/com/whip/app/ui/EntityInspector.kt
+@@ -176,14 +176,16 @@ internal fun EntityInspector(
+                     primaryAction?.let { action ->
+                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                         Surface(modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surfaceContainerLow) {
+-                            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
++                            WhipActivityActions(
++                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
++                                enabled = leadingPrimaryAction,
++                            ) {
+                                 WhipButton(
+                                     onClick = action.onClick,
+                                     enabled = action.enabled,
+                                     modifier = Modifier
+-                                        .then(if (leadingPrimaryAction) Modifier else Modifier.fillMaxWidth())
+-                                        .padding(horizontal = 20.dp, vertical = 12.dp)
+-                                        .heightIn(min = 48.dp)
++                                        .then(if (leadingPrimaryAction) Modifier else Modifier.fillMaxWidth()
++                                            .padding(horizontal = 20.dp, vertical = 12.dp))
+                                         .testTag("entity-inspector-primary-${action.id}"),
+                                 ) {
+                                     Text(action.label, fontWeight = FontWeight.SemiBold)
+diff --git a/app/src/main/java/com/whip/app/ui/GoalScreens.kt b/app/src/main/java/com/whip/app/ui/GoalScreens.kt
+index bcfed15b..05e52a1f 100644
+--- a/app/src/main/java/com/whip/app/ui/GoalScreens.kt
++++ b/app/src/main/java/com/whip/app/ui/GoalScreens.kt
+@@ -1103,6 +1103,7 @@ internal fun GoalCompletionDialog(
+ ) {
+     PaneAwareAlertDialog(
+         testTag = "goal-completion-dialog",
++        equalActionSizes = true,
+         onDismissRequest = { if (!saving) onDismiss() },
+         title = { Text("Complete ${projection.goal.name}?") },
+         text = {
+diff --git a/app/src/main/java/com/whip/app/ui/HabitScreens.kt b/app/src/main/java/com/whip/app/ui/HabitScreens.kt
+index 9efc5b67..cd0966e6 100644
+--- a/app/src/main/java/com/whip/app/ui/HabitScreens.kt
++++ b/app/src/main/java/com/whip/app/ui/HabitScreens.kt
+@@ -1169,7 +1169,7 @@ fun HabitProgressCard(
+         habit.sourceMeasurementId != null -> null
+         habit.trackingMode in setOf(HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist) -> {{
+             Row(
+-                modifier = Modifier.heightIn(min = 48.dp)
++                modifier = Modifier.whipActivityActionSize()
+                     .testTag("habit-primary-action-${habit.id}")
+                     .toggleable(value = item.successful == true, role = Role.Checkbox, onValueChange = { onQuick() })
+                     .semantics {
+@@ -1200,7 +1200,7 @@ fun HabitProgressCard(
+         }}
+         habit.trackingMode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal) -> {{
+             WhipButton(onClick = { onQuickValue(habit.quickIncrement) },
+-                modifier = Modifier.widthIn(max = 112.dp).testTag("habit-primary-action-${habit.id}").semantics {
++                modifier = Modifier.testTag("habit-primary-action-${habit.id}").semantics {
+                     contentDescription = "Add ${plainNumericValue(habit.quickIncrement)} ${habit.unitSymbol(customUnits)} to ${habit.name}".replace("  ", " ")
+                 }, contentPadding = PaddingValues(horizontal = 12.dp)) { Text(primaryLabel) }
+         }}
+@@ -3287,9 +3287,11 @@ internal fun HabitActionsDialog(
+                             !item.habit.archived && !item.habit.paused && item.habit.sourceMeasurementId == null &&
+                             item.dayState !in setOf(HabitDayState.Paused, HabitDayState.Skipped, HabitDayState.NotScheduled)) item {
+                             EntityInspectorInformationGroup("Record or Adjust") {
+-                                HabitNumericActions(item, customUnits, onQuickValue, onSetValue, onAddAmount,
+-                                    onDecrement = { onQuickValue(-minOf(item.habit.quickIncrement, item.value.coerceAtLeast(0.0))) },
+-                                    onUndo = onUndoValue, canUndo = canUndoValue, enabled = !mutationSaving)
++                                WhipActivityActions {
++                                    HabitNumericActions(item, customUnits, onQuickValue, onSetValue, onAddAmount,
++                                        onDecrement = { onQuickValue(-minOf(item.habit.quickIncrement, item.value.coerceAtLeast(0.0))) },
++                                        onUndo = onUndoValue, canUndo = canUndoValue, enabled = !mutationSaving)
++                                }
+                             }
+                         }
+                         if (item.habit.trackingMode == HabitTrackingMode.Checklist && item.checklistItems.isNotEmpty()) item {
+diff --git a/app/src/main/java/com/whip/app/ui/ProductivityEditorComponents.kt b/app/src/main/java/com/whip/app/ui/ProductivityEditorComponents.kt
+index a02945e8..acd68066 100644
+--- a/app/src/main/java/com/whip/app/ui/ProductivityEditorComponents.kt
++++ b/app/src/main/java/com/whip/app/ui/ProductivityEditorComponents.kt
+@@ -467,6 +467,7 @@ internal fun ProductivityEditorDialog(
+     paneTitle: String = "Editor",
+     stableHeight: Boolean = false,
+     leadingActions: Boolean = false,
++    equalActionSizes: Boolean = leadingActions,
+     inputBlocked: Boolean = false,
+     inputBlockedLabel: String = "Saving",
+     dismissOnBackPress: Boolean = true,
+@@ -530,17 +531,19 @@ internal fun ProductivityEditorDialog(
+                             Box(Modifier.semantics { heading() }) { headingContent() }
+                         }
+                         Box(Modifier.weight(1f, fill = stableHeight)) { text() }
+-                        FlowRow(
+-                            modifier = Modifier.fillMaxWidth(),
+-                            horizontalArrangement = if (leadingActions) Arrangement.spacedBy(WhipSpacing.compact) else Arrangement.End,
+-                            verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
+-                        ) {
+-                            if (leadingActions) {
+-                                confirmButton()
+-                                dismissButton()
+-                            } else {
+-                                dismissButton()
+-                                confirmButton()
++                        WhipActivityActions(enabled = equalActionSizes) {
++                            FlowRow(
++                                modifier = Modifier.fillMaxWidth(),
++                                horizontalArrangement = if (leadingActions) Arrangement.spacedBy(WhipSpacing.compact) else Arrangement.End,
++                                verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
++                            ) {
++                                if (leadingActions) {
++                                    confirmButton()
++                                    dismissButton()
++                                } else {
++                                    dismissButton()
++                                    confirmButton()
++                                }
+                             }
+                         }
+                     }
+@@ -570,6 +573,7 @@ internal fun PaneAwareAlertDialog(
+     paneTitle: String = "Dialog",
+     stableHeight: Boolean = false,
+     leadingActions: Boolean = false,
++    equalActionSizes: Boolean = leadingActions,
+     inputBlocked: Boolean = false,
+     inputBlockedLabel: String = "Saving",
+     dismissOnBackPress: Boolean = true,
+@@ -590,6 +594,7 @@ internal fun PaneAwareAlertDialog(
+         paneTitle = paneTitle,
+         stableHeight = stableHeight,
+         leadingActions = leadingActions,
++        equalActionSizes = equalActionSizes,
+         inputBlocked = inputBlocked,
+         inputBlockedLabel = inputBlockedLabel,
+         dismissOnBackPress = dismissOnBackPress,
+diff --git a/app/src/main/java/com/whip/app/ui/WhipControls.kt b/app/src/main/java/com/whip/app/ui/WhipControls.kt
+index bb60e9ef..eafc0114 100644
+--- a/app/src/main/java/com/whip/app/ui/WhipControls.kt
++++ b/app/src/main/java/com/whip/app/ui/WhipControls.kt
+@@ -2,7 +2,10 @@ package com.whip.app.ui
+ 
+ import androidx.compose.foundation.BorderStroke
+ import androidx.compose.foundation.interaction.MutableInteractionSource
++import androidx.compose.foundation.layout.BoxWithConstraints
+ import androidx.compose.foundation.layout.PaddingValues
++import androidx.compose.foundation.layout.fillMaxWidth
++import androidx.compose.foundation.layout.size
+ import androidx.compose.foundation.layout.RowScope
+ import androidx.compose.foundation.layout.heightIn
+ import androidx.compose.material3.Button as MaterialButton
+@@ -18,9 +21,41 @@ import androidx.compose.material3.SelectableChipColors
+ import androidx.compose.material3.SelectableChipElevation
+ import androidx.compose.material3.TextButton as MaterialTextButton
+ import androidx.compose.runtime.Composable
++import androidx.compose.runtime.CompositionLocalProvider
++import androidx.compose.runtime.staticCompositionLocalOf
++import androidx.compose.ui.platform.LocalDensity
++import androidx.compose.ui.unit.DpSize
+ import androidx.compose.ui.Modifier
+ import androidx.compose.ui.unit.dp
+ 
++private val LocalWhipActivityActionSize = staticCompositionLocalOf<DpSize?> { null }
++
++/** Activity controls share a label-independent cell; ordinary controls keep their defaults. */
++@Composable
++internal fun WhipActivityActions(
++    modifier: Modifier = Modifier,
++    enabled: Boolean = true,
++    content: @Composable () -> Unit,
++) {
++    if (!enabled) {
++        content()
++        return
++    }
++    BoxWithConstraints(modifier.fillMaxWidth()) {
++        val scale = LocalDensity.current.fontScale.coerceAtLeast(1f)
++        val cell = DpSize((160.dp * scale).coerceAtMost(maxWidth), 64.dp * scale)
++        CompositionLocalProvider(LocalWhipActivityActionSize provides cell) { content() }
++    }
++}
++
++@Composable
++internal fun Modifier.whipActivityActionSize(): Modifier =
++    LocalWhipActivityActionSize.current?.let { size(it) } ?: heightIn(min = 48.dp)
++
++@Composable
++private fun activityActionPadding(default: PaddingValues): PaddingValues =
++    if (LocalWhipActivityActionSize.current == null) default else PaddingValues(horizontal = 12.dp, vertical = 8.dp)
++
+ /**
+  * Whip's action controls use restrained rectangular corners. Material's
+  * component defaults intentionally resolve to CornerFull (a pill), so every
+@@ -40,13 +75,13 @@ internal fun WhipButton(
+ ) {
+     MaterialButton(
+         onClick = onClick,
+-        modifier = modifier.heightIn(min = 48.dp),
++        modifier = modifier.whipActivityActionSize(),
+         enabled = enabled,
+         shape = MaterialTheme.shapes.small,
+         colors = colors,
+         elevation = elevation,
+         border = border,
+-        contentPadding = contentPadding,
++        contentPadding = activityActionPadding(contentPadding),
+         interactionSource = interactionSource,
+         content = content,
+     )
+@@ -66,13 +101,13 @@ internal fun WhipOutlinedButton(
+ ) {
+     MaterialOutlinedButton(
+         onClick = onClick,
+-        modifier = modifier.heightIn(min = 48.dp),
++        modifier = modifier.whipActivityActionSize(),
+         enabled = enabled,
+         shape = MaterialTheme.shapes.small,
+         colors = colors,
+         elevation = elevation,
+         border = border,
+-        contentPadding = contentPadding,
++        contentPadding = activityActionPadding(contentPadding),
+         interactionSource = interactionSource,
+         content = content,
+     )
+@@ -92,13 +127,13 @@ internal fun WhipTonalButton(
+ ) {
+     MaterialFilledTonalButton(
+         onClick = onClick,
+-        modifier = modifier.heightIn(min = 48.dp),
++        modifier = modifier.whipActivityActionSize(),
+         enabled = enabled,
+         shape = MaterialTheme.shapes.small,
+         colors = colors,
+         elevation = elevation,
+         border = border,
+-        contentPadding = contentPadding,
++        contentPadding = activityActionPadding(contentPadding),
+         interactionSource = interactionSource,
+         content = content,
+     )
+@@ -118,13 +153,13 @@ internal fun WhipTextButton(
+ ) {
+     MaterialTextButton(
+         onClick = onClick,
+-        modifier = modifier.heightIn(min = 48.dp),
++        modifier = modifier.whipActivityActionSize(),
+         enabled = enabled,
+         shape = MaterialTheme.shapes.small,
+         colors = colors,
+         elevation = elevation,
+         border = border,
+-        contentPadding = contentPadding,
++        contentPadding = activityActionPadding(contentPadding),
+         interactionSource = interactionSource,
+         content = content,
+     )
+diff --git a/app/src/main/java/com/whip/app/ui/WhipProductivityItemBuilder.kt b/app/src/main/java/com/whip/app/ui/WhipProductivityItemBuilder.kt
+index bbe68299..08fa1a4f 100644
+--- a/app/src/main/java/com/whip/app/ui/WhipProductivityItemBuilder.kt
++++ b/app/src/main/java/com/whip/app/ui/WhipProductivityItemBuilder.kt
+@@ -117,11 +117,13 @@ internal fun WhipProductivityItemContent(
+             item.summaryContent?.invoke()
+         }
+         item.activity?.let { actions ->
+-            FlowRow(
+-                modifier = Modifier.fillMaxWidth().padding(top = WhipSpacing.micro),
+-                horizontalArrangement = Arrangement.spacedBy(WhipSpacing.compact),
+-                verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
+-            ) { actions() }
++            WhipActivityActions(Modifier.padding(top = WhipSpacing.micro)) {
++                FlowRow(
++                    modifier = Modifier.fillMaxWidth(),
++                    horizontalArrangement = Arrangement.spacedBy(WhipSpacing.compact),
++                    verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
++                ) { actions() }
++            }
+         }
+         if (!compact && (disclosure == null || disclosure.expanded)) {
+             if (disclosure != null) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)

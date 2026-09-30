@@ -1,0 +1,11 @@
+{
+  "command": [
+    "./gradlew",
+    ":app:lintDebug",
+    ":app:assembleDebug",
+    ":app:assembleDebugAndroidTest"
+  ],
+  "returncode": 0,
+  "elapsed_seconds": 241.969,
+  "log": "/root/repos/whip/artifacts/action-sizing/2026-09-30/implementation/android-package.log"
+}

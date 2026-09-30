@@ -1,0 +1,2 @@
+COMMAND: ["bash", "-lc", "java scripts/RenderBrandIcon.java --verify && test -z \"$(scripts/device-path-guard)\" && ! rg -n fallbackToDestructiveMigration app/src/main && git diff --check"]
+Play Store assets verified: 512x512 icon, 1024x500 feature graphic, and 5 phone screenshots

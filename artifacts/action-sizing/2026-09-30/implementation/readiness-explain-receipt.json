@@ -1,0 +1,12 @@
+{
+  "command": [
+    "scripts/check",
+    "--ready",
+    "--explain",
+    "--path",
+    "app/src/androidTest/java/com/whip/app/ui/ActivityActionLayoutUiTest.kt"
+  ],
+  "returncode": 0,
+  "elapsed_seconds": 0.028,
+  "log": "/root/repos/whip/artifacts/action-sizing/2026-09-30/implementation/readiness-explain.log"
+}

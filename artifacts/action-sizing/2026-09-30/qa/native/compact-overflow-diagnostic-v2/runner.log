@@ -1,0 +1,56 @@
+INSTRUMENTATION_STATUS: class=com.whip.app.ui.ActivityActionLayoutUiTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stream=
+com.whip.app.ui.ActivityActionLayoutUiTest:
+INSTRUMENTATION_STATUS: test=relatedActivityButtonsShareSizeAndKeepFullLabels
+INSTRUMENTATION_STATUS_CODE: 1
+s_glBindAttribLocation: bind attrib 0 name position
+s_glBindAttribLocation: bind attrib 1 name color
+s_glBindAttribLocation: bind attrib 2 name localCoord
+INSTRUMENTATION_STATUS: class=com.whip.app.ui.ActivityActionLayoutUiTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: Start Timer must not overflow vertically or horizontally: label=Start Timer; size=172 x 48; constraints=Constraints(minWidth = 0, maxWidth = 356, minHeight = 0, maxHeight = 126); paragraph=356.0x48.0; overflowWidth=true; overflowHeight=false; button=Rect.fromLTRB(85.0, 1731.0, 505.0, 1899.0); text=Rect.fromLTRB(209.0, 1791.0, 381.0, 1839.0); actualFontScale=1.0; layoutFontScale=1.0; lines=[[0.0, 171.83203, 0.0, 48.0]]; glyphs=[Rect.fromLTRB(0.0, 0.0, 21.0, 48.0), Rect.fromLTRB(21.0, 0.0, 32.0, 48.0), Rect.fromLTRB(32.0, 0.0, 50.0, 48.0), Rect.fromLTRB(50.0, 0.0, 62.8, 48.0), Rect.fromLTRB(62.8, 0.0, 73.8, 48.0), Rect.fromLTRB(73.8, 0.0, 81.8, 48.0), Rect.fromLTRB(81.8, 0.0, 102.8, 48.0), Rect.fromLTRB(102.8, 0.0, 111.8, 48.0), Rect.fromLTRB(111.8, 0.0, 141.8, 48.0), Rect.fromLTRB(141.8, 0.0, 159.8, 48.0), Rect.fromLTRB(159.8, 0.0, 171.8, 48.0)]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertFalse(Assert.java:65)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.assertSizedButtons(ActivityActionLayoutUiTest.kt:138)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.exerciseActionSizing$cardGroup(ActivityActionLayoutUiTest.kt:180)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.exerciseActionSizing(ActivityActionLayoutUiTest.kt:190)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.relatedActivityButtonsShareSizeAndKeepFullLabels(ActivityActionLayoutUiTest.kt:157)
+
+INSTRUMENTATION_STATUS: stream=
+Error in relatedActivityButtonsShareSizeAndKeepFullLabels(com.whip.app.ui.ActivityActionLayoutUiTest):
+java.lang.AssertionError: Start Timer must not overflow vertically or horizontally: label=Start Timer; size=172 x 48; constraints=Constraints(minWidth = 0, maxWidth = 356, minHeight = 0, maxHeight = 126); paragraph=356.0x48.0; overflowWidth=true; overflowHeight=false; button=Rect.fromLTRB(85.0, 1731.0, 505.0, 1899.0); text=Rect.fromLTRB(209.0, 1791.0, 381.0, 1839.0); actualFontScale=1.0; layoutFontScale=1.0; lines=[[0.0, 171.83203, 0.0, 48.0]]; glyphs=[Rect.fromLTRB(0.0, 0.0, 21.0, 48.0), Rect.fromLTRB(21.0, 0.0, 32.0, 48.0), Rect.fromLTRB(32.0, 0.0, 50.0, 48.0), Rect.fromLTRB(50.0, 0.0, 62.8, 48.0), Rect.fromLTRB(62.8, 0.0, 73.8, 48.0), Rect.fromLTRB(73.8, 0.0, 81.8, 48.0), Rect.fromLTRB(81.8, 0.0, 102.8, 48.0), Rect.fromLTRB(102.8, 0.0, 111.8, 48.0), Rect.fromLTRB(111.8, 0.0, 141.8, 48.0), Rect.fromLTRB(141.8, 0.0, 159.8, 48.0), Rect.fromLTRB(159.8, 0.0, 171.8, 48.0)]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertFalse(Assert.java:65)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.assertSizedButtons(ActivityActionLayoutUiTest.kt:138)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.exerciseActionSizing$cardGroup(ActivityActionLayoutUiTest.kt:180)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.exerciseActionSizing(ActivityActionLayoutUiTest.kt:190)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.relatedActivityButtonsShareSizeAndKeepFullLabels(ActivityActionLayoutUiTest.kt:157)
+
+INSTRUMENTATION_STATUS: test=relatedActivityButtonsShareSizeAndKeepFullLabels
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_RESULT: stream=
+
+Time: 12.593
+There was 1 failure:
+1) relatedActivityButtonsShareSizeAndKeepFullLabels(com.whip.app.ui.ActivityActionLayoutUiTest)
+java.lang.AssertionError: Start Timer must not overflow vertically or horizontally: label=Start Timer; size=172 x 48; constraints=Constraints(minWidth = 0, maxWidth = 356, minHeight = 0, maxHeight = 126); paragraph=356.0x48.0; overflowWidth=true; overflowHeight=false; button=Rect.fromLTRB(85.0, 1731.0, 505.0, 1899.0); text=Rect.fromLTRB(209.0, 1791.0, 381.0, 1839.0); actualFontScale=1.0; layoutFontScale=1.0; lines=[[0.0, 171.83203, 0.0, 48.0]]; glyphs=[Rect.fromLTRB(0.0, 0.0, 21.0, 48.0), Rect.fromLTRB(21.0, 0.0, 32.0, 48.0), Rect.fromLTRB(32.0, 0.0, 50.0, 48.0), Rect.fromLTRB(50.0, 0.0, 62.8, 48.0), Rect.fromLTRB(62.8, 0.0, 73.8, 48.0), Rect.fromLTRB(73.8, 0.0, 81.8, 48.0), Rect.fromLTRB(81.8, 0.0, 102.8, 48.0), Rect.fromLTRB(102.8, 0.0, 111.8, 48.0), Rect.fromLTRB(111.8, 0.0, 141.8, 48.0), Rect.fromLTRB(141.8, 0.0, 159.8, 48.0), Rect.fromLTRB(159.8, 0.0, 171.8, 48.0)]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertFalse(Assert.java:65)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.assertSizedButtons(ActivityActionLayoutUiTest.kt:138)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.exerciseActionSizing$cardGroup(ActivityActionLayoutUiTest.kt:180)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.exerciseActionSizing(ActivityActionLayoutUiTest.kt:190)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.relatedActivityButtonsShareSizeAndKeepFullLabels(ActivityActionLayoutUiTest.kt:157)
+
+FAILURES!!!
+Tests run: 1,  Failures: 1
+
+
+INSTRUMENTATION_CODE: -1

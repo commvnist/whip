@@ -1,0 +1,20 @@
+capture,label,left_px,top_px,width_px,height_px,class
+before-duration-form-compact,Log Duration,96,1504,319,126,android.view.View
+before-duration-form-compact,Cancel,447,1504,168,126,android.view.View
+before-goal-compact,Log Progress,85,924,326,126,android.view.View
+before-goal-compact,Complete Goal,443,924,349,126,android.view.View
+before-goal-form-compact,Log Progress,96,1601,326,126,android.view.View
+before-goal-form-compact,Cancel,454,1601,168,126,android.view.View
+before-goal-large,Log Progress,85,1085,513,133,android.view.View
+before-goal-large,Complete Goal,85,1229,557,133,android.view.View
+before-goal-wide,Log Progress,1138,880,326,126,android.view.View
+before-goal-wide,Complete Goal,1496,880,349,126,android.view.View
+before-habits-compact,Start Timer,85,924,298,126,android.view.View
+before-habits-compact,Enter Duration,415,924,342,126,android.view.View
+before-habits-compact,Check In,85,1349,259,126,android.view.View
+before-habits-large,Start Timer,85,1085,457,133,android.view.View
+before-habits-large,Enter Duration,85,1229,542,133,android.view.View
+before-habits-large,Check In,85,1733,380,126,android.view.View
+before-habits-wide,Start Timer,1138,880,298,126,android.view.View
+before-habits-wide,Enter Duration,1468,880,342,126,android.view.View
+before-habits-wide,Check In,1138,1305,259,126,android.view.View

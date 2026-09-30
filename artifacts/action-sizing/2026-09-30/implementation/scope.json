@@ -1,0 +1,15 @@
+{
+  "base_head": "16f1146859614146798745885f7a7726f482d495",
+  "production_paths": [
+    "app/src/main/java/com/whip/app/ui/WhipControls.kt",
+    "app/src/main/java/com/whip/app/ui/WhipProductivityItemBuilder.kt",
+    "app/src/main/java/com/whip/app/ui/ProductivityEditorComponents.kt",
+    "app/src/main/java/com/whip/app/ui/EntityInspector.kt",
+    "app/src/main/java/com/whip/app/ui/HabitScreens.kt",
+    "app/src/main/java/com/whip/app/ui/GoalScreens.kt"
+  ],
+  "phone_receipt_preserved_sha256": "05e34843fb7926a88d04b25e3c4f0e926e9eb85a1f5f3a84d85a93f858e6adbe",
+  "approved_dimensions": "min(160dp*max(fontScale,1), availableWidth) x 64dp*max(fontScale,1)",
+  "scoped_padding": "12dp horizontal,8dp vertical",
+  "verification": "QA actual native equality and glyph-fit regression; no repeated prior JVM/native tests"
+}

@@ -1,0 +1,65 @@
+INSTRUMENTATION_STATUS: class=com.whip.app.ui.ActivityActionLayoutUiTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stream=
+com.whip.app.ui.ActivityActionLayoutUiTest:
+INSTRUMENTATION_STATUS: test=relatedActivityButtonsShareSizeAndKeepFullLabels
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.whip.app.ui.ActivityActionLayoutUiTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: Action performScrollTo() failed.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (((hasAnyAncestorThat(TestTag = 'goal-card-1')) && (Text + InputText + EditableText contains 'Record Completion' (ignoreCase: false))) && (OnClick is defined))
+
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+	at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:82)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.assertSizedButtons(ActivityActionLayoutUiTest.kt:118)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.exerciseActionSizing$cardGroup(ActivityActionLayoutUiTest.kt:192)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.exerciseActionSizing(ActivityActionLayoutUiTest.kt:236)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.relatedActivityButtonsShareSizeAndKeepFullLabels(ActivityActionLayoutUiTest.kt:162)
+
+INSTRUMENTATION_STATUS: stream=
+Error in relatedActivityButtonsShareSizeAndKeepFullLabels(com.whip.app.ui.ActivityActionLayoutUiTest):
+java.lang.AssertionError: Action performScrollTo() failed.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (((hasAnyAncestorThat(TestTag = 'goal-card-1')) && (Text + InputText + EditableText contains 'Record Completion' (ignoreCase: false))) && (OnClick is defined))
+
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+	at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:82)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.assertSizedButtons(ActivityActionLayoutUiTest.kt:118)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.exerciseActionSizing$cardGroup(ActivityActionLayoutUiTest.kt:192)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.exerciseActionSizing(ActivityActionLayoutUiTest.kt:236)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.relatedActivityButtonsShareSizeAndKeepFullLabels(ActivityActionLayoutUiTest.kt:162)
+
+INSTRUMENTATION_STATUS: test=relatedActivityButtonsShareSizeAndKeepFullLabels
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_RESULT: stream=
+
+Time: 39.384
+There was 1 failure:
+1) relatedActivityButtonsShareSizeAndKeepFullLabels(com.whip.app.ui.ActivityActionLayoutUiTest)
+java.lang.AssertionError: Action performScrollTo() failed.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (((hasAnyAncestorThat(TestTag = 'goal-card-1')) && (Text + InputText + EditableText contains 'Record Completion' (ignoreCase: false))) && (OnClick is defined))
+
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+	at androidx.compose.ui.test.ActionsKt.performScrollTo(Actions.kt:82)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.assertSizedButtons(ActivityActionLayoutUiTest.kt:118)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.exerciseActionSizing$cardGroup(ActivityActionLayoutUiTest.kt:192)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.exerciseActionSizing(ActivityActionLayoutUiTest.kt:236)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.relatedActivityButtonsShareSizeAndKeepFullLabels(ActivityActionLayoutUiTest.kt:162)
+
+FAILURES!!!
+Tests run: 1,  Failures: 1
+
+
+INSTRUMENTATION_CODE: -1
+s_glBindAttribLocation: bind attrib 0 name position
+s_glBindAttribLocation: bind attrib 1 name color
+s_glBindAttribLocation: bind attrib 2 name localCoord

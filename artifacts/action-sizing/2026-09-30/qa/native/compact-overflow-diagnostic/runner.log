@@ -1,0 +1,53 @@
+INSTRUMENTATION_STATUS: class=com.whip.app.ui.ActivityActionLayoutUiTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stream=
+com.whip.app.ui.ActivityActionLayoutUiTest:
+INSTRUMENTATION_STATUS: test=relatedActivityButtonsShareSizeAndKeepFullLabels
+INSTRUMENTATION_STATUS_CODE: 1
+s_glBindAttribLocation: bind attrib 0 name position
+s_glBindAttribLocation: bind attrib 1 name color
+s_glBindAttribLocation: bind attrib 2 name localCoord
+INSTRUMENTATION_STATUS: class=com.whip.app.ui.ActivityActionLayoutUiTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stack=java.lang.IllegalStateException: Visual catalog hierarchy for action-sizing.qa.text-overflow.normal contains an unlabeled Whip interactive node: android.view.View [85,2136][505,2169]
+	at com.whip.app.VisualCatalogCaptureKt.captureVisualCatalogSurface(VisualCatalogCapture.kt:99)
+	at com.whip.app.VisualCatalogCaptureKt.captureVisualCatalogSurface$default(VisualCatalogCapture.kt:26)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.assertSizedButtons(ActivityActionLayoutUiTest.kt:135)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.exerciseActionSizing$cardGroup(ActivityActionLayoutUiTest.kt:178)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.exerciseActionSizing(ActivityActionLayoutUiTest.kt:188)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.relatedActivityButtonsShareSizeAndKeepFullLabels(ActivityActionLayoutUiTest.kt:155)
+
+INSTRUMENTATION_STATUS: stream=
+Error in relatedActivityButtonsShareSizeAndKeepFullLabels(com.whip.app.ui.ActivityActionLayoutUiTest):
+java.lang.IllegalStateException: Visual catalog hierarchy for action-sizing.qa.text-overflow.normal contains an unlabeled Whip interactive node: android.view.View [85,2136][505,2169]
+	at com.whip.app.VisualCatalogCaptureKt.captureVisualCatalogSurface(VisualCatalogCapture.kt:99)
+	at com.whip.app.VisualCatalogCaptureKt.captureVisualCatalogSurface$default(VisualCatalogCapture.kt:26)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.assertSizedButtons(ActivityActionLayoutUiTest.kt:135)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.exerciseActionSizing$cardGroup(ActivityActionLayoutUiTest.kt:178)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.exerciseActionSizing(ActivityActionLayoutUiTest.kt:188)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.relatedActivityButtonsShareSizeAndKeepFullLabels(ActivityActionLayoutUiTest.kt:155)
+
+INSTRUMENTATION_STATUS: test=relatedActivityButtonsShareSizeAndKeepFullLabels
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_RESULT: stream=
+
+Time: 10.937
+There was 1 failure:
+1) relatedActivityButtonsShareSizeAndKeepFullLabels(com.whip.app.ui.ActivityActionLayoutUiTest)
+java.lang.IllegalStateException: Visual catalog hierarchy for action-sizing.qa.text-overflow.normal contains an unlabeled Whip interactive node: android.view.View [85,2136][505,2169]
+	at com.whip.app.VisualCatalogCaptureKt.captureVisualCatalogSurface(VisualCatalogCapture.kt:99)
+	at com.whip.app.VisualCatalogCaptureKt.captureVisualCatalogSurface$default(VisualCatalogCapture.kt:26)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.assertSizedButtons(ActivityActionLayoutUiTest.kt:135)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.exerciseActionSizing$cardGroup(ActivityActionLayoutUiTest.kt:178)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.exerciseActionSizing(ActivityActionLayoutUiTest.kt:188)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.relatedActivityButtonsShareSizeAndKeepFullLabels(ActivityActionLayoutUiTest.kt:155)
+
+FAILURES!!!
+Tests run: 1,  Failures: 1
+
+
+INSTRUMENTATION_CODE: -1

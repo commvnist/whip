@@ -1,0 +1,67 @@
+{
+  "selector": "com.whip.app.ui.ActivityActionLayoutUiTest#relatedActivityButtonsShareSizeAndKeepFullLabels",
+  "serial": "emulator-5556",
+  "passed": false,
+  "returncode": 0,
+  "elapsed_seconds": 45.012,
+  "pair": {
+    "app-debug.apk": {
+      "path": "/root/repos/whip/build/action-sizing/2026-09-30/frozen/app-debug.apk",
+      "sha256": "b264e33f81f2d3e6021d5da8f1202bc02797f4e90a4a267d340afb33bbd954a8",
+      "bytes": 44731490
+    },
+    "app-debug-androidTest.apk": {
+      "path": "/root/repos/whip/build/action-sizing/2026-09-30/frozen-test-sizing/app-debug-androidTest.apk",
+      "sha256": "548263c856e894789be5346ab5c975a0722f09fe330858038b83a05a821775a7",
+      "bytes": 11086809
+    }
+  },
+  "source_manifest": "4995ac014b58ec911e402c56dc168bd56fe81864b1509e1d3931483609bd9d45",
+  "configuration": {
+    "size": "Physical size: 1080x2400\nOverride size: 1920x1200",
+    "density": "Physical density: 420\nOverride density: 240",
+    "font_scale": "1.0"
+  },
+  "captures": [
+    {
+      "path": "/root/repos/whip/artifacts/action-sizing/2026-09-30/implementation/native-wide/action-sizing.qa.duration-card.normal.png",
+      "sha256": "1436b79382174b37e1abb72521a64a314ae902ed81f28d38d02dfeb0942497b6"
+    },
+    {
+      "path": "/root/repos/whip/artifacts/action-sizing/2026-09-30/implementation/native-wide/action-sizing.qa.duration-card.normal.xml",
+      "sha256": "bed7a77d67b370df7e50bbc59ec6cf9d80b21ad568dec91d513de3dbcd543913"
+    },
+    {
+      "path": "/root/repos/whip/artifacts/action-sizing/2026-09-30/implementation/native-wide/action-sizing.qa.duration-footer.normal.png",
+      "sha256": "31c257658af35092eaf6a9a1a4584b5eb4e67b7d5b6928cb7c17f8f7ce07c8a1"
+    },
+    {
+      "path": "/root/repos/whip/artifacts/action-sizing/2026-09-30/implementation/native-wide/action-sizing.qa.duration-footer.normal.xml",
+      "sha256": "c36bed5bde8574bb33d2f2e9cd5b8de69d4fa75e2fc32ea661b052cee207c1da"
+    },
+    {
+      "path": "/root/repos/whip/artifacts/action-sizing/2026-09-30/implementation/native-wide/action-sizing.qa.duration-inspector.normal.png",
+      "sha256": "76344f827efe2a26936a6c62d631e5bbe4caadb76e6f51a67c1a7ddec43d546b"
+    },
+    {
+      "path": "/root/repos/whip/artifacts/action-sizing/2026-09-30/implementation/native-wide/action-sizing.qa.duration-inspector.normal.xml",
+      "sha256": "461de927150f65b0f3354ff96e0f4285cf651889bf138a76fb95af25277dd601"
+    },
+    {
+      "path": "/root/repos/whip/artifacts/action-sizing/2026-09-30/implementation/native-wide/action-sizing.qa.numeric-card.normal.png",
+      "sha256": "ea06785cf26123221b97684cc55d80d2fb20d6330c6f6a23b22006bcec8c7a26"
+    },
+    {
+      "path": "/root/repos/whip/artifacts/action-sizing/2026-09-30/implementation/native-wide/action-sizing.qa.numeric-card.normal.xml",
+      "sha256": "bed7a77d67b370df7e50bbc59ec6cf9d80b21ad568dec91d513de3dbcd543913"
+    },
+    {
+      "path": "/root/repos/whip/artifacts/action-sizing/2026-09-30/implementation/native-wide/action-sizing.qa.outside-inspector.normal.png",
+      "sha256": "6a73f6ce8d42296dc32a489c49a110244654565f0adc661ff525a08b78d7b981"
+    },
+    {
+      "path": "/root/repos/whip/artifacts/action-sizing/2026-09-30/implementation/native-wide/action-sizing.qa.outside-inspector.normal.xml",
+      "sha256": "941d91098cd2f7550f5d76ad19bf166f7202a933ddc0c53ff4c9f3028aa56317"
+    }
+  ]
+}

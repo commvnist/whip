@@ -1,0 +1,7 @@
+{
+  "counts": {
+    "Warning": 90,
+    "Hint": 15
+  },
+  "report": "lint-results-debug.xml"
+}

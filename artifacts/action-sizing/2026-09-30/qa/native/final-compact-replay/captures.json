@@ -1,0 +1,52 @@
+[
+  {
+    "file": "action-sizing.qa.duration-card.normal.png",
+    "sha256": "66f3af53e8026ea3578b752d3689162f4d80c4e69309b97067a7f0397b88fed3",
+    "bytes": 139599
+  },
+  {
+    "file": "action-sizing.qa.duration-card.normal.xml",
+    "sha256": "142167438ba073600c3408dcc72c135e44438aece24b33e8444029973096d917",
+    "bytes": 70406
+  },
+  {
+    "file": "action-sizing.qa.duration-footer.normal.png",
+    "sha256": "f1db7a948e8085ac94f2a9246d72032b60255296a8d3adb8eaf2d47a1dfd198c",
+    "bytes": 121225
+  },
+  {
+    "file": "action-sizing.qa.duration-footer.normal.xml",
+    "sha256": "4558d56681d596163b1b3f1b539166dc2594d9ab94245100fb64d622d5c459d8",
+    "bytes": 24120
+  },
+  {
+    "file": "action-sizing.qa.duration-inspector.normal.png",
+    "sha256": "a73111b5ec6eadec628acc95a4fa6fe774c9df46da25d7f12e791e14303e4b31",
+    "bytes": 141067
+  },
+  {
+    "file": "action-sizing.qa.duration-inspector.normal.xml",
+    "sha256": "faa823960136c434c22ae49bbf1cebdb395d69e2c883c41d7b7296fbcfb815b7",
+    "bytes": 36857
+  },
+  {
+    "file": "action-sizing.qa.numeric-card.normal.png",
+    "sha256": "b499febd74262eb573d0dc3df257b27d34f5c6e6471053e94cc74d4586640817",
+    "bytes": 136990
+  },
+  {
+    "file": "action-sizing.qa.numeric-card.normal.xml",
+    "sha256": "8f719888392bfd2abed79cfd4f7591b91381d435f05fceaf7ee9cb88dea4e060",
+    "bytes": 69948
+  },
+  {
+    "file": "action-sizing.qa.outside-inspector.normal.png",
+    "sha256": "708eb30be3de8728c2029c46d2e303deaa79005898aadbcfaf49f9321ec0d4c4",
+    "bytes": 148621
+  },
+  {
+    "file": "action-sizing.qa.outside-inspector.normal.xml",
+    "sha256": "bb94bed0d78cd3a7a5b8e072b36c8ddc183fdf57f1bedfd0127eb63cdbab4ea6",
+    "bytes": 38601
+  }
+]

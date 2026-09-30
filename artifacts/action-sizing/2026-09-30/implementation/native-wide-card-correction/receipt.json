@@ -1,0 +1,49 @@
+{
+  "serial": "emulator-5556",
+  "avd": "whip_api34_parallel",
+  "app_sha256": "b264e33f81f2d3e6021d5da8f1202bc02797f4e90a4a267d340afb33bbd954a8",
+  "existing_fixture": {
+    "id": 2,
+    "name": "QA sizing completions 7179669695645",
+    "type": "Consistency",
+    "targetMin": 3.0,
+    "consistencyPeriod": "Week",
+    "consistencyRequiredPeriods": 12
+  },
+  "configuration": {
+    "size": "Physical size: 1080x2400\nOverride size: 1920x1200",
+    "density": "Physical density: 420\nOverride density: 240",
+    "font_scale": "1.0"
+  },
+  "real_ui_actions": [
+    "Use Recommended: dismiss existing Welcome dialog",
+    "Goals tab: navigate existing Goal list"
+  ],
+  "activity_button_pixels": {
+    "Record Completion": [
+      240,
+      96
+    ],
+    "Complete Goal": [
+      240,
+      96
+    ]
+  },
+  "captures": [
+    {
+      "path": "/root/repos/whip/artifacts/action-sizing/2026-09-30/implementation/native-wide-card-correction/goal-consistency-wide-unobscured.png",
+      "sha256": "2ac8ace4bf762a20b32d57a057fe9bb3f58cc14c116d4e0db5ca31463ebb7964"
+    },
+    {
+      "path": "/root/repos/whip/artifacts/action-sizing/2026-09-30/implementation/native-wide-card-correction/goal-consistency-wide-unobscured.xml",
+      "sha256": "fd95de50aa2497d38dc9fe87a94f71bd3f20414a51e5a1a299859b6a53be9325"
+    }
+  ],
+  "replaces_obscured": "/root/repos/whip/artifacts/action-sizing/2026-09-30/implementation/native-wide-v3/action-sizing.qa.goal-card.normal.png",
+  "tests_or_fixtures_run": 0,
+  "restored_device": {
+    "size": "Physical size: 1080x2400",
+    "density": "Physical density: 420",
+    "font_scale": "1.0"
+  }
+}

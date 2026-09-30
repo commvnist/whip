@@ -1,0 +1,26 @@
+{
+  "selector": "com.whip.app.ui.ActivityActionLayoutUiTest#relatedActivityButtonsShareSizeAndKeepFullLabels",
+  "serial": "emulator-5556",
+  "passed": false,
+  "returncode": 0,
+  "elapsed_seconds": 2.884,
+  "pair": {
+    "app-debug.apk": {
+      "path": "/root/repos/whip/build/action-sizing/2026-09-30/frozen/app-debug.apk",
+      "sha256": "b264e33f81f2d3e6021d5da8f1202bc02797f4e90a4a267d340afb33bbd954a8",
+      "bytes": 44731490
+    },
+    "app-debug-androidTest.apk": {
+      "path": "/root/repos/whip/build/action-sizing/2026-09-30/frozen-test-sizing-v2/app-debug-androidTest.apk",
+      "sha256": "3daf3a5104cbb86b5796d15c8de3116a6c7a47b79d14b9ac322eb186119f08c8",
+      "bytes": 11086809
+    }
+  },
+  "source_manifest": "461fbe254d93923ce52195c08e92adeb173928a8874584d8a711b825b463d9ad",
+  "configuration": {
+    "size": "Physical size: 1080x2400\nOverride size: 1920x1200",
+    "density": "Physical density: 420\nOverride density: 240",
+    "font_scale": "1.0"
+  },
+  "captures": []
+}

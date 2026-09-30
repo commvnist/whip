@@ -2,7 +2,10 @@ package com.whip.app.ui
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.Button as MaterialButton
@@ -18,8 +21,40 @@ import androidx.compose.material3.SelectableChipColors
 import androidx.compose.material3.SelectableChipElevation
 import androidx.compose.material3.TextButton as MaterialTextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+
+private val LocalWhipActivityActionSize = staticCompositionLocalOf<DpSize?> { null }
+
+/** Activity controls share a label-independent cell; ordinary controls keep their defaults. */
+@Composable
+internal fun WhipActivityActions(
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    content: @Composable () -> Unit,
+) {
+    if (!enabled) {
+        content()
+        return
+    }
+    BoxWithConstraints(modifier.fillMaxWidth()) {
+        val scale = LocalDensity.current.fontScale.coerceAtLeast(1f)
+        val cell = DpSize((160.dp * scale).coerceAtMost(maxWidth), 64.dp * scale)
+        CompositionLocalProvider(LocalWhipActivityActionSize provides cell) { content() }
+    }
+}
+
+@Composable
+internal fun Modifier.whipActivityActionSize(): Modifier =
+    LocalWhipActivityActionSize.current?.let { size(it) } ?: heightIn(min = 48.dp)
+
+@Composable
+private fun activityActionPadding(default: PaddingValues): PaddingValues =
+    if (LocalWhipActivityActionSize.current == null) default else PaddingValues(horizontal = 12.dp, vertical = 8.dp)
 
 /**
  * Whip's action controls use restrained rectangular corners. Material's
@@ -40,13 +75,13 @@ internal fun WhipButton(
 ) {
     MaterialButton(
         onClick = onClick,
-        modifier = modifier.heightIn(min = 48.dp),
+        modifier = modifier.whipActivityActionSize(),
         enabled = enabled,
         shape = MaterialTheme.shapes.small,
         colors = colors,
         elevation = elevation,
         border = border,
-        contentPadding = contentPadding,
+        contentPadding = activityActionPadding(contentPadding),
         interactionSource = interactionSource,
         content = content,
     )
@@ -66,13 +101,13 @@ internal fun WhipOutlinedButton(
 ) {
     MaterialOutlinedButton(
         onClick = onClick,
-        modifier = modifier.heightIn(min = 48.dp),
+        modifier = modifier.whipActivityActionSize(),
         enabled = enabled,
         shape = MaterialTheme.shapes.small,
         colors = colors,
         elevation = elevation,
         border = border,
-        contentPadding = contentPadding,
+        contentPadding = activityActionPadding(contentPadding),
         interactionSource = interactionSource,
         content = content,
     )
@@ -92,13 +127,13 @@ internal fun WhipTonalButton(
 ) {
     MaterialFilledTonalButton(
         onClick = onClick,
-        modifier = modifier.heightIn(min = 48.dp),
+        modifier = modifier.whipActivityActionSize(),
         enabled = enabled,
         shape = MaterialTheme.shapes.small,
         colors = colors,
         elevation = elevation,
         border = border,
-        contentPadding = contentPadding,
+        contentPadding = activityActionPadding(contentPadding),
         interactionSource = interactionSource,
         content = content,
     )
@@ -118,13 +153,13 @@ internal fun WhipTextButton(
 ) {
     MaterialTextButton(
         onClick = onClick,
-        modifier = modifier.heightIn(min = 48.dp),
+        modifier = modifier.whipActivityActionSize(),
         enabled = enabled,
         shape = MaterialTheme.shapes.small,
         colors = colors,
         elevation = elevation,
         border = border,
-        contentPadding = contentPadding,
+        contentPadding = activityActionPadding(contentPadding),
         interactionSource = interactionSource,
         content = content,
     )

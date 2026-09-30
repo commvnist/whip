@@ -467,6 +467,7 @@ internal fun ProductivityEditorDialog(
     paneTitle: String = "Editor",
     stableHeight: Boolean = false,
     leadingActions: Boolean = false,
+    equalActionSizes: Boolean = leadingActions,
     inputBlocked: Boolean = false,
     inputBlockedLabel: String = "Saving",
     dismissOnBackPress: Boolean = true,
@@ -530,17 +531,19 @@ internal fun ProductivityEditorDialog(
                             Box(Modifier.semantics { heading() }) { headingContent() }
                         }
                         Box(Modifier.weight(1f, fill = stableHeight)) { text() }
-                        FlowRow(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = if (leadingActions) Arrangement.spacedBy(WhipSpacing.compact) else Arrangement.End,
-                            verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
-                        ) {
-                            if (leadingActions) {
-                                confirmButton()
-                                dismissButton()
-                            } else {
-                                dismissButton()
-                                confirmButton()
+                        WhipActivityActions(enabled = equalActionSizes) {
+                            FlowRow(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = if (leadingActions) Arrangement.spacedBy(WhipSpacing.compact) else Arrangement.End,
+                                verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
+                            ) {
+                                if (leadingActions) {
+                                    confirmButton()
+                                    dismissButton()
+                                } else {
+                                    dismissButton()
+                                    confirmButton()
+                                }
                             }
                         }
                     }
@@ -570,6 +573,7 @@ internal fun PaneAwareAlertDialog(
     paneTitle: String = "Dialog",
     stableHeight: Boolean = false,
     leadingActions: Boolean = false,
+    equalActionSizes: Boolean = leadingActions,
     inputBlocked: Boolean = false,
     inputBlockedLabel: String = "Saving",
     dismissOnBackPress: Boolean = true,
@@ -590,6 +594,7 @@ internal fun PaneAwareAlertDialog(
         paneTitle = paneTitle,
         stableHeight = stableHeight,
         leadingActions = leadingActions,
+        equalActionSizes = equalActionSizes,
         inputBlocked = inputBlocked,
         inputBlockedLabel = inputBlockedLabel,
         dismissOnBackPress = dismissOnBackPress,

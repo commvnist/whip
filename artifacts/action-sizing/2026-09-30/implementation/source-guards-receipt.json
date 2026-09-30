@@ -1,0 +1,10 @@
+{
+  "command": [
+    "bash",
+    "-lc",
+    "java scripts/RenderBrandIcon.java --verify && test -z \"$(scripts/device-path-guard)\" && ! rg -n fallbackToDestructiveMigration app/src/main && git diff --check"
+  ],
+  "returncode": 0,
+  "elapsed_seconds": 0.755,
+  "log": "/root/repos/whip/artifacts/action-sizing/2026-09-30/implementation/source-guards.log"
+}

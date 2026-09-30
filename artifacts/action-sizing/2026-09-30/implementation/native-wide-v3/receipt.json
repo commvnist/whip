@@ -1,0 +1,114 @@
+{
+  "selector": "com.whip.app.ui.ActivityActionLayoutUiTest#relatedActivityButtonsShareSizeAndKeepFullLabels",
+  "serial": "emulator-5556",
+  "passed": true,
+  "returncode": 0,
+  "elapsed_seconds": 66.445,
+  "pair": {
+    "app-debug.apk": {
+      "path": "/root/repos/whip/build/action-sizing/2026-09-30/frozen/app-debug.apk",
+      "sha256": "b264e33f81f2d3e6021d5da8f1202bc02797f4e90a4a267d340afb33bbd954a8",
+      "bytes": 44731490
+    },
+    "app-debug-androidTest.apk": {
+      "path": "/root/repos/whip/build/action-sizing/2026-09-30/frozen-test-sizing-v3/app-debug-androidTest.apk",
+      "sha256": "7f9625e5c208ff527b9f743806eda46d93ac07b64ded76c43f837d86cbeb186f",
+      "bytes": 11086809
+    }
+  },
+  "source_manifest": "7f632c95ce75338f359da26ea6750baca18fdc1134f02e5053efe73ee10a5686",
+  "configuration": {
+    "size": "Physical size: 1080x2400\nOverride size: 1920x1200",
+    "density": "Physical density: 420\nOverride density: 240",
+    "font_scale": "1.0"
+  },
+  "captures": [
+    {
+      "path": "/root/repos/whip/artifacts/action-sizing/2026-09-30/implementation/native-wide-v3/action-sizing.qa.duration-card.normal (1).png",
+      "sha256": "5702e4c7bff060e7cc07e8420b3cb1cf1724b4e0201ef4860160e07d08a39c7e"
+    },
+    {
+      "path": "/root/repos/whip/artifacts/action-sizing/2026-09-30/implementation/native-wide-v3/action-sizing.qa.duration-card.normal (1).xml",
+      "sha256": "458a21e2e72c3df4d9997e72fc9d340f8886094863973dfdf4e33e023ab3566a"
+    },
+    {
+      "path": "/root/repos/whip/artifacts/action-sizing/2026-09-30/implementation/native-wide-v3/action-sizing.qa.duration-footer.normal (1).png",
+      "sha256": "a4fc8edccd716d5b62c8f7084a84d8fa0be2d7ac5f11af7f0de97ece464599a3"
+    },
+    {
+      "path": "/root/repos/whip/artifacts/action-sizing/2026-09-30/implementation/native-wide-v3/action-sizing.qa.duration-footer.normal (1).xml",
+      "sha256": "7437c3b030c60a59639bd8620c16ec87afcc4ca7be50e88b068d4322ac63ba1d"
+    },
+    {
+      "path": "/root/repos/whip/artifacts/action-sizing/2026-09-30/implementation/native-wide-v3/action-sizing.qa.duration-inspector.normal (1).png",
+      "sha256": "1904bb8f47e2bf334d863ebd57214bbc4d28d02163c41254fd4ad6fae360cc61"
+    },
+    {
+      "path": "/root/repos/whip/artifacts/action-sizing/2026-09-30/implementation/native-wide-v3/action-sizing.qa.duration-inspector.normal (1).xml",
+      "sha256": "ca4724c213f305f353be7c93fe03387307f5bac1448374115e179be007b2a820"
+    },
+    {
+      "path": "/root/repos/whip/artifacts/action-sizing/2026-09-30/implementation/native-wide-v3/action-sizing.qa.goal-card.normal.png",
+      "sha256": "fd729ca90e711d2e2a344a992516ca7b4882c3db46a4e2f0b3a0858ba014cead"
+    },
+    {
+      "path": "/root/repos/whip/artifacts/action-sizing/2026-09-30/implementation/native-wide-v3/action-sizing.qa.goal-card.normal.xml",
+      "sha256": "7fd7fa7e831b1e060e08bd16c1b0e5f8ed1823a80d08257360a1ce455c510c5b"
+    },
+    {
+      "path": "/root/repos/whip/artifacts/action-sizing/2026-09-30/implementation/native-wide-v3/action-sizing.qa.goal-confirmation.normal.png",
+      "sha256": "84beb886acb2424a72a430a1b71ed15cf28f118ec8660a1572f0efcfdc7b4868"
+    },
+    {
+      "path": "/root/repos/whip/artifacts/action-sizing/2026-09-30/implementation/native-wide-v3/action-sizing.qa.goal-confirmation.normal.xml",
+      "sha256": "902263fd19b067df349271d943d508630e8b185239bb3dfbea7490fff58aa2fd"
+    },
+    {
+      "path": "/root/repos/whip/artifacts/action-sizing/2026-09-30/implementation/native-wide-v3/action-sizing.qa.goal-correction-footer.normal.png",
+      "sha256": "811fe80e0bcb5bfe391451d1ec281d71e86a4020cdbe8502a37e72e2fb049969"
+    },
+    {
+      "path": "/root/repos/whip/artifacts/action-sizing/2026-09-30/implementation/native-wide-v3/action-sizing.qa.goal-correction-footer.normal.xml",
+      "sha256": "acb7c00f6b8a7c71bdd8116d63b444a0266793c78625496b004c69bb420811c1"
+    },
+    {
+      "path": "/root/repos/whip/artifacts/action-sizing/2026-09-30/implementation/native-wide-v3/action-sizing.qa.goal-footer.normal.png",
+      "sha256": "8a1311bedbb8103654f59cc95aa6a7c060901526e53356be9415bc9bfe3109b0"
+    },
+    {
+      "path": "/root/repos/whip/artifacts/action-sizing/2026-09-30/implementation/native-wide-v3/action-sizing.qa.goal-footer.normal.xml",
+      "sha256": "37e1961060036db5c30923dc0cba9d66b4298d650a6134d739d79757fde3dcf2"
+    },
+    {
+      "path": "/root/repos/whip/artifacts/action-sizing/2026-09-30/implementation/native-wide-v3/action-sizing.qa.goal-inspector.normal.png",
+      "sha256": "9ad8eb9e19b388a6ef6623b8fdc227914fb718af24e8581ea5e006335e428862"
+    },
+    {
+      "path": "/root/repos/whip/artifacts/action-sizing/2026-09-30/implementation/native-wide-v3/action-sizing.qa.goal-inspector.normal.xml",
+      "sha256": "cb78c2c9a6fd82fa19a5ebf379bbe0e2341f6e3fdf751ab76e1284a38e193e43"
+    },
+    {
+      "path": "/root/repos/whip/artifacts/action-sizing/2026-09-30/implementation/native-wide-v3/action-sizing.qa.numeric-card.normal (1).png",
+      "sha256": "2109a0f1579ae2578940651636b1f19d478504bef75c036eae7cd66daf846052"
+    },
+    {
+      "path": "/root/repos/whip/artifacts/action-sizing/2026-09-30/implementation/native-wide-v3/action-sizing.qa.numeric-card.normal (1).xml",
+      "sha256": "458a21e2e72c3df4d9997e72fc9d340f8886094863973dfdf4e33e023ab3566a"
+    },
+    {
+      "path": "/root/repos/whip/artifacts/action-sizing/2026-09-30/implementation/native-wide-v3/action-sizing.qa.outside-inspector.normal (1).png",
+      "sha256": "11d4d6ccce7acfd2d7e6d68df53578f6fdc7727c3763edbc7b0473f98fe8fd3e"
+    },
+    {
+      "path": "/root/repos/whip/artifacts/action-sizing/2026-09-30/implementation/native-wide-v3/action-sizing.qa.outside-inspector.normal (1).xml",
+      "sha256": "a625f17364fa9e941704ce7e759ce8c8f6f1daa4c4fbf5b6a73271edccffffab"
+    }
+  ],
+  "excluded_visual_captures": [
+    {
+      "path": "/root/repos/whip/artifacts/action-sizing/2026-09-30/implementation/native-wide-v3/action-sizing.qa.goal-card.normal.png",
+      "reason": "Welcome to Whip overlay obscures the Goal card; excluded from visual acceptance",
+      "replacement": "/root/repos/whip/artifacts/action-sizing/2026-09-30/implementation/native-wide-card-correction/goal-consistency-wide-unobscured.png"
+    }
+  ]
+}

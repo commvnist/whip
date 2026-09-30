@@ -1,0 +1,102 @@
+[
+  {
+    "file": "action-sizing.qa.duration-card.normal (1).png",
+    "sha256": "1091a3f8761ee10e0c34d5596861ac0c797d59fcf2636c7c1a474d6c480ba9fa",
+    "bytes": 135826
+  },
+  {
+    "file": "action-sizing.qa.duration-card.normal (1).xml",
+    "sha256": "d9c3db6db88638931fa7a16876bcd2c19b49d6a478e5cc0cf97c276042daffe5",
+    "bytes": 70852
+  },
+  {
+    "file": "action-sizing.qa.duration-footer.normal (1).png",
+    "sha256": "f91ad1500bd408d0e7a83d9cb157e968259e2c5e4e11aacdd2d6817d61f13636",
+    "bytes": 121526
+  },
+  {
+    "file": "action-sizing.qa.duration-footer.normal (1).xml",
+    "sha256": "647e34d5e7881d87c837635085306f0dca057008f5bc4632f1de8771431998e6",
+    "bytes": 24120
+  },
+  {
+    "file": "action-sizing.qa.duration-inspector.normal (1).png",
+    "sha256": "df3d6982c67aa8a36409d1fd5a9845e4f7750a40b68b1b6fd515cad32da89ecf",
+    "bytes": 141529
+  },
+  {
+    "file": "action-sizing.qa.duration-inspector.normal (1).xml",
+    "sha256": "9a3a96c1a0273437a7edf09b5c8b77a4e328034f67afb24525b7b43100912fce",
+    "bytes": 36857
+  },
+  {
+    "file": "action-sizing.qa.goal-card.normal.png",
+    "sha256": "eceb685d03aa8f5b7498a91c34659cfc4689617403a0626c49fabe6fb62367ed",
+    "bytes": 190816
+  },
+  {
+    "file": "action-sizing.qa.goal-card.normal.xml",
+    "sha256": "f240c33b70e9b9db9a40672dccbee7284a0360452ed24ca67650541bfd97a387",
+    "bytes": 73855
+  },
+  {
+    "file": "action-sizing.qa.goal-confirmation.normal.png",
+    "sha256": "b8f4fb5ff199994529f9879f46835866e85fe16e55c4030858d3bbb3e17c2622",
+    "bytes": 183826
+  },
+  {
+    "file": "action-sizing.qa.goal-confirmation.normal.xml",
+    "sha256": "e75429147dd01c7d7df90146ad85f64c3c4092bef501d1b6ecce2d7c6b819306",
+    "bytes": 21280
+  },
+  {
+    "file": "action-sizing.qa.goal-correction-footer.normal.png",
+    "sha256": "fce0fbf3b1bd3731ea1827489acb38c39351406f275e7942a32464095bf10b99",
+    "bytes": 177435
+  },
+  {
+    "file": "action-sizing.qa.goal-correction-footer.normal.xml",
+    "sha256": "1f53151e91cb5e6c615f00ea83f91e076a9fe3bbea34f3f4fe7cfe6288edba7d",
+    "bytes": 28167
+  },
+  {
+    "file": "action-sizing.qa.goal-footer.normal.png",
+    "sha256": "1c2d00d5667a8e41333071084f9321d97aa2b34ca8eff00edc87d86c028fdcd0",
+    "bytes": 168867
+  },
+  {
+    "file": "action-sizing.qa.goal-footer.normal.xml",
+    "sha256": "fc9b046de1092a9f6db5e6adfabc885874a49cfb95b6b788c5f75ddb773ec3ac",
+    "bytes": 24166
+  },
+  {
+    "file": "action-sizing.qa.goal-inspector.normal.png",
+    "sha256": "e326bc9f729e1ef680f173146b5fb59ffbb02c06135ce4a36443f7dc2bf0ded2",
+    "bytes": 146561
+  },
+  {
+    "file": "action-sizing.qa.goal-inspector.normal.xml",
+    "sha256": "26c4741da4603d475fb1bf16f24bb69b99f61b6f1529d4a51896d39a13900a43",
+    "bytes": 37682
+  },
+  {
+    "file": "action-sizing.qa.numeric-card.normal (1).png",
+    "sha256": "be0cd76e291be1860ab02597ca1895c83fb3e17158b0453a9ed5644e06cd622b",
+    "bytes": 135790
+  },
+  {
+    "file": "action-sizing.qa.numeric-card.normal (1).xml",
+    "sha256": "d9c3db6db88638931fa7a16876bcd2c19b49d6a478e5cc0cf97c276042daffe5",
+    "bytes": 70852
+  },
+  {
+    "file": "action-sizing.qa.outside-inspector.normal (1).png",
+    "sha256": "5a22387bd28e921582f0559fcd05b81f52bcddda92159c3e4a9060ae81f0e95d",
+    "bytes": 149723
+  },
+  {
+    "file": "action-sizing.qa.outside-inspector.normal (1).xml",
+    "sha256": "8d4413902e46b58207bfd3b05f89f3be7451a1c4941013542ce23dc6cb52b8c5",
+    "bytes": 38601
+  }
+]

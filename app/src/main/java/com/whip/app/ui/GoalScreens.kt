@@ -1103,6 +1103,7 @@ internal fun GoalCompletionDialog(
 ) {
     PaneAwareAlertDialog(
         testTag = "goal-completion-dialog",
+        equalActionSizes = true,
         onDismissRequest = { if (!saving) onDismiss() },
         title = { Text("Complete ${projection.goal.name}?") },
         text = {

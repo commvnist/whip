@@ -1169,7 +1169,7 @@ fun HabitProgressCard(
         habit.sourceMeasurementId != null -> null
         habit.trackingMode in setOf(HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist) -> {{
             Row(
-                modifier = Modifier.heightIn(min = 48.dp)
+                modifier = Modifier.whipActivityActionSize()
                     .testTag("habit-primary-action-${habit.id}")
                     .toggleable(value = item.successful == true, role = Role.Checkbox, onValueChange = { onQuick() })
                     .semantics {
@@ -1200,7 +1200,7 @@ fun HabitProgressCard(
         }}
         habit.trackingMode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal) -> {{
             WhipButton(onClick = { onQuickValue(habit.quickIncrement) },
-                modifier = Modifier.widthIn(max = 112.dp).testTag("habit-primary-action-${habit.id}").semantics {
+                modifier = Modifier.testTag("habit-primary-action-${habit.id}").semantics {
                     contentDescription = "Add ${plainNumericValue(habit.quickIncrement)} ${habit.unitSymbol(customUnits)} to ${habit.name}".replace("  ", " ")
                 }, contentPadding = PaddingValues(horizontal = 12.dp)) { Text(primaryLabel) }
         }}
@@ -3287,9 +3287,11 @@ internal fun HabitActionsDialog(
                             !item.habit.archived && !item.habit.paused && item.habit.sourceMeasurementId == null &&
                             item.dayState !in setOf(HabitDayState.Paused, HabitDayState.Skipped, HabitDayState.NotScheduled)) item {
                             EntityInspectorInformationGroup("Record or Adjust") {
-                                HabitNumericActions(item, customUnits, onQuickValue, onSetValue, onAddAmount,
-                                    onDecrement = { onQuickValue(-minOf(item.habit.quickIncrement, item.value.coerceAtLeast(0.0))) },
-                                    onUndo = onUndoValue, canUndo = canUndoValue, enabled = !mutationSaving)
+                                WhipActivityActions {
+                                    HabitNumericActions(item, customUnits, onQuickValue, onSetValue, onAddAmount,
+                                        onDecrement = { onQuickValue(-minOf(item.habit.quickIncrement, item.value.coerceAtLeast(0.0))) },
+                                        onUndo = onUndoValue, canUndo = canUndoValue, enabled = !mutationSaving)
+                                }
                             }
                         }
                         if (item.habit.trackingMode == HabitTrackingMode.Checklist && item.checklistItems.isNotEmpty()) item {

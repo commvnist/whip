@@ -21,6 +21,7 @@ import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.whip.app.AndroidFontScale
@@ -264,8 +265,10 @@ class HabitDirectExecutionUiTest {
         }
         compose.onNodeWithContentDescription("Add 1000000000 to Practice").performScrollTo().assertHeightIsAtLeast(48.dp).performClick()
         compose.runOnIdle { assertEquals(1_000_000_000.0, logged!!, 0.0) }
-        val width = compose.onNodeWithTag("habit-primary-action-1", useUnmergedTree = true).getUnclippedBoundsInRoot().width
-        assertTrue(width <= 112.dp)
+        val primary = compose.onNodeWithTag("habit-primary-action-1").getUnclippedBoundsInRoot()
+        val numeric = compose.onNodeWithText("+1000000000").getUnclippedBoundsInRoot()
+        assertEquals("Primary and full amount must share width", primary.width.value, numeric.width.value, 0.5f)
+        assertEquals("Primary and full amount must share height", primary.height.value, numeric.height.value, 0.5f)
         captureVisualCatalogSurface("direct-execution.habits-extreme-increment.large")
     }
 

@@ -1,0 +1,26 @@
+capture,label,left_px,top_px,width_px,height_px,class,visibility
+after-checkin-large,Enter Duration,85,827,840,336,android.view.View,fully-visible
+after-checkin-large,Check In,85,1534,840,336,android.view.View,fully-visible
+after-checkin-wide,Start Timer,1138,718,420,168,android.view.View,fully-visible
+after-checkin-wide,Enter Duration,1590,718,420,168,android.view.View,fully-visible
+after-checkin-wide,Check In,1138,1185,420,168,android.view.View,fully-visible
+after-duration-form-compact,Log Duration,96,1483,420,168,android.view.View,fully-visible
+after-duration-form-compact,Cancel,548,1483,420,168,android.view.View,fully-visible
+after-goal-compact,Log Progress,85,924,420,168,android.view.View,fully-visible
+after-goal-compact,Complete Goal,537,924,420,168,android.view.View,fully-visible
+after-goal-form-compact,Log Progress,96,1580,420,168,android.view.View,fully-visible
+after-goal-form-compact,Cancel,548,1580,420,168,android.view.View,fully-visible
+after-goal-form-large,Log Progress,96,1513,840,336,android.view.View,fully-visible
+after-goal-form-large,Cancel,96,1860,840,336,android.view.View,fully-visible
+after-goal-large,Log Progress,85,1085,840,336,android.view.View,fully-visible
+after-goal-large,Complete Goal,85,1432,840,336,android.view.View,fully-visible
+after-goal-wide,Log Progress,1138,880,420,168,android.view.View,fully-visible
+after-goal-wide,Complete Goal,1590,880,420,168,android.view.View,fully-visible
+after-habits-compact,Start Timer,85,924,420,168,android.view.View,fully-visible
+after-habits-compact,Enter Duration,537,924,420,168,android.view.View,fully-visible
+after-habits-compact,Check In,85,1391,420,168,android.view.View,fully-visible
+after-habits-large,Start Timer,85,1085,840,336,android.view.View,fully-visible
+after-habits-large,Enter Duration,85,1432,840,336,android.view.View,fully-visible
+after-habits-wide,Start Timer,1138,880,420,168,android.view.View,fully-visible
+after-habits-wide,Enter Duration,1590,880,420,168,android.view.View,fully-visible
+after-habits-wide,Check In,1138,1347,420,95,android.view.View,viewport-clipped
