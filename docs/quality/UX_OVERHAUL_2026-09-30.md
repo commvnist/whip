@@ -1,6 +1,6 @@
 # Whip UX overhaul acceptance - 2026-09-30
 
-Status: bounded implementation and integrated verification complete through phased evidence; final delivery receipt follows. This is not a new phone release or a single all-green full-inventory run. Historical checkpoints below retain their original failed/pending state and are superseded by the closing checkpoint.
+Status: bounded implementation and integrated verification complete through phased evidence; closing batch pushed with exact remote match. This is not a new phone release or a single all-green full-inventory run. Historical checkpoints below retain their original failed/pending state and are superseded by the closing checkpoint.
 
 ## Closing verification checkpoint
 
@@ -9,6 +9,8 @@ Final affected-class replay ended14:58:17 UTC: **42/42 unique methods passed**, 
 Production source and APK9a210929 remain identical. Manifest comparison shows exactly five changed test-private fixture files. All42 final method identities belong to the original1343; excluding them leaves1301 unchanged PASS methods. Their union provides phased current-production coverage of all1343, with zero missing identities, overlap, skips or unexecuted methods. **No new single all-green1343-method run is claimed**. Assertions, thresholds and original failed results remain; no additional production defect was found in final independent lane reviews.
 
 [Six inspected current native surfaces](../../artifacts/ux-overhaul/2026-09-30/verified/final-regression/visuals/provenance.json) show common toolbar/content edges and all six bottom tabs at1080x2400; clear Home now has an original with drawn navigation, superseding the earlier capture-only limitation. This supplements existing before/after evidence rather than attributing visual changes to fixture repairs. The separately authorized phone build remains earlier8e8662b6/6f; laterb937 changes are excluded and no further installation occurred.
+
+Closing delivery: [a84683cc](https://github.com/commvnist/whip/commit/a84683cc61623adbb99c613a3dba4b8014b441bc) normally pushed to main, exact remote match. [Delivery receipt](../../artifacts/ux-overhaul/2026-09-30/verified/final-regression/delivery-a84683cc.json) records zero hosted Actions/check/status entries. Combined pending with zero entries is no CI recorded. Prior phone-signature edit remains untouched and unstaged.
 
 ## Historical regression checkpoints
 
@@ -50,7 +52,7 @@ Integrated debug/test compilation passes. Initial diagnostic card replay passes2
 | 9. Accessibility/contrast/touch/large-text/IME | Named roles/labels, native200%, strict clipping, measured48dp control and keyboard journeys | Spoken TalkBack/SwitchAccess/OEM certification unverified |
 | 10. Data correctness |759 cached accepted JVM methods; strict phase/group/history/import/finite-period/direction native checks | Dedicated cycle-review delayed failure/recreation and outbound share Intent body unverified |
 | 11. Native normal/repeat/interrupt/Back/recreate/cross-tab | Original three owners/serials; all1343 executed,1301 unchanged passes plus42 final fresh passes | Phased evidence; original full inventory retains six failures; no new single-green run |
-| 12. Before/after/checks/commits/pushes | Original gallery and all failures preserved; final native/local checks pass; established main delivery | Final commit/remote/CI receipt recorded below; no hosted CI execution expected |
+| 12. Before/after/checks/commits/pushes | Original gallery and all failures preserved; final native/local checks pass; established main delivery | Exact a84683cc remote match; zero hosted Actions/check/status entries |
 
 Final current-source local gate passes after the bounded repair (4m45s initial complete run;1s final reconciliation using accepted cached results). The complete759-method/124-suite XML is preserved with zero failures/errors/skips. Affected readiness passes51s; required lint/debug/release/bundle/benchmark/static/manifest/data-safety checks and coverage floors84.82% lines/65.39% branches/69.49% core pass. No new JVM execution is attributed to the cached reconciliation. Final immutable CURRENTMAIN app SHA2569a210929c30d1fd09970b2e62d8430219f659012a5e2645e0daf8cff7d2fae02; test SHA256a5fa92175b042b9c8306a240635b7881d8e436b398862fd992dbb95cbda96cbc; source-manifest SHA2568b1c91a283a1d7e9659ae21c92add60dbcfddf877d8a219075fe5569e0a2dbe6. These inputs are frozen for the sole new1343-method fresh campaign UYOVBs described above.
 
