@@ -11,6 +11,8 @@
 
 - Third full attempt r5Kv0E accepted 216 methods and completed another 82 with one Home lazy-child gesture failure; complete inventory remains rejected. Original XML retained, dedicated process group controlled-stopped. Actual Home list now materializes each direct action before tapping; the complete DirectDailyExecution class passes 3/3 fresh in 54 seconds, preserving no-inspector/log/frozen 0.4 outcome assertions. Production APK is unchanged; final affected readiness passes in 1m04s. One fourth frozen full fresh campaign KqdBtz is running; complete-inventory acceptance remains pending.
 
+- Fourth campaign KqdBtz current checkpoint 09:55:05 UTC: 378 accepted in batches 1/2/3/4/6; completed batch7 has 99 methods with three ProductivityCardDesign visual/interaction failures. All complete groups total477 with474 passing/3 failing/zero skips; full inventory is rejected. Healthy workers5/9 continue, main inputs frozen. Automatic review rejected the proposed process-group stop; it did not execute. Exact card owner/geometry diagnosis remains pending; no lowered assertions or full acceptance claim.
+
 
 ### VER-20260929-021 — Signed 0.3.91 in-place phone acceptance
 
