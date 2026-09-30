@@ -1,11 +1,16 @@
 package com.whip.app
 
 import android.content.Intent
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -109,7 +114,15 @@ class WhipNavigationTest {
             compose.onNodeWithText("Build Your Day").assertIsDisplayed()
             compose.onNodeWithText("Start here").assertIsDisplayed()
             compose.onNodeWithTag("home-destination-tasks").assertIsDisplayed()
-            compose.onAllNodesWithText("Review & Trends").assertCountEquals(1)
+            val reviewHeader = hasText("Review & Trends") and
+                SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button) and
+                !hasTestTag("home-destination-review")
+            val reviewCard = hasTestTag("home-destination-review") and
+                hasText("Review & Trends") and hasClickAction()
+            compose.onAllNodes(reviewHeader).assertCountEquals(1)
+            compose.onNode(reviewHeader).assertIsDisplayed()
+            compose.onAllNodes(reviewCard).assertCountEquals(1)
+            compose.onAllNodesWithText("Review & Trends").assertCountEquals(2)
 
             compose.onNodeWithTag("workspace-search-action").performClick()
             compose.onNodeWithTag("unified-search-query").assertIsDisplayed()
@@ -207,11 +220,15 @@ class WhipNavigationTest {
             MainActivity::class.java,
         ).putExtra("commvne.com.whip.app.DEBUG_SHOW_WHEN_LOCKED", true)
         launchMainActivity(intent).use {
+            val reviewHeader = hasText("Review & Trends") and
+                SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button) and
+                !hasTestTag("home-destination-review")
             compose.waitUntil(TIMEOUT_MS) {
-                compose.onAllNodesWithText("Review & Trends").fetchSemanticsNodes().isNotEmpty()
+                compose.onAllNodes(reviewHeader).fetchSemanticsNodes().isNotEmpty()
             }
 
-            compose.onNodeWithText("Review & Trends").performClick()
+            compose.onAllNodes(reviewHeader).assertCountEquals(1)
+            compose.onNode(reviewHeader).assertIsDisplayed().performClick()
             if (compose.onAllNodesWithText("Review Options").fetchSemanticsNodes().isNotEmpty()) {
                 compose.onNodeWithText("Review Options").performClick()
             }
@@ -229,7 +246,7 @@ class WhipNavigationTest {
             listOf("Tasks", "Today", "History").forEach { destination ->
                 selectDestination("task-destination-$destination")
             }
-            compose.onNodeWithTag("workspace-context-summary").assertIsDisplayed().assertTextContains("Completed tasks", substring = true)
+            compose.onNodeWithTag("workspace-context-summary").assertIsDisplayed().assertTextContains("0 completed tasks")
             compose.onAllNodesWithText("Task History").assertCountEquals(0)
             compose.onAllNodesWithContentDescription("Back to Today").assertCountEquals(0)
 

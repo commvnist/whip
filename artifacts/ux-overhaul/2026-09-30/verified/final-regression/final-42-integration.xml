@@ -1,0 +1,42 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="18" failures="0" errors="0" skipped="0" time="546.407" timestamp="2026-09-30T14:58:15" hostname="localhost">
+  <testsuite name="com.whip.app.ProductivityCreationJourneyE2ETest" tests="2" failures="0" errors="0" skipped="0" time="204.275" timestamp="2026-09-30T14:58:15" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="smartTaskCaptureExplainsHighlightsPersistsAndReversesThroughTheRealUi" classname="com.whip.app.ProductivityCreationJourneyE2ETest" time="85.065" />
+    <testcase name="taskHabitAndGoalCanBeCreatedAndUsedThroughTheRealUi" classname="com.whip.app.ProductivityCreationJourneyE2ETest" time="119.21" />
+  </testsuite>
+  <testsuite name="com.whip.app.WhipComposeSemanticsTest" tests="12" failures="0" errors="0" skipped="0" time="272.26" timestamp="2026-09-30T14:58:15" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="machineLibraryExplainsEquipmentAndOptionalExerciseLinks" classname="com.whip.app.WhipComposeSemanticsTest" time="15.715" />
+    <testcase name="elapsedGoalResetWorksFromHomeExpandedDetails" classname="com.whip.app.WhipComposeSemanticsTest" time="10.345" />
+    <testcase name="globalAddAndHabitEditorAreReachableThroughComposeSemantics" classname="com.whip.app.WhipComposeSemanticsTest" time="26.84" />
+    <testcase name="taskHabitAndGoalEditorsStartInBasicModeAndRevealAdvancedFields" classname="com.whip.app.WhipComposeSemanticsTest" time="42.748" />
+    <testcase name="gymConfigurationControlsUseProgressiveDisclosure" classname="com.whip.app.WhipComposeSemanticsTest" time="29.91" />
+    <testcase name="taskToolbarKeepsTemporaryControlsAttachedAndFocused" classname="com.whip.app.WhipComposeSemanticsTest" time="23.111" />
+    <testcase name="foldSupportPaneKeepsGymContextSeparateFromPrimaryNavigation" classname="com.whip.app.WhipComposeSemanticsTest" time="7.167" />
+    <testcase name="pinningContractIsVisibleAndExplainedOnWhipHome" classname="com.whip.app.WhipComposeSemanticsTest" time="10.38" />
+    <testcase name="homeCardOpenAndPrimaryCallbacksWorkOnFirstInteractionAfterLaunch" classname="com.whip.app.WhipComposeSemanticsTest" time="59.965" />
+    <testcase name="medicationTemplateStartsAsAThreeItemChecklist" classname="com.whip.app.WhipComposeSemanticsTest" time="12.214" />
+    <testcase name="directTaskHabitAndGoalActionsUseVisibleStateInsteadOfSnackbars" classname="com.whip.app.WhipComposeSemanticsTest" time="24.33" />
+    <testcase name="gymDestinationSurvivesExpandingAndRestoringTheFoldPane" classname="com.whip.app.WhipComposeSemanticsTest" time="9.535" />
+  </testsuite>
+  <testsuite name="com.whip.app.WhipNavigationTest" tests="4" failures="0" errors="0" skipped="0" time="67.95" timestamp="2026-09-30T14:58:15" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="switchingPrimaryAreasPreservesEachAreasLastHeading" classname="com.whip.app.WhipNavigationTest" time="13.888" />
+    <testcase name="primaryAreasAndAccessibleTopActionsAreReachable" classname="com.whip.app.WhipNavigationTest" time="16.898" />
+    <testcase name="everyFirstClassDestinationIsReachableThroughVisibleNavigation" classname="com.whip.app.WhipNavigationTest" time="30.888" />
+    <testcase name="homeEntityInspectorsPreserveTheHomeDestination" classname="com.whip.app.WhipNavigationTest" time="6.276" />
+  </testsuite>
+</testsuites>

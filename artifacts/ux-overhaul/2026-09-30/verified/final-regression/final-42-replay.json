@@ -1,0 +1,461 @@
+{
+  "baseCommit": "8dcc0e421943a3b719db108acd6b0de7f23063dc",
+  "fixtureFiles": [
+    "app/src/androidTest/java/com/whip/app/ProductivityCreationJourneyE2ETest.kt",
+    "app/src/androidTest/java/com/whip/app/VisualCatalogPagesTest.kt",
+    "app/src/androidTest/java/com/whip/app/WhipComposeSemanticsTest.kt",
+    "app/src/androidTest/java/com/whip/app/WhipNavigationTest.kt",
+    "app/src/androidTest/java/com/whip/app/ui/GoalSecondaryMutationUiTest.kt"
+  ],
+  "appSha256": "9a210929c30d1fd09970b2e62d8430219f659012a5e2645e0daf8cff7d2fae02",
+  "testSha256": "091ee4c146e48f736d1db81488ae58a1030df81fca709ba9b1f5a7d2bb6d67e1",
+  "sourceManifestSha256": "d75ecae7f0247d53444f5db2185daff23a9cb83aa0d7c057dfff344fb695017b",
+  "productionSourceDiffEmpty": true,
+  "affectedMethods": 42,
+  "verdict": "42 affected methods passed; original full inventory remains rejected; phased current-production evidence",
+  "groups": [
+    {
+      "lane": "integration",
+      "serial": "emulator-5554",
+      "run": "IFhvf6",
+      "methods": 18,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "reused": 0,
+      "seconds": "546.407",
+      "originalXml": "build/instrumentation-results-IFhvf6/batch-1/result-1.xml",
+      "originalXmlSha256": "72524ccca6317038ca92debb7ef2517e7f32a1ad533911be1ff187efdd0a5bce",
+      "repositoryXml": "final-42-integration.xml",
+      "repositoryXmlSha256": "9b014887a2dc72b2863116d6c4361fff2946c683794c7035243ea15a029004bc",
+      "logTerminalUtc": "2026-09-30T14:58:17.059549+00:00"
+    },
+    {
+      "lane": "catalog",
+      "serial": "emulator-5556",
+      "run": "FH9Qew",
+      "methods": 10,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "reused": 0,
+      "seconds": "520.654",
+      "originalXml": "build/instrumentation-results-FH9Qew/batch-1/result-1.xml",
+      "originalXmlSha256": "b77391f82fcd16f8e4e02067be8563a6389f92f84486cdaa4b9fbe36adac6bd2",
+      "repositoryXml": "final-42-catalog.xml",
+      "repositoryXmlSha256": "ced2bc331935f412237fbe8bebe1f9be48483445a2e3b6a5558fa63df5dc32a9",
+      "logTerminalUtc": "2026-09-30T14:57:45.055553+00:00"
+    },
+    {
+      "lane": "goals",
+      "serial": "emulator-5558",
+      "run": "Q8WWQT",
+      "methods": 14,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "reused": 0,
+      "seconds": "240.332",
+      "originalXml": "build/instrumentation-results-Q8WWQT/batch-1/result-1.xml",
+      "originalXmlSha256": "b2a677410abbf16e3e128e62b956fc05e178e348f4e1adf0e51eebd5c679fc39",
+      "repositoryXml": "final-42-goals.xml",
+      "repositoryXmlSha256": "c38568fe41dea8aa6489357630d659b4ff8ee3d82dfa4aa6eeaf153448aee18f",
+      "logTerminalUtc": "2026-09-30T14:52:53.143599+00:00"
+    }
+  ],
+  "methods": [
+    {
+      "class": "com.whip.app.ProductivityCreationJourneyE2ETest",
+      "method": "smartTaskCaptureExplainsHighlightsPersistsAndReversesThroughTheRealUi",
+      "seconds": "85.065",
+      "lane": "integration",
+      "serial": "emulator-5554",
+      "status": "passed"
+    },
+    {
+      "class": "com.whip.app.ProductivityCreationJourneyE2ETest",
+      "method": "taskHabitAndGoalCanBeCreatedAndUsedThroughTheRealUi",
+      "seconds": "119.21",
+      "lane": "integration",
+      "serial": "emulator-5554",
+      "status": "passed"
+    },
+    {
+      "class": "com.whip.app.WhipComposeSemanticsTest",
+      "method": "machineLibraryExplainsEquipmentAndOptionalExerciseLinks",
+      "seconds": "15.715",
+      "lane": "integration",
+      "serial": "emulator-5554",
+      "status": "passed"
+    },
+    {
+      "class": "com.whip.app.WhipComposeSemanticsTest",
+      "method": "elapsedGoalResetWorksFromHomeExpandedDetails",
+      "seconds": "10.345",
+      "lane": "integration",
+      "serial": "emulator-5554",
+      "status": "passed"
+    },
+    {
+      "class": "com.whip.app.WhipComposeSemanticsTest",
+      "method": "globalAddAndHabitEditorAreReachableThroughComposeSemantics",
+      "seconds": "26.84",
+      "lane": "integration",
+      "serial": "emulator-5554",
+      "status": "passed"
+    },
+    {
+      "class": "com.whip.app.WhipComposeSemanticsTest",
+      "method": "taskHabitAndGoalEditorsStartInBasicModeAndRevealAdvancedFields",
+      "seconds": "42.748",
+      "lane": "integration",
+      "serial": "emulator-5554",
+      "status": "passed"
+    },
+    {
+      "class": "com.whip.app.WhipComposeSemanticsTest",
+      "method": "gymConfigurationControlsUseProgressiveDisclosure",
+      "seconds": "29.91",
+      "lane": "integration",
+      "serial": "emulator-5554",
+      "status": "passed"
+    },
+    {
+      "class": "com.whip.app.WhipComposeSemanticsTest",
+      "method": "taskToolbarKeepsTemporaryControlsAttachedAndFocused",
+      "seconds": "23.111",
+      "lane": "integration",
+      "serial": "emulator-5554",
+      "status": "passed"
+    },
+    {
+      "class": "com.whip.app.WhipComposeSemanticsTest",
+      "method": "foldSupportPaneKeepsGymContextSeparateFromPrimaryNavigation",
+      "seconds": "7.167",
+      "lane": "integration",
+      "serial": "emulator-5554",
+      "status": "passed"
+    },
+    {
+      "class": "com.whip.app.WhipComposeSemanticsTest",
+      "method": "pinningContractIsVisibleAndExplainedOnWhipHome",
+      "seconds": "10.38",
+      "lane": "integration",
+      "serial": "emulator-5554",
+      "status": "passed"
+    },
+    {
+      "class": "com.whip.app.WhipComposeSemanticsTest",
+      "method": "homeCardOpenAndPrimaryCallbacksWorkOnFirstInteractionAfterLaunch",
+      "seconds": "59.965",
+      "lane": "integration",
+      "serial": "emulator-5554",
+      "status": "passed"
+    },
+    {
+      "class": "com.whip.app.WhipComposeSemanticsTest",
+      "method": "medicationTemplateStartsAsAThreeItemChecklist",
+      "seconds": "12.214",
+      "lane": "integration",
+      "serial": "emulator-5554",
+      "status": "passed"
+    },
+    {
+      "class": "com.whip.app.WhipComposeSemanticsTest",
+      "method": "directTaskHabitAndGoalActionsUseVisibleStateInsteadOfSnackbars",
+      "seconds": "24.33",
+      "lane": "integration",
+      "serial": "emulator-5554",
+      "status": "passed"
+    },
+    {
+      "class": "com.whip.app.WhipComposeSemanticsTest",
+      "method": "gymDestinationSurvivesExpandingAndRestoringTheFoldPane",
+      "seconds": "9.535",
+      "lane": "integration",
+      "serial": "emulator-5554",
+      "status": "passed"
+    },
+    {
+      "class": "com.whip.app.WhipNavigationTest",
+      "method": "switchingPrimaryAreasPreservesEachAreasLastHeading",
+      "seconds": "13.888",
+      "lane": "integration",
+      "serial": "emulator-5554",
+      "status": "passed"
+    },
+    {
+      "class": "com.whip.app.WhipNavigationTest",
+      "method": "primaryAreasAndAccessibleTopActionsAreReachable",
+      "seconds": "16.898",
+      "lane": "integration",
+      "serial": "emulator-5554",
+      "status": "passed"
+    },
+    {
+      "class": "com.whip.app.WhipNavigationTest",
+      "method": "everyFirstClassDestinationIsReachableThroughVisibleNavigation",
+      "seconds": "30.888",
+      "lane": "integration",
+      "serial": "emulator-5554",
+      "status": "passed"
+    },
+    {
+      "class": "com.whip.app.WhipNavigationTest",
+      "method": "homeEntityInspectorsPreserveTheHomeDestination",
+      "seconds": "6.276",
+      "lane": "integration",
+      "serial": "emulator-5554",
+      "status": "passed"
+    },
+    {
+      "class": "com.whip.app.VisualCatalogPagesTest",
+      "method": "captureSupportingWorkspaceOverview",
+      "seconds": "39.619",
+      "lane": "catalog",
+      "serial": "emulator-5556",
+      "status": "passed"
+    },
+    {
+      "class": "com.whip.app.VisualCatalogPagesTest",
+      "method": "captureSettingsPageCatalog",
+      "seconds": "60.645",
+      "lane": "catalog",
+      "serial": "emulator-5556",
+      "status": "passed"
+    },
+    {
+      "class": "com.whip.app.VisualCatalogPagesTest",
+      "method": "captureTaskPageCatalog",
+      "seconds": "129.643",
+      "lane": "catalog",
+      "serial": "emulator-5556",
+      "status": "passed"
+    },
+    {
+      "class": "com.whip.app.VisualCatalogPagesTest",
+      "method": "captureTrackPageCatalog",
+      "seconds": "86.933",
+      "lane": "catalog",
+      "serial": "emulator-5556",
+      "status": "passed"
+    },
+    {
+      "class": "com.whip.app.VisualCatalogPagesTest",
+      "method": "captureGoalPageCatalog",
+      "seconds": "43.184",
+      "lane": "catalog",
+      "serial": "emulator-5556",
+      "status": "passed"
+    },
+    {
+      "class": "com.whip.app.VisualCatalogPagesTest",
+      "method": "captureSharedPageCatalog",
+      "seconds": "26.816",
+      "lane": "catalog",
+      "serial": "emulator-5556",
+      "status": "passed"
+    },
+    {
+      "class": "com.whip.app.VisualCatalogPagesTest",
+      "method": "captureHabitPageCatalog",
+      "seconds": "41.04",
+      "lane": "catalog",
+      "serial": "emulator-5556",
+      "status": "passed"
+    },
+    {
+      "class": "com.whip.app.VisualCatalogPagesTest",
+      "method": "captureGymCategoryAllocationCatalog",
+      "seconds": "14.365",
+      "lane": "catalog",
+      "serial": "emulator-5556",
+      "status": "passed"
+    },
+    {
+      "class": "com.whip.app.VisualCatalogPagesTest",
+      "method": "captureGymPageCatalog",
+      "seconds": "62.097",
+      "lane": "catalog",
+      "serial": "emulator-5556",
+      "status": "passed"
+    },
+    {
+      "class": "com.whip.app.VisualCatalogPagesTest",
+      "method": "captureProductivityWorkspaceOverview",
+      "seconds": "14.498",
+      "lane": "catalog",
+      "serial": "emulator-5556",
+      "status": "passed"
+    },
+    {
+      "class": "com.whip.app.ui.GoalSecondaryMutationUiTest",
+      "method": "terminalMilestoneSummaryUsesTheFrozenClosureRatherThanTheEditedDefinition",
+      "seconds": "2.293",
+      "lane": "goals",
+      "serial": "emulator-5558",
+      "status": "passed"
+    },
+    {
+      "class": "com.whip.app.ui.GoalSecondaryMutationUiTest",
+      "method": "rangeAndConsistencyOutcomesKeepTheirMeasurementMeaning",
+      "seconds": "13.708",
+      "lane": "goals",
+      "serial": "emulator-5558",
+      "status": "passed"
+    },
+    {
+      "class": "com.whip.app.ui.GoalSecondaryMutationUiTest",
+      "method": "editingOnlyAProgressNotePreservesItsTinyEnteredValueThroughRestoration",
+      "seconds": "10.559",
+      "lane": "goals",
+      "serial": "emulator-5558",
+      "status": "passed"
+    },
+    {
+      "class": "com.whip.app.ui.GoalSecondaryMutationUiTest",
+      "method": "startDateControlsBackdatedProgressAndSurvivesRestoration",
+      "seconds": "30.154",
+      "lane": "goals",
+      "serial": "emulator-5558",
+      "status": "passed"
+    },
+    {
+      "class": "com.whip.app.ui.GoalSecondaryMutationUiTest",
+      "method": "progressDatePolicyRejectsFutureAndConfirmsOutsideGoalWindow",
+      "seconds": "7.118",
+      "lane": "goals",
+      "serial": "emulator-5558",
+      "status": "passed"
+    },
+    {
+      "class": "com.whip.app.ui.GoalSecondaryMutationUiTest",
+      "method": "archivedInspectorPreservesLifecycleHistoryAndHidesMisleadingPin",
+      "seconds": "7.503",
+      "lane": "goals",
+      "serial": "emulator-5558",
+      "status": "passed"
+    },
+    {
+      "class": "com.whip.app.ui.GoalSecondaryMutationUiTest",
+      "method": "progressFailureKeepsDraftAndSavingBlocksBackAndDuplicateSubmit",
+      "seconds": "18.172",
+      "lane": "goals",
+      "serial": "emulator-5558",
+      "status": "passed"
+    },
+    {
+      "class": "com.whip.app.ui.GoalSecondaryMutationUiTest",
+      "method": "unitChangesPreserveTargetsAndPartialDrafts",
+      "seconds": "34.994",
+      "lane": "goals",
+      "serial": "emulator-5558",
+      "status": "passed"
+    },
+    {
+      "class": "com.whip.app.ui.GoalSecondaryMutationUiTest",
+      "method": "permanentDeleteShowsCompleteImpactAndRequiresRereviewAfterStaleFailure",
+      "seconds": "7.194",
+      "lane": "goals",
+      "serial": "emulator-5558",
+      "status": "passed"
+    },
+    {
+      "class": "com.whip.app.ui.GoalSecondaryMutationUiTest",
+      "method": "leavingAnActionSurfaceClearsItsFailedRequestBeforeOpeningAnotherDialog",
+      "seconds": "2.547",
+      "lane": "goals",
+      "serial": "emulator-5558",
+      "status": "passed"
+    },
+    {
+      "class": "com.whip.app.ui.GoalSecondaryMutationUiTest",
+      "method": "captureGoalComponentCatalog",
+      "seconds": "25.099",
+      "lane": "goals",
+      "serial": "emulator-5558",
+      "status": "passed"
+    },
+    {
+      "class": "com.whip.app.ui.GoalSecondaryMutationUiTest",
+      "method": "deadlineRemovalAndCalculationSettingsSurviveRestoration",
+      "seconds": "46.953",
+      "lane": "goals",
+      "serial": "emulator-5558",
+      "status": "passed"
+    },
+    {
+      "class": "com.whip.app.ui.GoalSecondaryMutationUiTest",
+      "method": "milestoneWeightKeepsPartialDecimalAndValidatesBlankDraft",
+      "seconds": "26.295",
+      "lane": "goals",
+      "serial": "emulator-5558",
+      "status": "passed"
+    },
+    {
+      "class": "com.whip.app.ui.GoalSecondaryMutationUiTest",
+      "method": "milestoneIsEditableOnlyForAnUnarchivedActiveGoal",
+      "seconds": "5.186",
+      "lane": "goals",
+      "serial": "emulator-5558",
+      "status": "passed"
+    }
+  ],
+  "total": 42,
+  "failures": 0,
+  "errors": 0,
+  "skips": 0,
+  "reused": 0,
+  "originalFrozenInventory": {
+    "executed": 1343,
+    "passed": 1337,
+    "failed": 6,
+    "skipped": 0,
+    "notRun": 0,
+    "duplicates": 0
+  },
+  "firstRepairReplay": {
+    "testSha256": "ec0f8c310e3a6516be571ad396233656e338c8fefe0faab41ad2d6e174950305",
+    "executed": 42,
+    "passed": 40,
+    "failed": 2
+  },
+  "deadlineUnchangedReplay": {
+    "run": "qehPcB",
+    "passed": 1,
+    "failed": 0,
+    "seconds": 18.457,
+    "productionDefectProven": false
+  },
+  "phasedCoverage": {
+    "unchangedPassingMethods": 1301,
+    "freshAffectedMethods": 42,
+    "unionUniqueMethods": 1343,
+    "overlap": 0,
+    "missing": 0,
+    "singleFreshAllGreen1343Run": false,
+    "productionUnchanged": true,
+    "changedFiles": [
+      "app/src/androidTest/java/com/whip/app/ProductivityCreationJourneyE2ETest.kt",
+      "app/src/androidTest/java/com/whip/app/VisualCatalogPagesTest.kt",
+      "app/src/androidTest/java/com/whip/app/WhipComposeSemanticsTest.kt",
+      "app/src/androidTest/java/com/whip/app/WhipNavigationTest.kt",
+      "app/src/androidTest/java/com/whip/app/ui/GoalSecondaryMutationUiTest.kt"
+    ],
+    "originalFailuresPreserved": true
+  },
+  "localGate": {
+    "command": "scripts/check --full",
+    "exitCode": 0,
+    "jvmMethods": 759,
+    "jvmSuites": 124,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0,
+    "unitTask": "FROM-CACHE",
+    "freshJvmExecutionClaimed": false,
+    "domainLinesPercent": 84.82,
+    "domainBranchesPercent": 65.39,
+    "corePolicyLinesPercent": 69.49
+  }
+}

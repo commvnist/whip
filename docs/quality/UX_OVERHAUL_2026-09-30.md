@@ -1,8 +1,16 @@
 # Whip UX overhaul acceptance - 2026-09-30
 
-Status: implementation and native acceptance in progress. This is the resumed work, not a release receipt or a claim that all twelve acceptance categories passed.
+Status: bounded implementation and integrated verification complete through phased evidence; final delivery receipt follows. This is not a new phone release or a single all-green full-inventory run. Historical checkpoints below retain their original failed/pending state and are superseded by the closing checkpoint.
 
-## Latest regression checkpoint
+## Closing verification checkpoint
+
+Final affected-class replay ended14:58:17 UTC: **42/42 unique methods passed**, zero failures/errors/skips/reuse, integration18 on5554, catalog10 on5556 and Goals14 on5558. Final required local gate passes;759 JVM methods/124 suites are restored FROM-CACHE, not freshly executed. Coverage remains84.82% lines/65.39% branches/69.49% core. [Exact XML, hashes, gate and reconciliation](../../artifacts/ux-overhaul/2026-09-30/verified/final-regression/README.md) preserve the original full inventory's1337pass/6fail result and intermediate40pass/2fail repair replay.
+
+Production source and APK9a210929 remain identical. Manifest comparison shows exactly five changed test-private fixture files. All42 final method identities belong to the original1343; excluding them leaves1301 unchanged PASS methods. Their union provides phased current-production coverage of all1343, with zero missing identities, overlap, skips or unexecuted methods. **No new single all-green1343-method run is claimed**. Assertions, thresholds and original failed results remain; no additional production defect was found in final independent lane reviews.
+
+[Six inspected current native surfaces](../../artifacts/ux-overhaul/2026-09-30/verified/final-regression/visuals/provenance.json) show common toolbar/content edges and all six bottom tabs at1080x2400; clear Home now has an original with drawn navigation, superseding the earlier capture-only limitation. This supplements existing before/after evidence rather than attributing visual changes to fixture repairs. The separately authorized phone build remains earlier8e8662b6/6f; laterb937 changes are excluded and no further installation occurred.
+
+## Historical regression checkpoints
 
 At14:12:27UTC, **complete frozen inventory is reconciled:1343 unique methods executed,1337 passed,6 failed,0 skipped,0 not-run,0duplicates**. Original UYOVBs naturally ended1042/1039pass/3fail; untouched groups11/14/16/17/18/19 then contributed301 methods with298pass/3fail, with reset19last. Accepted whole-group gates cover1123 methods; passes inside rejected groups are provisional rather than relabeled accepted. [All1343 original method receipts and exact failure stacks](../../artifacts/ux-overhaul/2026-09-30/verified/final-regression/README.md) preserve the failed attempts. The six classified issues need only five fixture-file corrections: Habit unmerged disclosure selection, Home expected-content readiness, valid Reduce80-to70 conversion setup, actual Upcoming empty-copy, exact empty-Home header/card Review controls, and completed-summary case/count. Production source/APKs remain unchanged. Isolated fixes await all42 affected-class native methods, then final aggregate judgment. No additional phone installation occurred.
 
@@ -27,22 +35,22 @@ The six failures are now classified. A real routine instantiation race used glob
 
 Integrated debug/test compilation passes. Initial diagnostic card replay passes2/3, preserving the original strict numerical failure and measured bounds before the accounting repair. Final focused native acceptance passes **23/23**:15 card methods in85.49s on5554; six shared-title journeys in176.587s on5558; two strict routine checks in51.421s on5556. Affected readiness passes in3m26s, including lint/compile/debug packaging. [Inspected originals and distinct APK provenance](../../artifacts/ux-overhaul/2026-09-30/verified/card-routine-repair/README.md) preserve measurements, actual native taps and recreation evidence. The full current-source local gate passes in **1m16s**:759 JVM methods across124 suites, zero failures/errors/skips; required debug/release/bundle/benchmark builds, lint/static/manifest/data-safety/diff checks and coverage floors pass. Coverage is84.82% lines,65.39% branches and69.49% core policy. Original current JVM XML is archived separately. The final immutable app/test/source manifest is frozen for one fifth fresh1342-method campaign; complete native acceptance remains pending. The baseline goals lane reproduced all original three card failures twice with unchanged assertions and retained30 original frames/hashes.
 
-## Current acceptance categories before final full campaign
+## Closing twelve-category acceptance
 
-| Category | Verified evidence | Remaining acceptance |
+| Category | Verified scope | Remaining proof limit |
 | --- | --- | --- |
-| 1. Tab/header/content/action alignment | Shared normal/wide/200% geometry plus same-process10/10 canonical catalog, visible cross-tab originals | Final integrated full campaign |
-| 2. Typography/colors/icons/controls/states | Existing shared theme/components;15/15 card checks, normal/200% originals | Final integrated full campaign |
-| 3. Actual reuse | Shared chrome, summary/receipt/title-tap owners; unchanged DAO normalizer reused by routine creation; six sibling callers pass | Final integrated full campaign |
-| 4. Add/edit/save/cancel/delete/Back | Phase-local editing, owned save/dirty guards, exact parent returns and frozen completed facts have focused native proof | Full campaign; dedicated completed-Task Save return is an explicit proof limit |
-| 5. Navigation/labels/grouping | Retained ordinary tabs versus daily intent; exact platform entries; both Home Review actions; stable filtered groups | Final integrated full campaign |
-| 6. Transitions/scroll/selections/drafts | Workspace holder, parent list states and strict Track filter/selection recreation | Final integrated full campaign |
-| 7. Validation/save/error/edit protection | Durable receipt/draft failure and truthful post-commit import warning; all three Exercise editor callers pass | Final integrated full campaign |
-| 8. Loading/empty/error/retry/completed | Named settled-unavailable, distinct stale/retry and direct empty-Habit action; completion states | Final integrated full campaign |
-| 9. Accessibility/contrast/touch/large-text/IME | Named controls/roles, native200%, exact48dp layout/pixel check and preserved strict clipping | Final integrated full campaign; no spoken TalkBack/SwitchAccess/OEM certification |
-| 10. Data correctness |759 JVM results/124 suites and coverage floors; strict phase/group/history/import/finite-period/direction checks | Final integrated full campaign; dedicated cycle-review failure/recreation and outbound workout Intent body are proof limits |
-| 11. Native normal/repeat/interrupt/Back/recreate/cross-tab | Original three emulator owners, fresh selected captures and exact results | One fresh1343-method inventory; prior867-method attempt rejected with5 failures |
-| 12. Before/after/checks/commits/pushes | Original gallery and failed/corrected receipts retained; final local/readiness pass | Final push/remote/CI receipt and full-campaign disposition |
+| 1. Tab/header/content/action alignment | Shared normal/wide/200% geometry; all10 final canonical catalog methods; six inspected current originals | No observed alignment defect; device configurations remain sampled |
+| 2. Typography/colors/icons/controls/states | Shared theme and components; full CardDesign15; normal/200% originals | No spoken or every-OEM certification |
+| 3. Actual reuse | Shared chrome, summary/receipt/title-tap owners; Gym DAO normalizer reused by routine creation with existing callers verified | No speculative framework added |
+| 4. Add/edit/save/cancel/delete/Back | Dirty/save guards, phase-local edits, parent returns, native interruption/recreation and full journeys | Dedicated completed-Task child Save return is unverified |
+| 5. Navigation/labels/grouping | Retained ordinary tabs/daily intents, both exact Home Review controls, filtered group creation | Tested normal routes; no every-entrypoint certification |
+| 6. Transitions/scroll/selections/drafts | Workspace and parent state retention, strict Track scope/selection recreation, durable drafts | Every killed-process combination unverified |
+| 7. Validation/save/error/edit protection | Durable receipt and failure tests, truthful post-commit import warning, all Exercise callers; final Goal14 | Deadline preconditions pass; intermittent earlier missed Save was not a proven product defect |
+| 8. Loading/empty/error/retry/completed | Explicit settled-unavailable/retry, real empty-state controls and final completed-summary assertions | Covered catalog/journeys; no universal fault injection claim |
+| 9. Accessibility/contrast/touch/large-text/IME | Named roles/labels, native200%, strict clipping, measured48dp control and keyboard journeys | Spoken TalkBack/SwitchAccess/OEM certification unverified |
+| 10. Data correctness |759 cached accepted JVM methods; strict phase/group/history/import/finite-period/direction native checks | Dedicated cycle-review delayed failure/recreation and outbound share Intent body unverified |
+| 11. Native normal/repeat/interrupt/Back/recreate/cross-tab | Original three owners/serials; all1343 executed,1301 unchanged passes plus42 final fresh passes | Phased evidence; original full inventory retains six failures; no new single-green run |
+| 12. Before/after/checks/commits/pushes | Original gallery and all failures preserved; final native/local checks pass; established main delivery | Final commit/remote/CI receipt recorded below; no hosted CI execution expected |
 
 Final current-source local gate passes after the bounded repair (4m45s initial complete run;1s final reconciliation using accepted cached results). The complete759-method/124-suite XML is preserved with zero failures/errors/skips. Affected readiness passes51s; required lint/debug/release/bundle/benchmark/static/manifest/data-safety checks and coverage floors84.82% lines/65.39% branches/69.49% core pass. No new JVM execution is attributed to the cached reconciliation. Final immutable CURRENTMAIN app SHA2569a210929c30d1fd09970b2e62d8430219f659012a5e2645e0daf8cff7d2fae02; test SHA256a5fa92175b042b9c8306a240635b7881d8e436b398862fd992dbb95cbda96cbc; source-manifest SHA2568b1c91a283a1d7e9659ae21c92add60dbcfddf877d8a219075fe5569e0a2dbe6. These inputs are frozen for the sole new1343-method fresh campaign UYOVBs described above.
 

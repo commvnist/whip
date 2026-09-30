@@ -38,4 +38,4 @@ Repository XML copies use LF line endings; device metadata/content and original 
 
 [Canonical creation baseline/repaired native proof](verified/canonical-creation/README.md) and [full canonical page catalog10/10](verified/catalog-canonical/README.md) preserve the bounded follow-up repairs and current cross-tab geometry evidence. The clear-review capture limit is explicitly recorded.
 
-[Complete frozen native inventory and original six failures](verified/final-regression/README.md):1343 unique executed,1337 passing,6 failing,0 skipped/not-run/duplicates. Focused fixture repairs remain pending.
+[Closing native inventory, repaired-class results and current six-tab originals](verified/final-regression/README.md): original1343 unique executed/1337 passed/six preserved failures; final42/42 affected-class replay passes on unchanged production. Exact identity/source reconciliation gives1301 unchanged passes plus42 fresh passes, with all attempts retained. Final required local gate passes; no single all-green1343 run is claimed.

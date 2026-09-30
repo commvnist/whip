@@ -147,7 +147,8 @@ class ProductivityCreationJourneyE2ETest {
             }
             // Today intentionally moves completed habits behind the Done disclosure so the
             // remaining list stays focused. Reveal that section before exercising edit.
-            compose.onNodeWithTag("habit-done-disclosure").performClick()
+            compose.onNodeWithTag("habit-done-disclosure", useUnmergedTree = true)
+                .performScrollTo().assertIsDisplayed().performClick()
             compose.onNodeWithTag("habit-list-Today").performScrollToNode(hasTestTag("habit-card-$habitId"))
             compose.onNodeWithTag("habit-expand-$habitId").performClick()
             compose.onNodeWithContentDescription("Edit habit Journey water")

@@ -1,0 +1,24 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="14" failures="0" errors="0" skipped="0" time="240.332" timestamp="2026-09-30T14:52:51" hostname="localhost">
+  <testsuite name="com.whip.app.ui.GoalSecondaryMutationUiTest" tests="14" failures="0" errors="0" skipped="0" time="237.775" timestamp="2026-09-30T14:52:51" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_qa3(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="terminalMilestoneSummaryUsesTheFrozenClosureRatherThanTheEditedDefinition" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="2.293" />
+    <testcase name="rangeAndConsistencyOutcomesKeepTheirMeasurementMeaning" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="13.708" />
+    <testcase name="editingOnlyAProgressNotePreservesItsTinyEnteredValueThroughRestoration" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="10.559" />
+    <testcase name="startDateControlsBackdatedProgressAndSurvivesRestoration" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="30.154" />
+    <testcase name="progressDatePolicyRejectsFutureAndConfirmsOutsideGoalWindow" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="7.118" />
+    <testcase name="archivedInspectorPreservesLifecycleHistoryAndHidesMisleadingPin" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="7.503" />
+    <testcase name="progressFailureKeepsDraftAndSavingBlocksBackAndDuplicateSubmit" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="18.172" />
+    <testcase name="unitChangesPreserveTargetsAndPartialDrafts" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="34.994" />
+    <testcase name="permanentDeleteShowsCompleteImpactAndRequiresRereviewAfterStaleFailure" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="7.194" />
+    <testcase name="leavingAnActionSurfaceClearsItsFailedRequestBeforeOpeningAnotherDialog" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="2.547" />
+    <testcase name="captureGoalComponentCatalog" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="25.099" />
+    <testcase name="deadlineRemovalAndCalculationSettingsSurviveRestoration" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="46.953" />
+    <testcase name="milestoneWeightKeepsPartialDecimalAndValidatesBlankDraft" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="26.295" />
+    <testcase name="milestoneIsEditableOnlyForAnUnarchivedActiveGoal" classname="com.whip.app.ui.GoalSecondaryMutationUiTest" time="5.186" />
+  </testsuite>
+</testsuites>

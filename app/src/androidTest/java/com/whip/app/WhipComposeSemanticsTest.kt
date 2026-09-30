@@ -2,6 +2,8 @@ package com.whip.app
 
 import android.content.Intent
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.hasAnyAncestor
@@ -66,9 +68,11 @@ class WhipComposeSemanticsTest {
     @Test
     fun globalAddAndHabitEditorAreReachableThroughComposeSemantics() {
         val app = ApplicationProvider.getApplicationContext<WhipApplication>()
-        val previousMonthLabel = YearMonth.from(app.clock.today())
-            .minusMonths(1)
-            .format(DateTimeFormatter.ofPattern("MMMM yyyy"))
+        val today = app.clock.today()
+        val firstPlanningMonth = YearMonth.from(today.plusDays(1))
+        val lastPlanningMonth = YearMonth.from(today.plusDays(30))
+        val monthFormatter = DateTimeFormatter.ofPattern("MMMM yyyy", app.resources.configuration.locales[0])
+        val firstMonthLabel = firstPlanningMonth.format(monthFormatter)
         val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
         device.wakeUp()
         device.executeShellCommand("wm dismiss-keyguard")
@@ -86,13 +90,24 @@ class WhipComposeSemanticsTest {
             compose.onNodeWithContentDescription("Cancel Habit editing").performClick()
             compose.onNodeWithContentDescription("Tasks tab").performClick()
             compose.selectTaskCollectionScope("Upcoming")
-            compose.onNodeWithText("Future tasks", substring = true).assertIsDisplayed()
+            compose.onNodeWithTag("task-workspace-list").performScrollToNode(hasText("No Upcoming Tasks"))
+            compose.onNodeWithText("No Upcoming Tasks").assertIsDisplayed()
             compose.selectTaskPlanningLayout("Calendar")
             compose.onNodeWithTag("task-workspace-list").performScrollToNode(hasTestTag("task-calendar"))
-            compose.onNodeWithContentDescription("Previous Month")
-                .performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
-            compose.waitForIdle()
-            compose.onNodeWithText(previousMonthLabel).fetchSemanticsNode()
+            val calendarChild = hasAnyAncestor(hasTestTag("task-calendar"))
+            val previousMonth = compose.onNode(hasContentDescription("Previous Month") and calendarChild)
+            val nextMonth = compose.onNode(hasContentDescription("Next Month") and calendarChild)
+            compose.onNode(hasText(firstMonthLabel) and calendarChild).assertIsDisplayed()
+            previousMonth.assertIsDisplayed().assertIsNotEnabled()
+            if (lastPlanningMonth > firstPlanningMonth) {
+                nextMonth.assertIsDisplayed().assertIsEnabled().performClick()
+                compose.onNode(hasText(lastPlanningMonth.format(monthFormatter)) and calendarChild).assertIsDisplayed()
+                previousMonth.assertIsEnabled().performClick()
+                compose.onNode(hasText(firstMonthLabel) and calendarChild).assertIsDisplayed()
+                previousMonth.assertIsNotEnabled()
+            } else {
+                nextMonth.assertIsDisplayed().assertIsNotEnabled()
+            }
             openSettings()
             openSettingsSection("Appearance & Home")
             compose.onNodeWithTag("settings-list").performScrollToNode(hasText("Home Overview"))

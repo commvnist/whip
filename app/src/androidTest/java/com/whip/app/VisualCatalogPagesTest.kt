@@ -666,11 +666,27 @@ class VisualCatalogPagesTest {
 
     private fun waitForHome(expectedText: String = "Build Your Day") {
         compose.waitUntil(15_000L) {
-            compose.onAllNodesWithTag("home-list").fetchSemanticsNodes().isNotEmpty()
+            if (compose.onAllNodesWithTag("home-list").fetchSemanticsNodes().isEmpty()) {
+                false
+            } else {
+                try {
+                    compose.onNodeWithTag("home-list").performScrollToNode(
+                        androidx.compose.ui.test.hasText(expectedText),
+                    )
+                    true
+                } catch (error: AssertionError) {
+                    // The list exists before its independently loaded domain content settles.
+                    val missingExpectedContent = error.message.orEmpty().let { message ->
+                        message.startsWith("No node found that matches") &&
+                            message.contains("'$expectedText'") &&
+                            message.contains("in scrollable container") &&
+                            message.contains("Tag: 'home-list'")
+                    }
+                    if (!missingExpectedContent) throw error
+                    false
+                }
+            }
         }
-        compose.onNodeWithTag("home-list").performScrollToNode(
-            androidx.compose.ui.test.hasText(expectedText),
-        )
         compose.onNodeWithText(expectedText).assertIsDisplayed()
     }
 

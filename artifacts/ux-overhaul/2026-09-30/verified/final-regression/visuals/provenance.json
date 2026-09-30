@@ -1,0 +1,117 @@
+{
+  "serial": "emulator-5556",
+  "screenPixels": [
+    1080,
+    2400
+  ],
+  "appSha256": "9a210929c30d1fd09970b2e62d8430219f659012a5e2645e0daf8cff7d2fae02",
+  "testSha256": "ec0f8c310e3a6516be571ad396233656e338c8fefe0faab41ad2d6e174950305",
+  "run": "c99AKI",
+  "catalogMethodsPassed": 10,
+  "finalCatalogReplay": "FH9Qew (10/10)",
+  "visualInspection": "Original pixels inspected; common toolbar/content edges and all six bottom tabs visible. Not new product changes from fixture repair.",
+  "captures": [
+    {
+      "sourceBasename": "tasks.today.populated",
+      "files": [
+        {
+          "file": "tasks.today.populated.png",
+          "originalSha256": "2d34306248791c50993a819da579fd1db31e39b97506d3c2ceeffc687d8525dd",
+          "repositorySha256": "2d34306248791c50993a819da579fd1db31e39b97506d3c2ceeffc687d8525dd",
+          "normalization": "original PNG bytes"
+        },
+        {
+          "file": "tasks.today.populated.xml",
+          "originalSha256": "b659285aa6df6f5cb4a4bfed6a5561c60543eb64c583304bc94d452c015acfc9",
+          "repositorySha256": "416266fd7f07a71e94cb15970d905e9a6ad8807c3e9ff286f4f11cdc7f54bf15",
+          "normalization": "CRLF to LF only"
+        }
+      ]
+    },
+    {
+      "sourceBasename": "habits.today.populated",
+      "files": [
+        {
+          "file": "habits.today.populated.png",
+          "originalSha256": "0f8e00ad1a714dbf352ad22f83e60b952fc33ec5018cdf306a0af0de5f9fc4b9",
+          "repositorySha256": "0f8e00ad1a714dbf352ad22f83e60b952fc33ec5018cdf306a0af0de5f9fc4b9",
+          "normalization": "original PNG bytes"
+        },
+        {
+          "file": "habits.today.populated.xml",
+          "originalSha256": "a1e9a2dffdf4c53303b187388bce8663019bf13db4f0a1518a9f6db4839b4063",
+          "repositorySha256": "7ee955bb8d7a1b0a5a70e03c5beab31539fa1f031ca7be0271de597fbdfc4808",
+          "normalization": "CRLF to LF only"
+        }
+      ]
+    },
+    {
+      "sourceBasename": "goals.active.populated",
+      "files": [
+        {
+          "file": "goals.active.populated.png",
+          "originalSha256": "400349ce7acaa2a1d091daf54a521ceb2f05bae91c82628ef8dc886393f2b7a2",
+          "repositorySha256": "400349ce7acaa2a1d091daf54a521ceb2f05bae91c82628ef8dc886393f2b7a2",
+          "normalization": "original PNG bytes"
+        },
+        {
+          "file": "goals.active.populated.xml",
+          "originalSha256": "c855d8e176198b260809d87213bc8ce52bf75aa5bda9a47db93e0dd519dd665a",
+          "repositorySha256": "329e44bcea9ebc5202ef58a31ff97bee51ecab2d797ab6524944e15c9eedc38c",
+          "normalization": "CRLF to LF only"
+        }
+      ]
+    },
+    {
+      "sourceBasename": "tracks.all.populated (1)",
+      "files": [
+        {
+          "file": "tracks.all.populated.png",
+          "originalSha256": "299803fd1ea765c3e93c1557ca16b45374e3f74f0294022c5ded0d24a895babd",
+          "repositorySha256": "299803fd1ea765c3e93c1557ca16b45374e3f74f0294022c5ded0d24a895babd",
+          "normalization": "original PNG bytes"
+        },
+        {
+          "file": "tracks.all.populated.xml",
+          "originalSha256": "bc061b0a3ad0f911af6e5d25871048902d3626edfbeeb7596bec54567501864b",
+          "repositorySha256": "c7c42bdfc92f92879b9142269b2e35930c834c4da5a2aa7eae9ae32245c77b9d",
+          "normalization": "CRLF to LF only"
+        }
+      ]
+    },
+    {
+      "sourceBasename": "gym.workout.populated (1)",
+      "files": [
+        {
+          "file": "gym.workout.populated.png",
+          "originalSha256": "e11f049e2a453208843167c3cd4a030cb5921be02bbc58574a6f151a9feea203",
+          "repositorySha256": "e11f049e2a453208843167c3cd4a030cb5921be02bbc58574a6f151a9feea203",
+          "normalization": "original PNG bytes"
+        },
+        {
+          "file": "gym.workout.populated.xml",
+          "originalSha256": "6b07fae321d6a90153749e06979d16a18665f06efec1dba4d044166946f41a62",
+          "repositorySha256": "2d1bf83098b1b96e226b00f0f3fdc06a050c484dc1bb87ca1616b41213854281",
+          "normalization": "CRLF to LF only"
+        }
+      ]
+    },
+    {
+      "sourceBasename": "shared.home.clear-review",
+      "files": [
+        {
+          "file": "shared.home.clear-review.png",
+          "originalSha256": "06366e1842070d6dbbd20e58972fc04b63199f2d423ff29a9f53b6cf467bebbc",
+          "repositorySha256": "06366e1842070d6dbbd20e58972fc04b63199f2d423ff29a9f53b6cf467bebbc",
+          "normalization": "original PNG bytes"
+        },
+        {
+          "file": "shared.home.clear-review.xml",
+          "originalSha256": "d2aedf7027842519cc798c10cb59e8098aef8207e21b2f23fad5f7df9851a591",
+          "repositorySha256": "a27616d2d02d80b1b5f67e9a556d29b73e7acdb491cd473b0a43d98e8c1349c2",
+          "normalization": "CRLF to LF only"
+        }
+      ]
+    }
+  ]
+}

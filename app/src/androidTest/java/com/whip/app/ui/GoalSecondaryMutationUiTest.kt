@@ -26,6 +26,7 @@ import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasContentDescription
@@ -89,7 +90,9 @@ class GoalSecondaryMutationUiTest {
     @Test @AndroidFontScale fun unitChangesPreserveTargetsAndPartialDrafts() {
         var saved: GoalDraft? = null
         val restoration = StateRestorationTester(compose)
-        val authored = goal().copy(unitId = "kilogram", baseline = 80.123456789, targetMin = 70.0)
+        val authored = goal(type = GoalType.ReduceValue).copy(
+            direction = GoalDirection.Decrease, unitId = "kilogram", baseline = 80.123456789, targetMin = 70.0,
+        )
         restoration.setContent { WhipTheme(dynamicColor = false) {
             GoalEditorDialog(projection(authored), today = TODAY, activeZoneId = ZoneId.of("UTC"),
                 nowMillis = TODAY.atStartOfDay(ZoneId.of("UTC")).toInstant().toEpochMilli(), customUnits = emptyList(),
@@ -223,17 +226,23 @@ class GoalSecondaryMutationUiTest {
             val field = hasText(label, substring = true) and hasSetTextAction()
             compose.onNodeWithTag("goal-editor-fields").performScrollToNode(field)
             compose.onNode(field).performTextReplacement(values.first)
+            compose.onNode(field).assertTextContains(values.first)
             editorControl(hasText("Progress Calculation")).performClick()
             compose.onNodeWithText("Save").performClick()
             compose.runOnIdle { assertNull(saved) }
             compose.onNodeWithTag("goal-editor-fields").performScrollToNode(field)
             compose.onNode(field).assertIsDisplayed().performTextReplacement(values.second)
+            compose.onNode(field).assertTextContains(values.second)
+            closeSoftKeyboard()
         }
         editorControl(hasTestTag("goal-remove-deadline")).performClick()
         restoration.emulateSavedInstanceStateRestore()
         compose.onNodeWithTag("goal-editor-fields").performScrollToNode(hasText("Add Deadline"))
         compose.onNodeWithText("Add Deadline").assertIsDisplayed()
-        compose.onNodeWithText("Save").performClick()
+        editorControl(hasText("Decimal Places (0–6)", substring = true) and hasSetTextAction()).assertTextContains("1")
+        editorControl(hasText("Rolling Days", substring = true) and hasSetTextAction()).assertTextContains("7")
+        closeSoftKeyboard()
+        compose.onNode(hasText("Save") and hasClickAction()).assertIsDisplayed().assertIsEnabled().performClick()
         compose.runOnIdle {
             assertNull(requireNotNull(saved).deadline)
             assertEquals(GoalAggregationPeriod.RollingDays, requireNotNull(saved).aggregationPeriod)
