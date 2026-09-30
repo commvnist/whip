@@ -93,11 +93,11 @@ class HabitDirectExecutionUiTest {
                         compose.onNodeWithText("Set Total").performScrollTo().performClick()
                     }
                     HabitTrackingMode.Duration -> {
-                        compose.onNodeWithText("Start").performScrollTo().performClick()
+                        compose.onNodeWithText("Start Timer").performScrollTo().performClick()
                         compose.onNodeWithText("Enter Duration").performScrollTo().performClick()
                     }
-                    HabitTrackingMode.Rating -> compose.onNodeWithText("Rate").performScrollTo().performClick()
-                    HabitTrackingMode.LogOnly -> compose.onNodeWithText("Log").performScrollTo().performClick()
+                    HabitTrackingMode.Rating -> compose.onNodeWithText("Rate Today").performScrollTo().performClick()
+                    HabitTrackingMode.LogOnly -> compose.onNodeWithText("Add Entry").performScrollTo().performClick()
                 }
                 compose.onAllNodesWithTag("habit-detail-surface").assertCountEquals(0)
                 compose.runOnIdle { assertEquals(0, opened) }
@@ -150,7 +150,7 @@ class HabitDirectExecutionUiTest {
                 }
             }
             compose.waitUntil(10_000) { compose.onAllNodesWithText("Count").fetchSemanticsNodes().isNotEmpty() }
-            listOf("Add Amount" to "2", "Enter Duration" to "30", "Rate" to "4", "Log" to "").forEach { (action, value) ->
+            listOf("Add Amount" to "2", "Enter Duration" to "30", "Rate Today" to "4", "Add Entry" to "").forEach { (action, value) ->
                 compose.onNodeWithText(action).performScrollTo().performClick()
                 compose.onNodeWithTag("habit-value-dialog").assertIsDisplayed()
                 compose.onAllNodesWithTag("habit-detail-surface").assertCountEquals(0)
@@ -166,8 +166,8 @@ class HabitDirectExecutionUiTest {
             assertEquals(4, logs.size)
             assertEquals(2.0, logs.single { it.note == "Direct Add Amount" }.value!!, 0.0)
             assertEquals(30.0, logs.single { it.note == "Direct Enter Duration" }.value!!, 0.0)
-            assertEquals(4.0, logs.single { it.note == "Direct Rate" }.value!!, 0.0)
-            assertNull(logs.single { it.note == "Direct Log" }.value)
+            assertEquals(4.0, logs.single { it.note == "Direct Rate Today" }.value!!, 0.0)
+            assertNull(logs.single { it.note == "Direct Add Entry" }.value)
             assertTrue(logs.all { it.localDate == date })
         } finally {
             runBlocking { app.backupRepository.deleteAllData() }
@@ -212,12 +212,24 @@ class HabitDirectExecutionUiTest {
             item = progress(HabitTrackingMode.Duration).let { it.copy(scheduled = false,
                 habit = it.habit.copy(archived = true, timerStartedAtMillis = 1L, timerSessionId = "timer", timerNeedsReview = true)) }
         }
-        compose.onNodeWithText("Review").performScrollTo().performClick()
+        compose.onNodeWithText("Review Timer").performScrollTo().performClick()
         compose.onAllNodesWithText("Enter Duration").assertCountEquals(0)
+        val running = progress(HabitTrackingMode.Duration).let {
+            it.copy(habit = it.habit.copy(timerStartedAtMillis = 1L, timerSessionId = "running"))
+        }
+        listOf(
+            running.copy(habit = running.habit.copy(paused = true)),
+            running.copy(habit = running.habit.copy(archived = true)),
+            running.copy(scheduled = false),
+        ).forEach { recovery ->
+            compose.runOnIdle { item = recovery }
+            compose.onNodeWithText("Stop & Log").performScrollTo().assertHeightIsAtLeast(48.dp).performClick()
+            compose.onAllNodesWithText("Enter Duration").assertCountEquals(0)
+        }
         compose.runOnIdle { item = ordinary.copy(dayState = HabitDayState.Skipped) }
-        compose.onNodeWithText("Undo").performScrollTo().performClick()
+        compose.onNodeWithText("Undo Skip").performScrollTo().performClick()
         compose.onAllNodesWithText("Add Amount").assertCountEquals(0)
-        compose.runOnIdle { assertEquals(1, quick); assertEquals(1, undo) }
+        compose.runOnIdle { assertEquals(4, quick); assertEquals(1, undo) }
     }
 
     @Test @AndroidFontScale

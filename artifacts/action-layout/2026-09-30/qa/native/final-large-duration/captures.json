@@ -1,0 +1,32 @@
+[
+  {
+    "file": "action-layout.qa.duration-keyboard.large.png",
+    "sha256": "8b4c9f2850edbfd8809071d75a6c1407dada4749726d1a292d04778c3e70d817",
+    "bytes": 166030
+  },
+  {
+    "file": "action-layout.qa.duration-keyboard.large.xml",
+    "sha256": "8a66aa7f57c36b52e797790b108d2c8b3a4b043a69be2d1d78ab51cf6ce3d5b4",
+    "bytes": 56698
+  },
+  {
+    "file": "action-layout.qa.duration-ready.large.png",
+    "sha256": "f5a5a58f2f3e92e373a7119bd5de8cfa46cb041e6cf337bc9a4208202ef3e8fe",
+    "bytes": 182614
+  },
+  {
+    "file": "action-layout.qa.duration-ready.large.xml",
+    "sha256": "adecafe0b55841604ed415755d4032b27f36100af52fa858ac1a6412f28063c8",
+    "bytes": 62364
+  },
+  {
+    "file": "action-layout.qa.duration-saved.large.png",
+    "sha256": "18738ef3d7538fd49f227457ab95b4a840b375327ed95e7f990157cd236d411f",
+    "bytes": 185790
+  },
+  {
+    "file": "action-layout.qa.duration-saved.large.xml",
+    "sha256": "beca4b9fde2487fc00493372a615ae27b96b9b1598b28a46aa931a38a41dae17",
+    "bytes": 66758
+  }
+]

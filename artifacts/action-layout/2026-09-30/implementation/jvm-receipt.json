@@ -1,0 +1,47 @@
+[
+  {
+    "class": "com.whip.app.ui.EditorFeatureIntegrityTest",
+    "tests": "6",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0",
+    "time": "0.212",
+    "timestamp": "2026-09-30T19:31:14.909Z"
+  },
+  {
+    "class": "com.whip.app.ui.HabitPresentationTest",
+    "tests": "8",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0",
+    "time": "0.168",
+    "timestamp": "2026-09-30T19:31:15.130Z"
+  },
+  {
+    "class": "com.whip.app.ui.InteractionConsistencyTest",
+    "tests": "8",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0",
+    "time": "0.606",
+    "timestamp": "2026-09-30T19:31:15.302Z"
+  },
+  {
+    "class": "com.whip.app.ui.SurfaceRoleArchitectureTest",
+    "tests": "2",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0",
+    "time": "0.011",
+    "timestamp": "2026-09-30T19:31:15.910Z"
+  },
+  {
+    "class": "com.whip.app.ui.UiDesignArchitectureTest",
+    "tests": "17",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0",
+    "time": "0.171",
+    "timestamp": "2026-09-30T19:31:15.927Z"
+  }
+]

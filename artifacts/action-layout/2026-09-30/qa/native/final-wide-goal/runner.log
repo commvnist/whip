@@ -1,0 +1,110 @@
+INSTRUMENTATION_STATUS: class=com.whip.app.ui.ActivityActionLayoutUiTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stream=
+com.whip.app.ui.ActivityActionLayoutUiTest:
+INSTRUMENTATION_STATUS: test=goalLoggingCorrectionAndManualCompletionStaySeparate
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.whip.app.ui.ActivityActionLayoutUiTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: Failed: performScrollToNode(TestTag = 'goal-card-2')
+Reason: Expected exactly '1' node but found '2' nodes that satisfy: (ScrollToIndex is defined)
+Nodes found:
+1) Node #233 at (l=120.0, t=66.0, r=600.0, b=1110.0)px, Tag: 'destination-support-content'
+CollectionInfo = 'CollectionInfo(rowCount=3, columnCount=1)'
+IsTraversalGroup = 'true'
+Shape = 'androidx.compose.foundation.VerticalScrollableClipShape@a815302'
+VerticalScrollAxisRange = 'ScrollAxisRange(value=0.0, maxValue=0.0, reverseScrolling=false)'
+Actions = [GetScrollViewportLength, IndexForKey, ScrollBy, ScrollByOffset, ScrollToIndex]
+Has 3 children
+2) Node #247 at (l=602.0, t=357.0, r=1920.0, b=1110.0)px
+CollectionInfo = 'CollectionInfo(rowCount=1, columnCount=1)'
+IsTraversalGroup = 'true'
+Shape = 'androidx.compose.foundation.VerticalScrollableClipShape@a815302'
+VerticalScrollAxisRange = 'ScrollAxisRange(value=0.0, maxValue=0.0, reverseScrolling=false)'
+Actions = [GetScrollViewportLength, IndexForKey, ScrollBy, ScrollByOffset, ScrollToIndex]
+Has 1 child, 3 siblings
+
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+	at androidx.compose.ui.test.ActionsKt.scrollToMatchingDescendantOrReturnScrollable(Actions.kt:278)
+	at androidx.compose.ui.test.ActionsKt.performScrollToNode(Actions.kt:237)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.scrollCard(ActivityActionLayoutUiTest.kt:49)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.card(ActivityActionLayoutUiTest.kt:54)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.assertLeadingCardAction(ActivityActionLayoutUiTest.kt:65)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.goalLoggingCorrectionAndManualCompletionStaySeparate(ActivityActionLayoutUiTest.kt:171)
+
+INSTRUMENTATION_STATUS: stream=
+Error in goalLoggingCorrectionAndManualCompletionStaySeparate(com.whip.app.ui.ActivityActionLayoutUiTest):
+java.lang.AssertionError: Failed: performScrollToNode(TestTag = 'goal-card-2')
+Reason: Expected exactly '1' node but found '2' nodes that satisfy: (ScrollToIndex is defined)
+Nodes found:
+1) Node #233 at (l=120.0, t=66.0, r=600.0, b=1110.0)px, Tag: 'destination-support-content'
+CollectionInfo = 'CollectionInfo(rowCount=3, columnCount=1)'
+IsTraversalGroup = 'true'
+Shape = 'androidx.compose.foundation.VerticalScrollableClipShape@a815302'
+VerticalScrollAxisRange = 'ScrollAxisRange(value=0.0, maxValue=0.0, reverseScrolling=false)'
+Actions = [GetScrollViewportLength, IndexForKey, ScrollBy, ScrollByOffset, ScrollToIndex]
+Has 3 children
+2) Node #247 at (l=602.0, t=357.0, r=1920.0, b=1110.0)px
+CollectionInfo = 'CollectionInfo(rowCount=1, columnCount=1)'
+IsTraversalGroup = 'true'
+Shape = 'androidx.compose.foundation.VerticalScrollableClipShape@a815302'
+VerticalScrollAxisRange = 'ScrollAxisRange(value=0.0, maxValue=0.0, reverseScrolling=false)'
+Actions = [GetScrollViewportLength, IndexForKey, ScrollBy, ScrollByOffset, ScrollToIndex]
+Has 1 child, 3 siblings
+
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+	at androidx.compose.ui.test.ActionsKt.scrollToMatchingDescendantOrReturnScrollable(Actions.kt:278)
+	at androidx.compose.ui.test.ActionsKt.performScrollToNode(Actions.kt:237)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.scrollCard(ActivityActionLayoutUiTest.kt:49)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.card(ActivityActionLayoutUiTest.kt:54)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.assertLeadingCardAction(ActivityActionLayoutUiTest.kt:65)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.goalLoggingCorrectionAndManualCompletionStaySeparate(ActivityActionLayoutUiTest.kt:171)
+
+INSTRUMENTATION_STATUS: test=goalLoggingCorrectionAndManualCompletionStaySeparate
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_RESULT: stream=
+
+Time: 5.652
+There was 1 failure:
+1) goalLoggingCorrectionAndManualCompletionStaySeparate(com.whip.app.ui.ActivityActionLayoutUiTest)
+java.lang.AssertionError: Failed: performScrollToNode(TestTag = 'goal-card-2')
+Reason: Expected exactly '1' node but found '2' nodes that satisfy: (ScrollToIndex is defined)
+Nodes found:
+1) Node #233 at (l=120.0, t=66.0, r=600.0, b=1110.0)px, Tag: 'destination-support-content'
+CollectionInfo = 'CollectionInfo(rowCount=3, columnCount=1)'
+IsTraversalGroup = 'true'
+Shape = 'androidx.compose.foundation.VerticalScrollableClipShape@a815302'
+VerticalScrollAxisRange = 'ScrollAxisRange(value=0.0, maxValue=0.0, reverseScrolling=false)'
+Actions = [GetScrollViewportLength, IndexForKey, ScrollBy, ScrollByOffset, ScrollToIndex]
+Has 3 children
+2) Node #247 at (l=602.0, t=357.0, r=1920.0, b=1110.0)px
+CollectionInfo = 'CollectionInfo(rowCount=1, columnCount=1)'
+IsTraversalGroup = 'true'
+Shape = 'androidx.compose.foundation.VerticalScrollableClipShape@a815302'
+VerticalScrollAxisRange = 'ScrollAxisRange(value=0.0, maxValue=0.0, reverseScrolling=false)'
+Actions = [GetScrollViewportLength, IndexForKey, ScrollBy, ScrollByOffset, ScrollToIndex]
+Has 1 child, 3 siblings
+
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+	at androidx.compose.ui.test.ActionsKt.scrollToMatchingDescendantOrReturnScrollable(Actions.kt:278)
+	at androidx.compose.ui.test.ActionsKt.performScrollToNode(Actions.kt:237)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.scrollCard(ActivityActionLayoutUiTest.kt:49)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.card(ActivityActionLayoutUiTest.kt:54)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.assertLeadingCardAction(ActivityActionLayoutUiTest.kt:65)
+	at com.whip.app.ui.ActivityActionLayoutUiTest.goalLoggingCorrectionAndManualCompletionStaySeparate(ActivityActionLayoutUiTest.kt:171)
+
+FAILURES!!!
+Tests run: 1,  Failures: 1
+
+
+INSTRUMENTATION_CODE: -1

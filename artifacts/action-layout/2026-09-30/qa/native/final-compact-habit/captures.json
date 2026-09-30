@@ -1,0 +1,62 @@
+[
+  {
+    "file": "action-layout.qa.check-in-saved.normal.png",
+    "sha256": "976915f1c9a0aeb909d816d434149f624221dcf8efb4d7a582da9a72975d6c03",
+    "bytes": 151300
+  },
+  {
+    "file": "action-layout.qa.check-in-saved.normal.xml",
+    "sha256": "de9ba4e9ddb4e85432fbd69934ebb3abc0fa33240001a0986b7bac1fee209922",
+    "bytes": 74297
+  },
+  {
+    "file": "action-layout.qa.duration-log.normal (1).png",
+    "sha256": "f377c23aae7f6a134445312360105083a04fd204e20f35c194a2728d1c48602a",
+    "bytes": 134915
+  },
+  {
+    "file": "action-layout.qa.duration-log.normal (1).xml",
+    "sha256": "60bc5346710aa5c3255f1cf933f76894cac6c2b9af5dde8d99bf13e2f71e058d",
+    "bytes": 24114
+  },
+  {
+    "file": "action-layout.qa.duration-ready.normal (1).png",
+    "sha256": "4658ac42dfd694a237155e46863f034680e1c3713818962f688b1a8ad1acf6de",
+    "bytes": 149491
+  },
+  {
+    "file": "action-layout.qa.duration-ready.normal (1).xml",
+    "sha256": "e9e00a3a6b519f5d7a874c697d721e49b798363cc5879332d83f54f0d0f303c7",
+    "bytes": 76566
+  },
+  {
+    "file": "action-layout.qa.habit-saved-return.normal.png",
+    "sha256": "71f494a7f5027d39078362f32da28751d62bbbe1f7341b900d7d70a506ad6223",
+    "bytes": 150086
+  },
+  {
+    "file": "action-layout.qa.habit-saved-return.normal.xml",
+    "sha256": "de9ba4e9ddb4e85432fbd69934ebb3abc0fa33240001a0986b7bac1fee209922",
+    "bytes": 74297
+  },
+  {
+    "file": "action-layout.qa.set-total.normal (1).png",
+    "sha256": "ddb2367dc830fcaf9a091914f8e9afacd32d01864079964eda614894f750f3ce",
+    "bytes": 130391
+  },
+  {
+    "file": "action-layout.qa.set-total.normal (1).xml",
+    "sha256": "936a760bc603446b27c87dca3d3d7975f9b2f5d208e54f7331cbef5337492dfa",
+    "bytes": 24111
+  },
+  {
+    "file": "action-layout.qa.timer-running.normal (1).png",
+    "sha256": "f5d0887aebaad71494cc97eb6eb76fd6ad42d4bbd39a9f3a70d0104c0ea66369",
+    "bytes": 152675
+  },
+  {
+    "file": "action-layout.qa.timer-running.normal (1).xml",
+    "sha256": "68c930081209a81742344cedfdae4f50d547055ea93f58b203aea903c2c60fca",
+    "bytes": 76594
+  }
+]

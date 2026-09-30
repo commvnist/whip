@@ -466,6 +466,7 @@ internal fun ProductivityEditorDialog(
     primary: Boolean = false,
     paneTitle: String = "Editor",
     stableHeight: Boolean = false,
+    leadingActions: Boolean = false,
     inputBlocked: Boolean = false,
     inputBlockedLabel: String = "Saving",
     dismissOnBackPress: Boolean = true,
@@ -531,11 +532,16 @@ internal fun ProductivityEditorDialog(
                         Box(Modifier.weight(1f, fill = stableHeight)) { text() }
                         FlowRow(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.End,
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                            horizontalArrangement = if (leadingActions) Arrangement.spacedBy(WhipSpacing.compact) else Arrangement.End,
+                            verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
                         ) {
-                            dismissButton()
-                            confirmButton()
+                            if (leadingActions) {
+                                confirmButton()
+                                dismissButton()
+                            } else {
+                                dismissButton()
+                                confirmButton()
+                            }
                         }
                     }
                 }
@@ -563,6 +569,7 @@ internal fun PaneAwareAlertDialog(
     dismissButton: @Composable () -> Unit = {},
     paneTitle: String = "Dialog",
     stableHeight: Boolean = false,
+    leadingActions: Boolean = false,
     inputBlocked: Boolean = false,
     inputBlockedLabel: String = "Saving",
     dismissOnBackPress: Boolean = true,
@@ -582,6 +589,7 @@ internal fun PaneAwareAlertDialog(
         dismissButton = dismissButton,
         paneTitle = paneTitle,
         stableHeight = stableHeight,
+        leadingActions = leadingActions,
         inputBlocked = inputBlocked,
         inputBlockedLabel = inputBlockedLabel,
         dismissOnBackPress = dismissOnBackPress,

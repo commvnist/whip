@@ -95,6 +95,30 @@ class HabitPresentationTest {
         assertEquals("millilitre", log.enteredUnitId)
     }
 
+    @Test fun loggingActionsDistinguishNewEntriesFromReplacingThePeriodTotal() {
+        for (mode in listOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal, HabitTrackingMode.Duration)) {
+            val habit = habit(mode)
+            assertEquals("Set Total", habit.valueActionLabel(additive = false))
+            assertEquals(if (mode == HabitTrackingMode.Duration) "Log Duration" else "Add Amount",
+                habit.valueActionLabel(additive = true))
+        }
+        val newEntryLabels = mapOf(
+            HabitTrackingMode.CheckOff to "Record Check-In",
+            HabitTrackingMode.Checklist to "Record Completion",
+            HabitTrackingMode.Duration to "Log Duration",
+            HabitTrackingMode.Count to "Log Progress",
+            HabitTrackingMode.Decimal to "Log Progress",
+            HabitTrackingMode.Rating to "Record Rating",
+            HabitTrackingMode.LogOnly to "Add Entry",
+        )
+        newEntryLabels.forEach { (mode, label) -> assertEquals(label, habit(mode).recordActionLabel()) }
+        assertEquals("Rate Today", habit(HabitTrackingMode.Rating).valueActionLabel(additive = false))
+        assertEquals("Add Entry", habit(HabitTrackingMode.LogOnly).valueActionLabel(additive = false))
+        assertEquals("Enter Duration", habit(HabitTrackingMode.Duration).historyDialogTitle(editing = false, recordingToday = true))
+        assertEquals("Edit Logged Progress", habit(HabitTrackingMode.Duration).historyDialogTitle(editing = true))
+        assertEquals("Set Today's Total", habit(HabitTrackingMode.Duration).todayCheckInTitle())
+    }
+
     private fun habit(mode: HabitTrackingMode) = Habit(
         id = 1,
         uuid = "habit-1",

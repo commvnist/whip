@@ -61,7 +61,7 @@ class DeepProductivityJourneyTest {
             inside("habit-detail-surface", hasText("Set Total")).performClick()
             compose.onNodeWithTag("habit-value-input").performTextReplacement("1")
             closeSoftKeyboard()
-            compose.onNodeWithText("Save", substring = false).performClick()
+            compose.onNodeWithTag("habit-value-save").performClick()
             awaitHabitLogs(3)
             inside("habit-detail-surface", hasText("Undo Last Entry")).performClick()
             awaitHabitLogs(2)

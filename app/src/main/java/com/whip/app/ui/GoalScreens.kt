@@ -37,7 +37,6 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -64,7 +63,6 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.focus.FocusDirection
@@ -930,27 +928,22 @@ fun GoalCard(
         "Target reached".takeIf { projection.offersCompletion() },
     ).joinToString(" · ")
     val elapsedStatus = projection.elapsedDisplayValue(nowMillis, zoneId)
-    val primaryLabel = when {
-        goal.type == GoalType.ElapsedSince -> "Reset"
-        goal.aggregation == GoalAggregation.CompletionCount -> "+1"
-        else -> "Log"
-    }
-    val textMeasurer = rememberTextMeasurer()
-    val primaryTextStyle = LocalTextStyle.current.merge(MaterialTheme.typography.labelLarge)
-    val primaryWidth = with(LocalDensity.current) {
-        val labelWidth = textMeasurer.measure(primaryLabel, style = primaryTextStyle, maxLines = 1).size.width
-        // Material merges the inherited style; padding rounds each edge separately in pixels.
-        (labelWidth + 2 * 4.dp.roundToPx()).toDp().coerceIn(64.dp, 112.dp)
-    }
     val primaryAction: (@Composable () -> Unit)? = when {
         !executable || goal.type == GoalType.WeightedMilestones -> null
         goal.type == GoalType.ElapsedSince -> {{
-            ItemPrimaryTextButton(primaryLabel, onResetElapsed,
-                Modifier.testTag("goal-card-reset-${goal.id}").semantics { contentDescription = "Reset timer for ${goal.name}" })
+            Box(Modifier.testTag("goal-primary-action-${goal.id}")) {
+                WhipButton(onClick = onResetElapsed,
+                    modifier = Modifier.testTag("goal-card-reset-${goal.id}")
+                        .semantics { contentDescription = "Reset timer for ${goal.name}" }) {
+                    Text("Reset Timer")
+                }
+            }
         }}
         else -> {{
-            ItemPrimaryTextButton(primaryLabel, onRecord,
-                Modifier.semantics { contentDescription = if (goal.aggregation == GoalAggregation.CompletionCount) "Record a completion for ${goal.name}" else "Log progress for ${goal.name}" })
+            WhipButton(onClick = onRecord,
+                modifier = Modifier.testTag("goal-primary-action-${goal.id}").semantics {
+                    contentDescription = if (goal.aggregation == GoalAggregation.CompletionCount) "Record a completion for ${goal.name}" else "Log progress for ${goal.name}"
+                }) { Text(goal.recordActionLabel()) }
         }}
     }
     WhipItemCard(
@@ -974,7 +967,6 @@ fun GoalCard(
             emoji = goal.icon,
             identityModifier = Modifier.testTag("goal-icon-${goal.id}"),
             titleModifier = Modifier.testTag("goal-card-title-${goal.id}"),
-            primaryActionModifier = Modifier.testTag("goal-primary-action-${goal.id}"),
             editModifier = Modifier.testTag("goal-edit-action-${goal.id}"),
         ) {
             area(goal.areaId, goal.area)
@@ -1011,10 +1003,17 @@ fun GoalCard(
                 }
             }
             disclosure(expanded = disclosure.expanded, tag = "goal-expand-${goal.id}", onToggle = disclosure.toggle.takeUnless { reorderMode })
-            primaryAction(width = primaryWidth, content = primaryAction)
+            activity {
+                primaryAction?.invoke()
+                if (executable && onComplete != null) WhipOutlinedButton(
+                    onClick = onComplete,
+                    modifier = Modifier.testTag("goal-card-complete-${goal.id}")
+                        .semantics { contentDescription = "Complete goal ${goal.name}" },
+                ) { Text("Complete Goal") }
+            }
 
             expandedContent {
-                projection.progress?.let { progress ->
+                if (goal.type == GoalType.MaintainRange) projection.progress?.let { progress ->
                     val progressColor = if (progress >= 1.0) MaterialTheme.whipColors.success else MaterialTheme.whipColors.action
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -1088,12 +1087,6 @@ fun GoalCard(
         if (executable && goal.type == GoalType.WeightedMilestones) {
             GoalMilestoneChecklist(projection, onToggleMilestone)
         }
-        if (executable && onComplete != null) WhipTextButton(
-            onClick = onComplete,
-            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
-                .testTag("goal-card-complete-${goal.id}")
-                .semantics { contentDescription = "Complete goal ${goal.name}" },
-        ) { Text("Complete Goal") }
     }
 }
 
@@ -1123,7 +1116,7 @@ internal fun GoalCompletionDialog(
             }
         },
         confirmButton = {
-            WhipTextButton(onClick = onComplete, enabled = !saving, modifier = Modifier.testTag("goal-completion-confirm")) {
+            WhipButton(onClick = onComplete, enabled = !saving, modifier = Modifier.testTag("goal-completion-confirm")) {
                 Text(if (saving) "Completing…" else "Complete Goal")
             }
         },
@@ -2430,6 +2423,7 @@ internal fun GoalMeasurementDialog(
     }
     PaneAwareAlertDialog(
         testTag = "goal-measurement-dialog",
+        leadingActions = true,
         onDismissRequest = ::requestDismiss,
         title = { Text(if (entry == null) projection.goal.recordActionLabel() else if (completionEntry) "Edit Completion" else "Edit Progress Update") },
         text = {
@@ -2506,7 +2500,7 @@ internal fun GoalMeasurementDialog(
             }
         },
         confirmButton = {
-            WhipTextButton(
+            WhipButton(
                 enabled = !saving && !dateInFuture,
                 onClick = {
                     validationRequested = true
@@ -2519,8 +2513,11 @@ internal fun GoalMeasurementDialog(
             ) { Text(if (saving) "Saving…" else if (entry == null) projection.goal.recordActionLabel() else "Save Changes") }
         },
         dismissButton = {
-            Row {
-                if (onDelete != null) WhipTextButton(
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
+                verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
+            ) {
+                if (onDelete != null) WhipDestructiveTextButton(
                     enabled = !saving,
                     onClick = { confirmDelete = true },
                     modifier = Modifier.testTag("goal-measurement-delete"),
@@ -2760,6 +2757,7 @@ internal fun GoalActionsDialog(
         connectedSurfaceTag = "goal-detail-surface",
         connectedSectionTagPrefix = "goal-detail-section",
         primaryAction = primaryAction,
+        leadingPrimaryAction = true,
         inputBlocked = mutationSaving,
         inputBlockedLabel = "Updating Goal",
         content = {

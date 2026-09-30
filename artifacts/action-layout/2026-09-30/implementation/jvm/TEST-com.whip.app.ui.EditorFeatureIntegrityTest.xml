@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.whip.app.ui.EditorFeatureIntegrityTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-09-30T19:31:14.909Z" hostname="beast" time="0.212">
+  <properties/>
+  <testcase name="goalEditorDerivesEntryMeaningAvoidsRedundantLoggingAndExplainsRequiredFields" classname="com.whip.app.ui.EditorFeatureIntegrityTest" time="0.113"/>
+  <testcase name="instructionalSettingsPathsMatchTheCurrentInformationArchitecture" classname="com.whip.app.ui.EditorFeatureIntegrityTest" time="0.04"/>
+  <testcase name="tracksExposeTheCompleteTypedFeatureWithoutConnectedCapsOrCosmeticColor" classname="com.whip.app.ui.EditorFeatureIntegrityTest" time="0.007"/>
+  <testcase name="customUnitGuidanceNamesTheRealOwnerAndEditorsCreateUnitsInContext" classname="com.whip.app.ui.EditorFeatureIntegrityTest" time="0.009"/>
+  <testcase name="habitEditorOnlyOffersRulesWithDownstreamBehavior" classname="com.whip.app.ui.EditorFeatureIntegrityTest" time="0.002"/>
+  <testcase name="colorControlsExistOnlyForAFeatureThatRendersItsColor" classname="com.whip.app.ui.EditorFeatureIntegrityTest" time="0.036"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

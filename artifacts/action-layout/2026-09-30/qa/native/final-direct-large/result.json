@@ -1,0 +1,6 @@
+{
+  "selector": "com.whip.app.ui.HabitDirectExecutionUiTest#collectionAndTodayKeepDirectInputsReachableAtLargeText",
+  "passed": true,
+  "exit_code": 0,
+  "captures": 2
+}

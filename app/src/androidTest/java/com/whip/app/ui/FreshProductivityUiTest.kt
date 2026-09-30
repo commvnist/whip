@@ -86,7 +86,7 @@ class FreshProductivityUiTest {
             HabitHistoryLogDialog(progress(habit().copy(trackingMode = HabitTrackingMode.Count)), null,
                 today.minusDays(1), {}, { _, _, _, _ -> saved = true })
         } }
-        compose.onNodeWithText("Record").performClick()
+        compose.onNodeWithText("Log Progress").performClick()
         compose.onNodeWithText("Enter a valid, finite number").assertIsDisplayed()
         compose.runOnIdle { assertFalse(saved) }
     }
@@ -104,7 +104,7 @@ class FreshProductivityUiTest {
         } } }
         compose.onNodeWithText("125%").assertIsDisplayed()
         compose.onNodeWithText("30 → 24 · Target reached").assertIsDisplayed()
-        compose.onNodeWithText("Log").performClick()
+        compose.onNodeWithText("Log Progress").performClick()
         compose.onNodeWithTag("goal-card-complete-2").performClick()
         compose.runOnIdle { assertFalse(opened); assertTrue(logged); assertTrue(completed) }
         captureVisualCatalogSurface("fresh-productivity.goal-reached")
@@ -120,7 +120,7 @@ class FreshProductivityUiTest {
                 }
             }
         } } }
-        listOf("Log" to 2, "Reset" to 3).forEach { (label, id) ->
+        listOf("Log Progress" to 2, "Reset Timer" to 3).forEach { (label, id) ->
             val node = compose.onNodeWithText(label, useUnmergedTree = true)
             node.performScrollTo().assertIsDisplayed()
             val layouts = mutableListOf<TextLayoutResult>()
@@ -140,7 +140,12 @@ class FreshProductivityUiTest {
             assertEquals(label.length, layout.getLineEnd(0, visibleEnd = true))
             val slot = compose.onNodeWithTag("goal-primary-action-$id", useUnmergedTree = true)
                 .assertWidthIsAtLeast(64.dp).assertHeightIsAtLeast(48.dp).getUnclippedBoundsInRoot()
-            assertTrue("$label must leave room for the Goal title", slot.right - slot.left <= 112.dp)
+            val status = compose.onNodeWithTag("goal-card-status-$id", useUnmergedTree = true).getUnclippedBoundsInRoot()
+            val card = compose.onNodeWithTag("goal-card-$id").getUnclippedBoundsInRoot()
+            assertEquals("$label must share the leading status edge", status.left.value, slot.left.value, 0.5f)
+            assertTrue("$label must follow the visible status", slot.top >= status.bottom)
+            assertTrue("$label must stay inside its card", slot.left >= card.left && slot.right <= card.right)
+            assertTrue("$label must retain natural width", slot.right - slot.left < card.right - card.left)
         }
         captureVisualCatalogSurface("fresh-productivity.goal-actions.large")
     }

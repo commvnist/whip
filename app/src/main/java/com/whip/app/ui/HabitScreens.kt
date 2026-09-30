@@ -1059,6 +1059,7 @@ internal fun HabitTimerReviewDialog(
     var reviewViewport by remember { mutableStateOf(IntSize.Zero) }
     val minutesVisibility = rememberFocusedInputVisibility(reviewViewport)
     PaneAwareAlertDialog(
+        leadingActions = true,
         onDismissRequest = onDismiss,
         title = { Text("Review Timer") },
         text = {
@@ -1092,7 +1093,7 @@ internal fun HabitTimerReviewDialog(
             }
         },
         confirmButton = {
-            WhipTextButton(
+            WhipButton(
                 enabled = seconds != null,
                 onClick = { seconds?.let(onStopAndLog) },
                 modifier = Modifier.testTag("habit-timer-review-stop"),
@@ -1150,36 +1151,43 @@ fun HabitProgressCard(
     val density = LocalDensity.current
     fun primaryLabelWidth(label: String) = with(density) {
         (textMeasurer.measure(label, style = primaryTextStyle, maxLines = 1).size.width +
-            2 * 4.dp.roundToPx()).toDp()
+            2 * 12.dp.roundToPx()).toDp()
     }
     val primaryLabel = when {
-        skipped -> "Undo"
-        habit.trackingMode == HabitTrackingMode.Duration -> when {
-            habit.timerStartedAtMillis == null -> "Start"
-            habit.timerNeedsReview -> "Review"
-            else -> "Stop"
-        }
+        skipped -> "Undo Skip"
         habit.trackingMode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal) ->
             numericPrimaryLabel.takeIf { primaryLabelWidth(it) <= 112.dp } ?: "Add"
-        habit.trackingMode == HabitTrackingMode.Rating -> "Rate"
-        else -> "Log"
+        else -> item.inspectorPrimaryActionLabel(customUnits)
     }
-    val primaryWidth = primaryLabelWidth(primaryLabel).coerceIn(64.dp, 112.dp)
     val primaryAction: (@Composable () -> Unit)? = when {
-        reorderMode -> null
-        unavailableForCheckIn -> null
-        skipped -> {{ ItemPrimaryTextButton(primaryLabel, onUndoSkip) }}
+        reorderMode || unavailableForCheckIn -> null
+        skipped -> {{
+            WhipButton(onClick = onUndoSkip, modifier = Modifier.testTag("habit-primary-action-${habit.id}")) {
+                Text(primaryLabel)
+            }
+        }}
         habit.sourceMeasurementId != null -> null
         habit.trackingMode in setOf(HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist) -> {{
-            WhipCompletionCheckbox(
-                checked = item.successful == true,
-                onCheckedChange = { onQuick() },
-                modifier = Modifier.semantics {
-                    contentDescription = if (item.successful == true) {
-                        "Mark habit ${habit.name} incomplete"
-                    } else "Check off habit ${habit.name}"
-                },
-            )
+            Row(
+                modifier = Modifier.heightIn(min = 48.dp)
+                    .testTag("habit-primary-action-${habit.id}")
+                    .toggleable(value = item.successful == true, role = Role.Checkbox, onValueChange = { onQuick() })
+                    .semantics {
+                        contentDescription = if (item.successful == true) {
+                            "Mark habit ${habit.name} incomplete"
+                        } else "Check off habit ${habit.name}"
+                    }
+                    .padding(end = WhipSpacing.compact),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                WhipCompletionCheckbox(
+                    checked = item.successful == true,
+                    onCheckedChange = null,
+                    modifier = Modifier.clearAndSetSemantics {},
+                )
+                Spacer(Modifier.width(WhipSpacing.compact))
+                Text(if (item.successful == true) "Undo Check-In" else "Check In", style = MaterialTheme.typography.labelLarge)
+            }
         }}
         habit.trackingMode == HabitTrackingMode.Duration -> {{
             val actionDescription = when {
@@ -1187,15 +1195,17 @@ fun HabitProgressCard(
                 habit.timerNeedsReview -> "Review timer for ${habit.name}; ${formatElapsedDurationSpoken(timerElapsedSeconds)} estimated"
                 else -> "Stop and log ${habit.name}; ${formatElapsedDurationSpoken(timerElapsedSeconds)} elapsed"
             }
-            ItemPrimaryTextButton(primaryLabel, onQuick, Modifier.semantics { contentDescription = actionDescription })
+            WhipButton(onClick = onQuick, modifier = Modifier.testTag("habit-primary-action-${habit.id}")
+                .semantics { contentDescription = actionDescription }) { Text(primaryLabel) }
         }}
         habit.trackingMode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal) -> {{
-            ItemPrimaryTextButton(primaryLabel, { onQuickValue(habit.quickIncrement) }, Modifier.semantics {
-                contentDescription = "Add ${plainNumericValue(habit.quickIncrement)} ${habit.unitSymbol(customUnits)} to ${habit.name}".replace("  ", " ")
-            })
+            WhipButton(onClick = { onQuickValue(habit.quickIncrement) },
+                modifier = Modifier.widthIn(max = 112.dp).testTag("habit-primary-action-${habit.id}").semantics {
+                    contentDescription = "Add ${plainNumericValue(habit.quickIncrement)} ${habit.unitSymbol(customUnits)} to ${habit.name}".replace("  ", " ")
+                }, contentPadding = PaddingValues(horizontal = 12.dp)) { Text(primaryLabel) }
         }}
         else -> {{
-            ItemPrimaryTextButton(primaryLabel, onQuick)
+            WhipButton(onClick = onQuick, modifier = Modifier.testTag("habit-primary-action-${habit.id}")) { Text(primaryLabel) }
         }}
     }
     WhipItemCard(
@@ -1221,7 +1231,6 @@ fun HabitProgressCard(
             emoji = habit.icon,
             identityModifier = Modifier.testTag("habit-icon-${habit.id}"),
             titleModifier = Modifier.testTag("habit-card-title-${habit.id}"),
-            primaryActionModifier = Modifier.testTag("habit-primary-action-${habit.id}"),
             editModifier = Modifier.testTag("habit-edit-action-${habit.id}"),
             compact = management,
         ) {
@@ -1253,7 +1262,24 @@ fun HabitProgressCard(
                 )
             }
             if (!management) disclosure(expanded = disclosure.expanded, tag = "habit-expand-${habit.id}", onToggle = disclosure.toggle.takeUnless { reorderMode })
-            primaryAction(width = if (habit.trackingMode in setOf(HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist)) 64.dp else primaryWidth, content = primaryAction)
+            activity {
+                primaryAction?.invoke()
+                if (!reorderMode && !skipped && !unavailableForCheckIn && habit.sourceMeasurementId == null &&
+                    !habit.archived && !habit.paused && item.scheduled && item.date == LocalWhipToday.current) {
+                    when (habit.trackingMode) {
+                        HabitTrackingMode.Duration -> onAddAmount?.let { add ->
+                            WhipOutlinedButton(onClick = add, modifier = Modifier.testTag("habit-manual-duration-${habit.id}")) {
+                                Text("Enter Duration")
+                            }
+                        }
+                        HabitTrackingMode.Count, HabitTrackingMode.Decimal -> HabitNumericActions(
+                            item, customUnits, onQuickValue, onSetValue, onAddAmount, onDecrement, onUndo, canUndo,
+                            includePrimaryIncrement = numericPrimaryLabel != primaryLabel,
+                        )
+                        else -> Unit
+                    }
+                }
+            }
 
             expandedContent {
                 if (skipped) {
@@ -1340,16 +1366,7 @@ fun HabitProgressCard(
         if (!reorderMode && !skipped && !unavailableForCheckIn && habit.sourceMeasurementId == null &&
             !habit.archived && !habit.paused && item.scheduled && item.date == LocalWhipToday.current) {
             when (habit.trackingMode) {
-                HabitTrackingMode.Count, HabitTrackingMode.Decimal -> HabitNumericActions(
-                    item, customUnits, onQuickValue, onSetValue, onAddAmount, onDecrement, onUndo, canUndo,
-                    includePrimaryIncrement = numericPrimaryLabel != primaryLabel,
-                )
                 HabitTrackingMode.Checklist -> HabitChecklist(item, onChecklist, showProgress = !management && disclosure.expanded)
-                HabitTrackingMode.Duration -> onAddAmount?.let { add ->
-                    WhipTextButton(onClick = add, modifier = Modifier.testTag("habit-manual-duration-${habit.id}")) {
-                        Text("Enter Duration")
-                    }
-                }
                 else -> Unit
             }
         }
@@ -2877,8 +2894,10 @@ internal fun HabitValueDialog(
     val validValue = if (logOnly) value.isBlank() || parsedValue?.isFinite() == true else parsedValue?.isFinite() == true
     PaneAwareAlertDialog(
         testTag = "habit-value-dialog",
+        leadingActions = true,
         onDismissRequest = ::requestDismiss,
-        title = { Text(if (additive) "Add Amount" else item.habit.todayCheckInTitle()) },
+        title = { Text(if (additive && item.habit.trackingMode == HabitTrackingMode.Duration) "Enter Duration"
+            else if (additive) "Add Amount" else item.habit.todayCheckInTitle()) },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
@@ -2898,6 +2917,7 @@ internal fun HabitValueDialog(
                     value,
                     { value = it },
                     if (setsPeriodTotal) item.habit.periodTotalAmountLabel(customUnits)
+                    else if (additive && item.habit.trackingMode == HabitTrackingMode.Duration) "Duration to Add (${item.habit.unitSymbol(customUnits)})"
                     else if (additive) "Amount to Add (${item.habit.unitSymbol(customUnits)})"
                     else item.habit.historyAmountLabel(optional = logOnly, customUnits = customUnits),
                     modifier = Modifier.testTag("habit-value-input"),
@@ -2931,11 +2951,11 @@ internal fun HabitValueDialog(
             }
         },
         confirmButton = {
-            WhipTextButton(
+            WhipButton(
                 enabled = !saving,
                 onClick = { validationRequested = true; if (validValue) onLog(parsedValue, note) },
                 modifier = Modifier.testTag("habit-value-save"),
-            ) { Text(if (saving) "Saving…" else if (additive) "Add Amount" else if (logOnly) "Add Entry" else "Save") }
+            ) { Text(if (saving) "Saving…" else item.habit.valueActionLabel(additive)) }
         },
         dismissButton = { WhipTextButton(enabled = !saving, onClick = ::requestDismiss) { Text("Cancel") } },
         inputBlocked = saving,
@@ -2990,6 +3010,7 @@ internal fun HabitHistoryLogDialog(
     }
     PaneAwareAlertDialog(
         testTag = "habit-history-dialog",
+        leadingActions = true,
         onDismissRequest = ::requestDismiss,
         title = { Text(item.habit.historyDialogTitle(editing = log != null, recordingToday = recordingToday)) },
         text = {
@@ -3044,11 +3065,11 @@ internal fun HabitHistoryLogDialog(
             }
         },
         confirmButton = {
-            WhipTextButton(
+            WhipButton(
                 enabled = dateIsValid && !saving,
                 onClick = {
                     validationRequested = true
-                    if (!amountIsValid) return@WhipTextButton
+                    if (!amountIsValid) return@WhipButton
                     val effectiveValue = if (showsAmount) parsedValue else if (log != null) log.value else 1.0
                     val effectiveStatus = log?.status ?: when (mode) {
                         HabitTrackingMode.CheckOff, HabitTrackingMode.Checklist -> HabitLogStatus.Success
@@ -3056,10 +3077,13 @@ internal fun HabitHistoryLogDialog(
                     }
                     onSave(effectiveValue, effectiveStatus, date, note)
                 },
-            ) { Text(if (saving) "Saving…" else if (log == null) "Record" else "Save Changes") }
+            ) { Text(if (saving) "Saving…" else if (log == null) item.habit.recordActionLabel() else "Save Changes") }
         },
         dismissButton = {
-            Row {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
+                verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
+            ) {
                 if (onDelete != null) WhipDestructiveTextButton(enabled = !saving, onClick = { confirmDelete = true }) {
                     Text("Delete")
                 }
@@ -3194,6 +3218,7 @@ internal fun HabitActionsDialog(
         connectedSurfaceTag = "habit-detail-surface",
         connectedSectionTagPrefix = "habit-detail-section",
         primaryAction = primaryAction,
+        leadingPrimaryAction = true,
         inputBlocked = mutationSaving,
         inputBlockedLabel = "Updating Habit",
         content = {
@@ -3250,7 +3275,7 @@ internal fun HabitActionsDialog(
                             if (item.habit.trackingMode == HabitTrackingMode.Duration && item.habit.sourceMeasurementId == null) {
                                 EntityInspectorAction(
                                     id = "enter-duration-manually",
-                                    label = "Enter Duration Manually",
+                                    label = "Enter Duration",
                                     onClick = onEnterDurationManually,
                                     enabled = newEntryUnavailable == null,
                                     supportingText = newEntryUnavailable ?: "Record a duration when you forgot to start the timer.",
@@ -3631,6 +3656,22 @@ private fun HabitDayProgress.inspectorOutsideScheduleActionLabel(): String = whe
     HabitTrackingMode.LogOnly -> "Add Entry Outside Schedule"
 }
 
+internal fun Habit.recordActionLabel(): String = when (trackingMode) {
+    HabitTrackingMode.Duration -> "Log Duration"
+    HabitTrackingMode.CheckOff -> "Record Check-In"
+    HabitTrackingMode.Checklist -> "Record Completion"
+    HabitTrackingMode.Rating -> "Record Rating"
+    HabitTrackingMode.LogOnly -> "Add Entry"
+    HabitTrackingMode.Count, HabitTrackingMode.Decimal -> "Log Progress"
+}
+
+internal fun Habit.valueActionLabel(additive: Boolean): String = when {
+    additive -> if (trackingMode == HabitTrackingMode.Duration) "Log Duration" else "Add Amount"
+    trackingMode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal, HabitTrackingMode.Duration) -> "Set Total"
+    trackingMode == HabitTrackingMode.Rating -> "Rate Today"
+    else -> recordActionLabel()
+}
+
 internal fun Habit.todayCheckInTitle(): String = when (trackingMode) {
     HabitTrackingMode.Rating -> "Rate Today"
     HabitTrackingMode.LogOnly -> "Add an Entry"
@@ -3678,7 +3719,7 @@ internal fun Habit.historyDialogTitle(editing: Boolean, recordingToday: Boolean 
     }
 } else if (recordingToday) {
     when (trackingMode) {
-        HabitTrackingMode.Duration -> "Enter Duration Manually"
+        HabitTrackingMode.Duration -> "Enter Duration"
         HabitTrackingMode.CheckOff -> "Record Check-In"
         HabitTrackingMode.Checklist -> "Record Completion"
         HabitTrackingMode.Rating -> "Record Rating"

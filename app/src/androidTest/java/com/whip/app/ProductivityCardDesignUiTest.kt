@@ -537,15 +537,15 @@ class ProductivityCardDesignUiTest {
         compose.onAllNodesWithText("Finish the annual reading list.").assertCountEquals(0)
 
         compose.onNodeWithText("+1").performScrollTo().performClick()
-        compose.onNodeWithText("Log").performScrollTo().performClick()
+        compose.onNodeWithText("Log Progress").performScrollTo().performClick()
         compose.onNodeWithTag("habit-expand-6", useUnmergedTree = true).performScrollTo().performClick()
-        compose.onNodeWithText("2 · at least 8", substring = true).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("habit-card-status-6", useUnmergedTree = true).performScrollTo().assertTextContains("2 · at least 8", substring = true)
         compose.onNodeWithText("−1").performScrollTo().performClick()
         compose.onNodeWithText("Set Total").performScrollTo().performClick()
         compose.onNodeWithText("Undo Last Entry").performScrollTo().performClick()
 
         compose.onNodeWithTag("goal-expand-7", useUnmergedTree = true).performScrollTo().performClick()
-        compose.onNodeWithText("2 · at least 8", substring = true).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("habit-card-status-6", useUnmergedTree = true).performScrollTo().assertTextContains("2 · at least 8", substring = true)
         compose.onNodeWithContentDescription("Collapse habit Drink water").assertIsDisplayed()
         compose.onNodeWithContentDescription("Collapse goal Read 50 books").assertIsDisplayed()
         compose.onNodeWithText("Current 25 → target 50").performScrollTo().assertIsDisplayed()
@@ -716,10 +716,10 @@ class ProductivityCardDesignUiTest {
             }
         }
 
-        compose.onNodeWithText("Start").performScrollTo().performClick()
+        compose.onNodeWithText("Start Timer").performScrollTo().performClick()
         compose.onNodeWithText("Skipped · streak protected").performScrollTo().assertIsDisplayed()
         compose.onAllNodesWithText("Skipped Today · Streak Protected").assertCountEquals(0)
-        compose.onNodeWithText("Undo").performScrollTo().performClick()
+        compose.onNodeWithText("Undo Skip").performScrollTo().performClick()
         compose.onNodeWithText("Linked measurement").performScrollTo().assertIsDisplayed()
         compose.onAllNodesWithText("Activity from a linked measurement.").assertCountEquals(0)
         compose.onNodeWithTag("habit-expand-13", useUnmergedTree = true).performScrollTo().performClick()

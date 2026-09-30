@@ -96,6 +96,7 @@ internal fun EntityInspector(
     connectedSurfaceTag: String? = null,
     connectedSectionTagPrefix: String? = null,
     primaryAction: EntityInspectorPrimaryAction? = null,
+    leadingPrimaryAction: Boolean = false,
     inputBlocked: Boolean = false,
     inputBlockedLabel: String = "Saving",
     stateKey: String? = null,
@@ -174,17 +175,19 @@ internal fun EntityInspector(
                     }
                     primaryAction?.let { action ->
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                        Surface(color = MaterialTheme.colorScheme.surfaceContainerLow) {
-                            WhipButton(
-                                onClick = action.onClick,
-                                enabled = action.enabled,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 20.dp, vertical = 12.dp)
-                                    .heightIn(min = 48.dp)
-                                    .testTag("entity-inspector-primary-${action.id}"),
-                            ) {
-                                Text(action.label, fontWeight = FontWeight.SemiBold)
+                        Surface(modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surfaceContainerLow) {
+                            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
+                                WhipButton(
+                                    onClick = action.onClick,
+                                    enabled = action.enabled,
+                                    modifier = Modifier
+                                        .then(if (leadingPrimaryAction) Modifier else Modifier.fillMaxWidth())
+                                        .padding(horizontal = 20.dp, vertical = 12.dp)
+                                        .heightIn(min = 48.dp)
+                                        .testTag("entity-inspector-primary-${action.id}"),
+                                ) {
+                                    Text(action.label, fontWeight = FontWeight.SemiBold)
+                                }
                             }
                         }
                     }

@@ -1,0 +1,74 @@
+[
+  {
+    "selector": "com.whip.app.ProductivityCardDesignUiTest#timerReviewDialogSupportsCorrectionContinueStopAndDiscardAtNarrowWidth",
+    "command": [
+      "adb",
+      "-s",
+      "emulator-5556",
+      "shell",
+      "am",
+      "instrument",
+      "-w",
+      "-r",
+      "-e",
+      "class",
+      "com.whip.app.ProductivityCardDesignUiTest#timerReviewDialogSupportsCorrectionContinueStopAndDiscardAtNarrowWidth",
+      "commvne.com.whip.app.debug.test/androidx.test.runner.AndroidJUnitRunner"
+    ],
+    "serial": "emulator-5556",
+    "started_utc": "2026-09-30T19:52:46.472362+00:00",
+    "elapsed_seconds": 15.102,
+    "exit_code": 0,
+    "timeout": false,
+    "accepted": true,
+    "raw_log": "artifacts/action-layout/2026-09-30/implementation/native-v2/01-timerReviewDialogSupportsCorrectionContinueStopAndDiscardAtNarrowWidth.log",
+    "raw_sha256": "4f3b3b22f0359c0fb8a64d5261052bc8e6c5c06aab39d0baeddec01b0fea28a3",
+    "captures": [
+      {
+        "path": "artifacts/action-layout/2026-09-30/implementation/native-v2/habits.timer-review (1).png",
+        "sha256": "5789eb7a75cf72156ad9e97c3c078166c1f0812c4b477fc15b3eb16bfa422e47"
+      },
+      {
+        "path": "artifacts/action-layout/2026-09-30/implementation/native-v2/habits.timer-review (1).xml",
+        "sha256": "74f12657f893406322a00f2e97b50ef8d217c3c8cf2a088b87451c064a8c10ad"
+      }
+    ],
+    "frozen_receipt": "artifacts/action-layout/2026-09-30/implementation/frozen-receipt-v2.json"
+  },
+  {
+    "selector": "com.whip.app.ui.HabitUxPresentationUiTest#timerReviewKeepsEditableEstimateAndActionsReachableWithKeyboard",
+    "command": [
+      "adb",
+      "-s",
+      "emulator-5556",
+      "shell",
+      "am",
+      "instrument",
+      "-w",
+      "-r",
+      "-e",
+      "class",
+      "com.whip.app.ui.HabitUxPresentationUiTest#timerReviewKeepsEditableEstimateAndActionsReachableWithKeyboard",
+      "commvne.com.whip.app.debug.test/androidx.test.runner.AndroidJUnitRunner"
+    ],
+    "serial": "emulator-5556",
+    "started_utc": "2026-09-30T19:53:01.799790+00:00",
+    "elapsed_seconds": 12.839,
+    "exit_code": 0,
+    "timeout": false,
+    "accepted": true,
+    "raw_log": "artifacts/action-layout/2026-09-30/implementation/native-v2/02-timerReviewKeepsEditableEstimateAndActionsReachableWithKeyboard.log",
+    "raw_sha256": "04485eaad89647d7bb4bed3ebd9a49832323a3207ebe3cc44bccd7b700bfb7b6",
+    "captures": [
+      {
+        "path": "artifacts/action-layout/2026-09-30/implementation/native-v2/ux-upgrades.habits-timer-review.large.png",
+        "sha256": "e52ca03b1eae4851e59fc0a2fc0ea7814df36c1ea4ad4295ce57b7ff10c48cc1"
+      },
+      {
+        "path": "artifacts/action-layout/2026-09-30/implementation/native-v2/ux-upgrades.habits-timer-review.large.xml",
+        "sha256": "d50cbe7484f8c7d030d4c3153425d2102768395a04834fa20937cbbab808fff3"
+      }
+    ],
+    "frozen_receipt": "artifacts/action-layout/2026-09-30/implementation/frozen-receipt-v2.json"
+  }
+]

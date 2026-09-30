@@ -1,0 +1,42 @@
+[
+  {
+    "file": "action-layout.qa.duration-log.normal.png",
+    "sha256": "f9c1d0ef497538156478eaffde371569e0c4c41c580696c5e19cc3a3e26de5d5",
+    "bytes": 136836
+  },
+  {
+    "file": "action-layout.qa.duration-log.normal.xml",
+    "sha256": "709a873ff502810170a6d9ea2e36428b92eb5438cdb68c4adf698e51c5e95257",
+    "bytes": 24113
+  },
+  {
+    "file": "action-layout.qa.duration-ready.normal.png",
+    "sha256": "9bfbb24c0845c31ff5c2e80eabc4c06a22d45048905eb8732d252516c3e4aeab",
+    "bytes": 157093
+  },
+  {
+    "file": "action-layout.qa.duration-ready.normal.xml",
+    "sha256": "a62bf325ba4d7c0ce751ea24dd2b3c1a98f72b61b6365651257f422eb2132eb1",
+    "bytes": 75243
+  },
+  {
+    "file": "action-layout.qa.set-total.normal.png",
+    "sha256": "bb93b543cc23dc7d981a166b6ed755aedcabd6abc35542e9cf54d04cd70239b5",
+    "bytes": 130538
+  },
+  {
+    "file": "action-layout.qa.set-total.normal.xml",
+    "sha256": "374ddd4755c6e402d32f1a8af6dae5d3bf84a9a5ef9ab2e1e4a701a1a06fc942",
+    "bytes": 24111
+  },
+  {
+    "file": "action-layout.qa.timer-running.normal.png",
+    "sha256": "d0051af6138f18177463b3afc52c826c2baeff3158ab027a2f25862714e0e74e",
+    "bytes": 160335
+  },
+  {
+    "file": "action-layout.qa.timer-running.normal.xml",
+    "sha256": "a21df980cab440377b98ffb0b4ca6cd0c8d056f1bbb6b47b0b409bfc5d1f22b1",
+    "bytes": 75272
+  }
+]

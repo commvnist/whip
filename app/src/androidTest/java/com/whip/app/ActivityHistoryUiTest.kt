@@ -100,7 +100,7 @@ class ActivityHistoryUiTest {
             .assertIsDisplayed()
         compose.onAllNodesWithText("State").assertCountEquals(0)
         compose.onAllNodesWithText("Value", substring = true).assertCountEquals(0)
-        compose.onNodeWithText("Record").assertIsEnabled().performClick()
+        compose.onNodeWithText("Record Check-In").assertIsEnabled().performClick()
         assertEquals(1.0, savedValue ?: 0.0, 0.0)
         assertEquals(HabitLogStatus.Success, savedStatus)
     }
@@ -123,7 +123,7 @@ class ActivityHistoryUiTest {
         compose.onNodeWithText("Add an Earlier Entry").assertIsDisplayed()
         compose.onNodeWithText("Number · optional").assertIsDisplayed()
         compose.onNodeWithText("What happened? (optional)").assertIsDisplayed()
-        compose.onNodeWithText("Record").assertIsEnabled().performClick()
+        compose.onNodeWithText("Add Entry").assertIsEnabled().performClick()
         assertNull(savedValue)
     }
 

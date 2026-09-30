@@ -1,0 +1,16 @@
+[
+  {
+    "serial": "emulator-5556",
+    "package": "commvne.com.whip.app.debug",
+    "installed_path": "/data/app/~~KS7ofLIgzOao4uhX9u0UXw==/commvne.com.whip.app.debug-RWKMht3yqVTwVKLfDV3Rmw==/base.apk",
+    "sha256": "3cc019a94838fa488ab2b07f7a0950e537b7c963de69ab401909367b3cb50024",
+    "matches_frozen_v2": true
+  },
+  {
+    "serial": "emulator-5556",
+    "package": "commvne.com.whip.app.debug.test",
+    "installed_path": "/data/app/~~Ce2DRG9s-Cmr_ucAqKFwGw==/commvne.com.whip.app.debug.test-GTZKi69mdyfOkK9pe_mBWg==/base.apk",
+    "sha256": "117f101d0ecaa17fb1fbb1a9517c388c507c0f0e517abccd26ae40b63fca1a37",
+    "matches_frozen_v2": true
+  }
+]

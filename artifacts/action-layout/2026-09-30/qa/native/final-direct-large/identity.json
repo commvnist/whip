@@ -1,0 +1,13 @@
+{
+  "ro.boot.qemu": "1",
+  "ro.build.version.sdk": "34",
+  "ro.build.fingerprint": "google/sdk_gphone64_x86_64/emu64xa:14/UE1A.230829.050/12077443:userdebug/dev-keys",
+  "serial": "emulator-5558",
+  "avd": "whip_api34_qa3",
+  "selector": "com.whip.app.ui.HabitDirectExecutionUiTest#collectionAndTodayKeepDirectInputsReachableAtLargeText",
+  "font_scale": "1.0",
+  "size": "Physical size: 1080x2400",
+  "density": "Physical density: 420",
+  "commvne.com.whip.app.debug": "3cc019a94838fa488ab2b07f7a0950e537b7c963de69ab401909367b3cb50024",
+  "commvne.com.whip.app.debug.test": "117f101d0ecaa17fb1fbb1a9517c388c507c0f0e517abccd26ae40b63fca1a37"
+}

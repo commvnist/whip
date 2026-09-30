@@ -41,6 +41,7 @@ internal class WhipProductivityItemScope internal constructor() {
     internal var notice: (@Composable () -> Unit)? = null
     internal var disclosure: WhipItemDisclosure? = null
     internal var primary: WhipItemPrimaryAction? = null
+    internal var activity: (@Composable () -> Unit)? = null
     internal var expandedBody: (@Composable ColumnScope.() -> Unit)? = null
 
     fun area(id: String?, name: String) { area = id?.let { it to name } }
@@ -55,6 +56,8 @@ internal class WhipProductivityItemScope internal constructor() {
     fun primaryAction(width: Dp = 64.dp, content: (@Composable () -> Unit)?) {
         primary = content?.let { WhipItemPrimaryAction(width, it) }
     }
+    /** Leading execution controls, after visible status and before disclosed detail. */
+    fun activity(content: @Composable () -> Unit) { activity = content }
     /** Domain inputs/metrics retain their behavior inside a single ordered expanded body. */
     fun expandedContent(content: @Composable ColumnScope.() -> Unit) { expandedBody = content }
 }
@@ -109,10 +112,18 @@ internal fun WhipProductivityItemContent(
                 Box(primaryActionModifier.width(action.width).heightIn(min = 48.dp), contentAlignment = Alignment.Center) { action.content() }
             }
         }
-        if (compact || (disclosure != null && !disclosure.expanded)) {
+        if (item.activity != null || compact || (disclosure != null && !disclosure.expanded)) {
             InformationLines(item.summary)
             item.summaryContent?.invoke()
-        } else {
+        }
+        item.activity?.let { actions ->
+            FlowRow(
+                modifier = Modifier.fillMaxWidth().padding(top = WhipSpacing.micro),
+                horizontalArrangement = Arrangement.spacedBy(WhipSpacing.compact),
+                verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
+            ) { actions() }
+        }
+        if (!compact && (disclosure == null || disclosure.expanded)) {
             if (disclosure != null) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(WhipCardGeometry.contentGap)) {
                 ProductivityItemInformationColumn {

@@ -1,0 +1,21 @@
+{
+  "head": "4b4bf66d3c3dc644d2b9c2fe64d31a4b3adae27d",
+  "source_manifest_sha256": "c3086cd7ee4e98734ad477ac12e4a1eb12e0a22d10653d21384e200912d09bd8",
+  "source_file_count": 564,
+  "changed_inputs_from_initial": [
+    "app/src/androidTest/java/com/whip/app/ui/ActivityActionLayoutUiTest.kt",
+    "app/src/main/java/com/whip/app/ui/HabitScreens.kt"
+  ],
+  "apks": {
+    "app-debug.apk": {
+      "path": "/root/repos/whip/build/action-layout/2026-09-30/frozen-v2/app-debug.apk",
+      "sha256": "3cc019a94838fa488ab2b07f7a0950e537b7c963de69ab401909367b3cb50024",
+      "bytes": 44726920
+    },
+    "app-debug-androidTest.apk": {
+      "path": "/root/repos/whip/build/action-layout/2026-09-30/frozen-v2/app-debug-androidTest.apk",
+      "sha256": "117f101d0ecaa17fb1fbb1a9517c388c507c0f0e517abccd26ae40b63fca1a37",
+      "bytes": 11086901
+    }
+  }
+}
