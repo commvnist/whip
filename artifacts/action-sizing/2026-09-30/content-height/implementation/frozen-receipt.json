@@ -1,0 +1,39 @@
+{
+  "head": "2bdf490639a7a81f29730bb6389b63abe443b590",
+  "production_base": "47e61384e087692b9a745449eaa7a8133f9bba6e",
+  "source_manifest_path": "/root/repos/whip/artifacts/action-sizing/2026-09-30/content-height/implementation/source-manifest.json",
+  "source_manifest_sha256": "342ae7f2774073e554be5e572f2aa20890a32c00ed7417b42d4fe1d0caf64b0c",
+  "source_file_count": 563,
+  "changed_inputs_from_80dp_pair": [
+    "app/src/androidTest/java/com/whip/app/ui/ActivityActionLayoutUiTest.kt",
+    "app/src/main/java/com/whip/app/ui/HabitScreens.kt",
+    "app/src/main/java/com/whip/app/ui/ProductivityEditorComponents.kt",
+    "app/src/main/java/com/whip/app/ui/WhipControls.kt",
+    "app/src/main/java/com/whip/app/ui/WhipProductivityItemBuilder.kt"
+  ],
+  "apks": {
+    "app-debug.apk": {
+      "path": "/root/repos/whip/build/action-sizing/2026-09-30/frozen-content-height/app-debug.apk",
+      "sha256": "6119f70fdfdf64fbcf09942fb9be7d4b8b80b0b28fad035ee5c1b9340bd82ea5",
+      "bytes": 44732877
+    },
+    "app-debug-androidTest.apk": {
+      "path": "/root/repos/whip/build/action-sizing/2026-09-30/frozen-content-height/app-debug-androidTest.apk",
+      "sha256": "4369517a3f6e3956cc3879f72a9df4fe5b1c3ac1a411cafc204f5de846cb08ad",
+      "bytes": 11086809
+    }
+  },
+  "phone_receipt_sha256": "05e34843fb7926a88d04b25e3c4f0e926e9eb85a1f5f3a84d85a93f858e6adbe",
+  "validation": {
+    "readiness": "passed11.604s",
+    "source_guards": "passed0.647s",
+    "app_and_test_assembly": "passed",
+    "lint": "passed",
+    "single_package_duration_seconds": 198.575,
+    "lint_severity_counts": {
+      "Warning": 90,
+      "Hint": 15
+    },
+    "all_source_inputs_and_final_outputs_match_frozen_pair": true
+  }
+}

@@ -1,3 +1,5 @@
+> Current refinement: [compact content-height controls](content-height/README.md), source2bdf4906. Earlier fixed-size visual acceptance below is superseded.
+
 # Equal Habit and Goal activity buttons
 
 **Accepted by the independent design consultant.** Related activity buttons now share label-independent width and height: width `min(160 dp × max(fontScale, 1), availableWidth)`, height `64 dp × max(fontScale, 1)`. Existing leading rows wrap. Primary/secondary styling, timer/logging/completion meanings, callbacks and saving guards remain. The Check In cell stays one checkbox toggle with its original square and label gap.

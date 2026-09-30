@@ -1,0 +1,6 @@
+Route M app/src/androidTest/java/com/whip/app/ui/ActivityActionLayoutUiTest.kt -> android:com.whip.app.ui.ActivityActionLayoutUiTest (exact Android test class)
+Android selector: com.whip.app.ui.ActivityActionLayoutUiTest
+All JVM tests: false
+All Android tests: false
+Static checks: false
+Frozen candidate required: false

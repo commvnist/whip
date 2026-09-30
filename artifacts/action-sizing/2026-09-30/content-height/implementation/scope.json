@@ -1,0 +1,10 @@
+{
+  "head_at_start": "2bdf490639a7a81f29730bb6389b63abe443b590",
+  "production_base": "47e61384e087692b9a745449eaa7a8133f9bba6e",
+  "height": "max(48dp, tallest actual child minIntrinsicHeight at resolved cell width)",
+  "padding": "constant12dp horizontal /8dp vertical",
+  "width": "existing integer-pixel two-column allocation and conditional large-font fallback",
+  "qa_source_sha256": "bf771907335954cc9f5b17f5f27e0331824f41929e27cbc9d138823aa3d87051",
+  "phone_receipt_sha256": "05e34843fb7926a88d04b25e3c4f0e926e9eb85a1f5f3a84d85a93f858e6adbe",
+  "unrelated_spacing_edits": false
+}
