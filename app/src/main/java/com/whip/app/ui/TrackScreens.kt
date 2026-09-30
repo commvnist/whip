@@ -509,6 +509,13 @@ internal fun TrackAreaContent(
     var selectCollectionRequest by rememberSaveable { mutableIntStateOf(0) }
     var reorderCollectionRequest by rememberSaveable { mutableIntStateOf(0) }
     val collectionPages = rememberSaveableStateHolder()
+    val workspacePages = rememberSaveableStateHolder()
+    val activityQuery = rememberSaveable { mutableStateOf("") }
+    val activityFiltersVisible = rememberSaveable { mutableStateOf(false) }
+    val activityTrackFilterId = rememberSaveable { mutableStateOf<Long?>(null) }
+    val activityDateRange = rememberSaveable { mutableStateOf(TrackActivityDateRange.AnyDate) }
+    val activityViewedEntryId = rememberSaveable { mutableStateOf<Long?>(null) }
+    val activityListState = rememberLazyListState()
     val listContent: @Composable (Boolean) -> Unit = { masterPane ->
         collectionPages.SaveableStateProvider("collection-${workspaceDestination.name}") { AllTracksPage(
             customUnits = customUnits,
@@ -544,6 +551,7 @@ internal fun TrackAreaContent(
         TrackDetailPage(
             projection = projection,
             focusedDetail = focusedDetail,
+            editorOpen = editorOpen,
             innerPadding = PaddingValues(),
             destination = destination,
             onDestinationChange = { destination = it },
@@ -600,7 +608,6 @@ internal fun TrackAreaContent(
             testTagPrefix = "track-workspace-destination",
             barTestTag = "track-workspace-navigation",
         )
-        val workspacePages = rememberSaveableStateHolder()
         workspacePages.SaveableStateProvider(workspaceDestination.name) {
         BoxWithConstraints(Modifier.fillMaxSize().weight(1f)) {
             when (workspaceDestination) {
@@ -639,6 +646,13 @@ internal fun TrackAreaContent(
                     trackDetail(selected)
                 }
                 TrackWorkspaceDestination.Activity -> TrackActivityPage(
+                    queryState = activityQuery,
+                    filtersVisibleState = activityFiltersVisible,
+                    trackFilterIdState = activityTrackFilterId,
+                    dateRangeState = activityDateRange,
+                    viewedEntryIdState = activityViewedEntryId,
+                    listState = activityListState,
+                    editorOpen = editorOpen,
                     onOpenArchived = ::openArchive,
                     state = state,
                     areas = areas,
@@ -1035,6 +1049,13 @@ private data class TrackActivityItem(
 
 @Composable
 private fun TrackActivityPage(
+    queryState: MutableState<String>,
+    filtersVisibleState: MutableState<Boolean>,
+    trackFilterIdState: MutableState<Long?>,
+    dateRangeState: MutableState<TrackActivityDateRange>,
+    viewedEntryIdState: MutableState<Long?>,
+    listState: androidx.compose.foundation.lazy.LazyListState,
+    editorOpen: Boolean,
     onOpenArchived: () -> Unit,
     state: TrackUiState,
     areas: List<Area>,
@@ -1045,11 +1066,11 @@ private fun TrackActivityPage(
     dialogModifier: Modifier,
     onRetryLoading: () -> Unit,
 ) {
-    var query by rememberSaveable { mutableStateOf("") }
-    var filtersVisible by rememberSaveable { mutableStateOf(false) }
-    var trackFilterId by rememberSaveable { mutableStateOf<Long?>(null) }
-    var dateRange by rememberSaveable { mutableStateOf(TrackActivityDateRange.AnyDate) }
-    var viewedEntryId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var query by queryState
+    var filtersVisible by filtersVisibleState
+    var trackFilterId by trackFilterIdState
+    var dateRange by dateRangeState
+    var viewedEntryId by viewedEntryIdState
     val units = BuiltInUnits.all + customUnits
     val activeTracks = state.active
     val visibleAreaIds = activeTracks.map(TrackProjection::track).map { it.areaId }.toSet()
@@ -1099,6 +1120,7 @@ private fun TrackActivityPage(
                     }
                 }
     LazyColumn(
+            state = listState,
             modifier = Modifier.fillMaxSize(),
             contentPadding = WhipPageContentPadding,
             verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
@@ -1207,7 +1229,7 @@ private fun TrackActivityPage(
             dismissButton = { WhipTextButton(onClick = { filtersVisible = false }) { Text("Cancel") } },
         )
     }
-    viewedEntryId?.let { entryId ->
+    viewedEntryId?.takeUnless { editorOpen }?.let { entryId ->
         activeTracks.firstNotNullOfOrNull { projection ->
             projection.entries.firstOrNull { it.entry.id == entryId }?.let { projection to it }
         }?.let { (projection, entry) ->
@@ -1811,6 +1833,7 @@ private fun TrackSummaryRow(
 private fun TrackDetailPage(
     projection: TrackProjection,
     focusedDetail: Boolean,
+    editorOpen: Boolean,
     innerPadding: PaddingValues,
     destination: TrackDetailDestination,
     onDestinationChange: (TrackDetailDestination) -> Unit,
@@ -1899,6 +1922,7 @@ private fun TrackDetailPage(
                 onRestore = { onSetArchived(false) },
                 reviewScopeState = reviewScopeState,
                 clearSearchRequest = clearEntrySearchRequest,
+                editorOpen = editorOpen,
             )
             TrackDetailDestination.Insights -> TrackInsightsPage(
                 projection, customUnits, today, onAddEntry,
@@ -1906,6 +1930,7 @@ private fun TrackDetailPage(
                 dialogModifier = dialogModifier,
                 reviewScopeState = reviewScopeState,
                 onEditEntry = onEditEntry,
+                editorOpen = editorOpen,
             )
             TrackDetailDestination.Options -> TrackOptionsPage(
                 projection,
@@ -1938,6 +1963,7 @@ internal fun TrackEntriesPage(
     onRestore: () -> Unit,
     reviewScopeState: MutableState<TrackReviewScope>? = null,
     clearSearchRequest: Int = 0,
+    editorOpen: Boolean = false,
 ) {
     var searchVisible by rememberSaveable(projection.track.id) { mutableStateOf(false) }
     var query by rememberSaveable(projection.track.id) { mutableStateOf("") }
@@ -2294,7 +2320,7 @@ internal fun TrackEntriesPage(
         onDismiss = { filterOpen = false },
         onApply = { mode, updated -> reviewScope = reviewScope.copy(mode = mode, conditions = updated); filterOpen = false },
     )
-    viewEntryId?.let { entryId ->
+    viewEntryId?.takeUnless { editorOpen }?.let { entryId ->
         projection.entries.firstOrNull { it.entry.id == entryId }?.let { entry ->
             TrackEntryDetailsDialog(
                 modifier = dialogModifier,
@@ -2426,6 +2452,7 @@ private fun TrackInsightsPage(
     dialogModifier: Modifier = Modifier,
     reviewScopeState: MutableState<TrackReviewScope>,
     onEditEntry: (Long) -> Unit,
+    editorOpen: Boolean,
 ) {
     // Keep offscreen field disclosures outside LazyColumn's prunable item state.
     var viewedEntryUuid by rememberSaveable(projection.track.uuid) { mutableStateOf<String?>(null) }
@@ -2580,7 +2607,7 @@ private fun TrackInsightsPage(
             }
         }
     }
-    viewedEntryUuid?.let { uuid ->
+    viewedEntryUuid?.takeUnless { editorOpen }?.let { uuid ->
         val entry = projection.entries.firstOrNull { it.entry.uuid == uuid }
         if (entry != null) TrackEntryDetailsDialog(
             modifier = dialogModifier,

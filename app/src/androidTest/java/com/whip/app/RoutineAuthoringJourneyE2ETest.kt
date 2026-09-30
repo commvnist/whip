@@ -7,9 +7,10 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso.closeSoftKeyboard
 import com.whip.app.core.AppSettings
 import com.whip.app.core.AppThemeMode
-import com.whip.app.domain.ExerciseDraft
-import com.whip.app.domain.WorkoutSessionState
-import com.whip.app.domain.WorkoutSetDraft
+import com.whip.app.domain.*
+import com.whip.app.core.RepPrescriptionScheme
+import java.time.Instant
+import java.time.ZoneOffset
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -258,6 +259,161 @@ class RoutineAuthoringJourneyE2ETest {
             compose.onNodeWithTag("history-set-performed-$setId").assertTextContains("40 kg × 7 reps")
             prescriptionCapture("history")
             assertEquals(performed, workoutSet())
+        }
+    }
+
+
+    @Test fun transformedMiddlePhasePersistsReopensAndInstantiatesWithoutChangingOtherPhases() {
+        val common = WorkoutSetDraft(weight = 20.0, reps = 10, planned = true, note = "Every phase")
+        val first = WorkoutSetDraft(weight = 100.0, reps = 3, planned = true, routinePhaseIndex = 0, note = "Keep first")
+        val middle = WorkoutSetDraft(weight = 80.0, reps = 5, planned = true, routinePhaseIndex = 1)
+        val last = WorkoutSetDraft(weight = 120.0, reps = 1, planned = true, routinePhaseIndex = 2, note = "Keep last")
+        val routineId = runBlocking {
+            app.backupRepository.deleteAllData()
+            app.settingsRepository.update { AppSettings(setupCompleted = true, dynamicColor = false,
+                repPrescriptionSchemes = listOf(RepPrescriptionScheme("middle-volume", "Middle Volume", 2, 8))) }
+            val exercise = app.gymRepository.createExercise(ExerciseDraft("Phase isolation bench"))
+            app.routineRepository.createRoutine(RoutineDraft("Middle phase continuity",
+                program = RoutineProgramDraft(kind = RoutineProgramKind.Custom, phaseCount = 3,
+                    phaseLabels = listOf("First", "Middle", "Last")),
+                days = listOf(RoutineDayDraft("Upper", listOf(RoutineExerciseDraft(exercise,
+                    plannedSets = listOf(common, first, middle, last))))))).also {
+                app.routineRepository.setRoutineProgramPosition(it, phaseIndex = 1, dayPosition = 0, cycle = 1)
+            }
+        }
+        fun stored() = runBlocking { app.routineRepository.sets.first().sortedBy { it.position }.map { it.draft } }
+        launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
+            compose.onNodeWithContentDescription("Gym tab").performClick()
+            compose.onNodeWithTag("gym-destination-Library").performClick()
+            compose.onNodeWithTag("gym-library-Routines").performClick()
+            compose.onNodeWithContentDescription("Edit routine Middle phase continuity").performScrollTo().performClick()
+            outline(hasContentDescription("Edit routine exercise Phase isolation bench")).performClick()
+            placement(hasTestTag("routine-program-phase-1")).performClick()
+            placement(hasText("Middle Volume · 2 × 8")).performClick()
+            placement(hasTestTag("routine-generate-warmups")).performClick()
+            captureVisualCatalogSurface("overhaul.gym.phase-room.transformed")
+            compose.onNodeWithTag("routine-builder-save").performClick()
+            compose.waitUntil(10_000) { stored().size == 8 &&
+                compose.onAllNodesWithTag("routine-saved-in-place").fetchSemanticsNodes().isNotEmpty() }
+            val saved = stored()
+            assertEquals(listOf(common, first, last), saved.filter { it.routinePhaseIndex != 1 })
+            val transformed = saved.filter { it.routinePhaseIndex == 1 }
+            assertEquals(listOf(30.0, 47.5, 62.5, 80.0, null), transformed.map { it.weight })
+            assertEquals(listOf(8, 5, 3, 8, 8), transformed.map { it.reps })
+            assertEquals(List(3) { WorkoutSetClassification.WarmUp } + List(2) { WorkoutSetClassification.Working },
+                transformed.map { it.classification })
+            backToOutline()
+            compose.onNodeWithContentDescription("Close routine editor").performClick()
+            scenario.recreate()
+            compose.onNodeWithContentDescription("Edit routine Middle phase continuity").performScrollTo().performClick()
+            compose.waitUntil(10_000) {
+                compose.onAllNodesWithTag("routine-selected-exercises").fetchSemanticsNodes().isNotEmpty() ||
+                    compose.onAllNodesWithTag("routine-placement-editor").fetchSemanticsNodes().isNotEmpty()
+            }
+            captureVisualCatalogSurface("overhaul.gym.phase-room.reopen-diagnostic")
+            if (compose.onAllNodesWithTag("routine-placement-editor").fetchSemanticsNodes().isEmpty()) {
+                outline(hasContentDescription("Edit routine exercise Phase isolation bench")).performClick()
+            }
+            placement(hasText("Phase isolation bench")).assertIsDisplayed()
+            placement(hasTestTag("routine-program-phase-1")).performClick()
+            assertEquals(saved, stored())
+            compose.onNodeWithTag("routine-builder-save").assertIsNotEnabled()
+            captureVisualCatalogSurface("overhaul.gym.phase-room.reopened")
+            backToOutline()
+            compose.onNodeWithContentDescription("Close routine editor").performClick()
+            compose.onNodeWithTag("routine-start-next-$routineId").performScrollTo().performClick()
+            compose.waitUntil(10_000) {
+                runBlocking { app.gymRepository.sessions.first().any { it.state == WorkoutSessionState.Active } }
+            }
+            val session = runBlocking { app.gymRepository.sessions.first() }.single()
+            assertEquals(routineId, session.sourceRoutineId)
+            assertEquals(1, session.sourceRoutinePhaseIndex)
+            val instantiated = runBlocking { app.gymRepository.sets.first() }.sortedBy { it.position }
+            val expected = saved.filter { it.routinePhaseIndex == null || it.routinePhaseIndex == 1 }
+            assertEquals(expected.map { it.weight }, instantiated.map { it.prescribedEnteredWeight })
+            assertEquals(expected.map { it.reps }, instantiated.map { it.prescribedRepetitions })
+            assertEquals(expected.map { it.classification }, instantiated.map { it.classification })
+            assertEquals(expected.map { it.note }, instantiated.map { it.note })
+            assertEquals(saved, stored())
+            compose.onNodeWithTag("routine-active-workout-action").performScrollTo().performClick()
+            compose.onNodeWithTag("active-workout-program-context").assertTextEquals("Phased Routine · Cycle 1 · Middle · Day 1")
+            scenario.recreate()
+            assertEquals(session.id, runBlocking { app.gymRepository.sessions.first() }.single().id)
+            assertEquals(instantiated, runBlocking { app.gymRepository.sets.first() }.sortedBy { it.position })
+            captureVisualCatalogSurface("overhaul.gym.phase-room.instantiated")
+        }
+    }
+
+    @Test fun olderThanFiftyWorkoutImportsIntoSelectedDayAndPersistsAcrossReopen() {
+        val original = WorkoutSetDraft(weight = 73.0, reps = 9, rpe = 8.0, restSeconds = 75,
+            tempo = "3010", note = "Older source prescription", completed = true)
+        runBlocking {
+            app.backupRepository.deleteAllData()
+            app.settingsRepository.update { AppSettings(setupCompleted = true, dynamicColor = false) }
+            val exercise = app.gymRepository.createExercise(ExerciseDraft("Older source row"))
+            repeat(56) { index ->
+                val started = Instant.now().minusSeconds((56L - index) * 86_400)
+                val session = app.gymRepository.startWorkout(
+                    if (index == 0) "Oldest selected source" else "Recent source $index",
+                    startedAt = started, localDate = started.atZone(ZoneOffset.UTC).toLocalDate())
+                if (index == 0) {
+                    val placement = app.gymRepository.addExerciseToWorkout(session, exercise)
+                    app.gymRepository.addSet(placement, original)
+                }
+                app.gymRepository.finishWorkout(session)
+            }
+        }
+        launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
+            compose.onNodeWithContentDescription("Gym tab").performClick()
+            // App startup acknowledges completed timers; import must preserve the settled history exactly.
+            compose.waitUntil(10_000) {
+                runBlocking { app.gymRepository.sessions.first().none { it.restTimerCleanupPending } }
+            }
+            val historyBefore = runBlocking { app.gymRepository.sessions.first() }
+            compose.onNodeWithTag("gym-destination-Library").performClick()
+            compose.onNodeWithTag("gym-library-Routines").performClick()
+            compose.onNodeWithTag("workspace-add-action").performClick()
+            compose.onNodeWithTag("routine-editor-name").performTextReplacement("Older selected day import")
+            closeSoftKeyboard()
+            outline(hasText("Upper / Lower")).performClick()
+            outline(hasText("Lower · 0")).performClick()
+            outline(hasText("Add from a Previous Workout")).performClick()
+            compose.onNodeWithText("Oldest selected source").assertDoesNotExist()
+            compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasTestTag("routine-workout-picker-more"))
+            compose.onNodeWithTag("routine-workout-picker-more").assertIsDisplayed()
+            captureVisualCatalogSurface("overhaul.gym.older-picker.first-fifty")
+            compose.onNodeWithTag("routine-workout-picker-more").performClick()
+            scenario.recreate()
+            compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Oldest selected source"))
+            compose.onNodeWithText("Oldest selected source").performClick()
+            backToOutline()
+            outline(hasText("Lower · 1")).assertIsSelected()
+            captureVisualCatalogSurface("overhaul.gym.older-picker.selected-day")
+            compose.onNodeWithTag("routine-builder-save").performClick()
+            compose.waitUntil(10_000) { routines().any { it.name == "Older selected day import" } }
+            val routine = routines().single()
+            val days = runBlocking { app.routineRepository.days.first() }.sortedBy { it.position }
+            val placements = runBlocking { app.routineRepository.exercises.first() }
+            assertEquals(listOf("Upper", "Lower"), days.map { it.name })
+            assertTrue(placements.none { it.routineDayId == days[0].id })
+            assertEquals(days[1].id, placements.single().routineDayId)
+            val prescription = runBlocking { app.routineRepository.sets.first() }.single().draft
+            assertEquals(original.copy(completed = false, planned = true, repsMax = 9), prescription)
+            scenario.recreate()
+            compose.onNodeWithContentDescription("Edit routine Older selected day import").performScrollTo().performClick()
+            compose.waitUntil(10_000) {
+                compose.onAllNodesWithTag("routine-selected-exercises").fetchSemanticsNodes().isNotEmpty() ||
+                    compose.onAllNodesWithTag("routine-placement-editor").fetchSemanticsNodes().isNotEmpty()
+            }
+            captureVisualCatalogSurface("overhaul.gym.older-picker.reopen-diagnostic")
+            outline(hasText("Lower · 1")).performClick()
+            outline(hasContentDescription("Edit routine exercise Older source row")).performClick()
+            placement(hasText("Load (kg)")).assertTextContains("73")
+            placement(hasText("Reps min")).assertTextContains("9")
+            assertEquals(prescription, runBlocking { app.routineRepository.sets.first() }.single().draft)
+            assertEquals(historyBefore, runBlocking { app.gymRepository.sessions.first() })
+            captureVisualCatalogSurface("overhaul.gym.older-picker.reopened")
+            assertEquals(routine.id, runBlocking { app.routineRepository.routines.first() }.single().id)
         }
     }
 

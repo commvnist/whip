@@ -84,3 +84,53 @@ Goals/Habits:21 unique methods accepted on the final production APK across19 fin
 The final production APK SHA256 is `cb5c6169bff1f01c2c17cd379126a3c4c243ffc2f11a81b5820e49baf1f69cc3`; final test APK `8b58e568b43844afebb778c0e3210e40b464cac056cd1eb7bdba3ffb81c281c3`; source manifest `ef050da5127793acf98488143289e5038117b69c17f1e9eeb78e8cad92635f29`. All three devices are booted and released from individual instrumentation for the next campaign.
 
 The first batch is ready for normal commit/push. Remaining full-overhaul acceptance: complete fresh1333-method Android inventory on the three assigned emulators; specifically transformed multiphase persisted reopen/instantiation, populated Gym Insights return context, cross-unit plate preset and older-than50 Routine import native journeys; final issue/category dispositions. These are tracked acceptance gaps, not new product scope. The owner-phone release receipt's pre-existing trailing-whitespace modification remains untouched and unstaged.
+
+## Landed batch and finite-caller follow-up
+
+The first validated batch is normally pushed as [4f534f858b64e3478a4c21f9f6720ff54dc2dcaa](https://github.com/commvnist/whip/commit/4f534f858b64e3478a4c21f9f6720ff54dc2dcaa). Remote hash matches. GitHub API for this exact commit reports zero check-runs, zero Actions runs and zero repository workflows; no CI success is claimed. Earlier ready-for-push wording above is historical.
+
+Final actual-caller review repaired three sibling H1 projections: widgets used raw open-period success/future logs and dropped the final earning day; task planning repeated those decisions; flexible completion rates accumulated misses after ending. Existing authoritative day state and final active date now own those decisions. Timers remain reachable; ongoing/unfinished/recent-window semantics stay covered.
+
+Fresh targeted JVM execution passed50/50 in51s: HabitRules34, WidgetContent11, ProductivityExperience5; zero failures/errors/skips. Two preceding missing-import compile attempts remain separate and unaccepted. Current declared inventory is759 JVM plus1337 Android tests; counts alone do not prove execution.
+
+Frozen follow-up SHA256: app80390d4d580186ce6faeec466c3ad0a1155f0350239907ea1eb1db59c0936099, test7ede0a96e3217488015cc45062f259b02543256ccd4e9bbfbaf80034ae725d5e, source manifestbf25b9b6144848449bc52f188e6f87f45eb7048e2f6f61e4afc9053541cf407b. All three explicit emulator serials remain connected. Comprehensive local gate and four persisted Gym journeys are in progress; full fresh inventory has not started.
+
+### Twelve-category checkpoint (current campaign freeze)
+
+| Category | Verified scope | Remaining gate |
+| --- | --- | --- |
+| 1. Tab/header/content/action geometry | Shared normal/wide/enlarged geometry3/3; actual six-tab originals | Complete integrated native regression |
+| 2. Shared visual controls/states | Existing theme/owners, direct Habit action, precise widgets, visible corrected Track editor | Complete native regression |
+| 3. Real reuse | Shared chrome/target summaries/widget receipts/period outcomes; sibling callers reviewed | Complete caller regression |
+| 4. Action semantics | Owned Save/Cancel/Back/failure receipts; all four persisted Gym journeys; strict Track return | Complete native regression |
+| 5. Organization/navigation | Exact date/session/Area routes; Insights source return and older-workout import accepted | Complete platform/navigation inventory |
+| 6. Transition/state retention | Selected Task context, actual enlarged Settings/Area parent offsets, Track filter/inspector/draft/recreation | Complete native inventory |
+| 7. Validation/save/recovery | Precommit failure versus committed warning; precise Goal endpoints; durable authoring | Complete native fault inventory |
+| 8. Empty/loading/error/completed | Direct-create/settled-unavailable/retry/final Habit day; Review older-window and archived count | Complete state inventory |
+| 9. Accessibility/font/keyboard | Actual200% keyboard, extreme widget text, contrast/touch assertions, both enlarged parent returns | Complete native inventory; spoken/OEM certification outside evidence |
+| 10. Correctness/data safety | Fresh759 JVM/124 suites, all coverage floors/lint/required builds/static gates;50 focused caller regressions | Complete native inventory |
+| 11. Real native acceptance | All three assigned devices used; all nine new follow-up journeys accepted; normal/repeat/Back/recreation evidence | Fresh1342-method three-device campaign running |
+| 12. Evidence/commit/push | Original galleries/failure provenance; first commit/remote match; final readiness passes3m08s | Full campaign receipt, follow-up commit/push and exact remote verification |
+
+Follow-up complete local gate passes in3m26s:759 JVM tests with fresh preserved XML; zero failures/errors/skips. Domain lines84.82%, branches65.39%, core69.49%; lint/Android compile/debug/release/bundle/benchmark/brand/manifest/data-safety/diff gates pass. Four new native journeys first failed at lazy scrolling/shared destination selector; assertions and first logs retained; minimal fixture correction/replay is pending.
+
+Current frozen source inventory:759 JVM plus1342 Android (2101 total). Final fixture compilation and lint pass44s; final affected readiness passes. The four persisted Gym follow-up methods are now fully accepted across focused runs on unchanged production APK80390d4d...; phase endpoint one-method replay passes50.004s. Both native200% parent returns pass on5554, with unchanged parent viewport PNG bytes after each round trip. Settings first failed only at an incorrect About test tag, corrected to actual About Whip; Area passed initially. Review older-window correlation passes; Review archive/point capture-name error and Track immediate-restoration assertion remain pending exact replay. Full fresh1342-method inventory remains pending.
+
+
+### Native-discovered Track integration repair
+
+The strict Entries/Activity edit journey exposed a visible layered-window defect: the retained inspector remained above the editor after recreation. Existing editor-open state now suppresses all three Track inspector hosts while preserving their selected IDs. Original pixels and displayed draft assertions verify the editor stays in front, including duplicate resolution and recreation.
+
+The preserved replay then exposed a separate Activity return defect: after recreation and Save, the loaded Activity had lost both its filter and inspector. A ten-second settlement still failed; this is a reproduced product issue, not a waived timing assertion. Activity uniquely created its existing workspace saved-state holder inside responsive layout subcomposition. Moving that unchanged holder alongside the collection holder aligns its restoration ownership with working Entries. The same unchanged strict test is being replayed; acceptance remains pending until its saved record, query, inspector and subsequent recreation all pass.
+
+The current pre-holder full local gate passed in3m16s: fresh759 JVM methods in124 suites, no failures/errors/skips; unchanged coverage floors passed (domain84.82% lines/65.39% branches, core69.49%), lint, all required compile/build/static gates. XML remains separately archived before targeted gates overwrite working reports. The holder change compiled in13s and requires final affected readiness and native regression. Review archived-workout count/single-point chart now passes its exact native replay; the older-window correlation already passed. Full fresh1342-method native inventory has not started.
+
+
+### Track restoration accepted; final campaign freeze
+
+The holder-only replay still failed and remains unaccepted. Hoisting the five existing Activity filter/selection states to TrackAreaContent, with a retained lazy-list state, resolved the reproduced loss without another navigation framework. The unchanged strict Track method passes1/1 in60.175s on5558: actual duplicate Keep Editing, visible draft fields before/after Activity recreation, Entries Cancel/return, Activity Save/return and another recreation, exact filter/selection, exactly two saved records and an unchanged sibling Entry. App SHA2560672b8b8284f778a1fd0191c577f286537bd1693edf78adc470124029208e64a; unchanged strict testbaf2783b482426658656d93e57d7c87a2a7f0356cad99e886ee8c228424d434f; source manifest2cba357865408d0e5a6922854d4684775a42ca57d25448ed1bbf36f8dc091f07.
+
+All nine new follow-up native journeys now have focused acceptance (four Gym, two enlarged parent returns, two Review and one Track); complete inventory regression remains required. Original Track foreground before/after pixels were personally reviewed by integration. See the [Review/Track receipt](REVIEW_TRACK_ACCEPTANCE_2026-09-30.md) and [selected originals](../../artifacts/ux-overhaul/2026-09-30/verified/review-track-follow-up/README.md). The following full campaign is frozen against production/test/build/script/APK mutations; documentation and selected evidence can be reconciled independently.
+
+
+Full fresh native campaign started on explicit5554/5556/5558 after final affected readiness passed3m08s. No execution reuse; source and APK inputs frozen. Independent read-only lane review found no concrete regression or stale sibling caller in the finite Habit/Track changes. Current campaign acceptance is pending, separately from focused passes.

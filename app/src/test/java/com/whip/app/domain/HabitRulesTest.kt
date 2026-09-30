@@ -532,6 +532,35 @@ class HabitRulesTest {
         }
     }
 
+    @Test fun finiteFlexibleRatesStopAtTheEndingWithoutCountingLaterMissesOrEntries() {
+        for (schedule in listOf(HabitScheduleType.FlexibleTimesPerWeek, HabitScheduleType.FlexibleTimesPerMonth)) {
+            val start = if (schedule == HabitScheduleType.FlexibleTimesPerWeek) monday else monday.withDayOfMonth(1)
+            val nextPeriod = if (schedule == HabitScheduleType.FlexibleTimesPerWeek) start.plusWeeks(1) else start.plusMonths(1)
+            val earned = listOf(start.plusDays(2), nextPeriod.plusDays(2))
+            val through = if (schedule == HabitScheduleType.FlexibleTimesPerWeek) nextPeriod.plusWeeks(2).plusDays(2)
+                else nextPeriod.plusMonths(2).plusDays(2)
+            val logs = earned.mapIndexed { index, day -> log(index + 1L, day, HabitLogStatus.Success) }
+            val ongoing = habit(schedule = schedule, flexible = 1).copy(startDate = start)
+            assertEquals(1.0, ongoing.completionRateOverRecentPeriods(logs, earned.last(), lookbackDays = 120), 0.0)
+            assertEquals(2.0 / 3.0, ongoing.completionRateOverRecentPeriods(logs, through, lookbackDays = 120), 0.0001)
+            for (ending in listOf(HabitEndType.AfterCompletions, HabitEndType.AfterStreak, HabitEndType.AfterTotal, HabitEndType.OnDate)) {
+                val finite = ongoing.copy(endType = ending,
+                    endValue = 2.0.takeUnless { ending == HabitEndType.OnDate },
+                    endDate = earned.last().takeIf { ending == HabitEndType.OnDate })
+                assertEquals(1.0, finite.completionRateOverRecentPeriods(logs, through, lookbackDays = 120), 0.0)
+                assertEquals(0.0, finite.completionRateOverRecentPeriods(logs, through.plusMonths(6)), 0.0)
+            }
+        }
+        val ongoing = habit(schedule = HabitScheduleType.FlexibleTimesPerWeek, flexible = 3)
+        val finite = ongoing.copy(endType = HabitEndType.AfterTotal, endValue = 1.0)
+        val first = listOf(log(1, monday.plusDays(2), HabitLogStatus.Success))
+        val later = first + listOf(log(2, monday.plusDays(3), HabitLogStatus.Success),
+            log(3, monday.plusDays(4), HabitLogStatus.Success))
+        assertEquals(0.0, finite.completionRateOverRecentPeriods(first, monday.plusDays(2)), 0.0)
+        assertEquals(0.0, finite.completionRateOverRecentPeriods(later, monday.plusWeeks(2)), 0.0)
+        assertEquals(0.5, ongoing.completionRateOverRecentPeriods(later, monday.plusWeeks(2)), 0.0)
+    }
+
     private fun habit(
         comparison: TargetComparison = TargetComparison.AtLeast,
         min: Double? = 1.0,

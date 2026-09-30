@@ -80,4 +80,64 @@ class ProductivityExperienceTest {
             trackScaleValues(requireNotNull(it.scaleMin), requireNotNull(it.scaleMax), it.scaleStep)
         })
     }
+
+    @Test fun planningUsesClosedPeriodTruthAndRetainsTheFiniteEarningDate() {
+        val earnedDate = LocalDate.of(2026, 9, 16)
+        val habit = planningHabit(earnedDate).copy(endType = HabitEndType.AfterCompletions, endValue = 1.0)
+        val logs = listOf(planningLog(habit.id, earnedDate))
+        val state = buildHabitUiState(
+            HabitData(listOf(habit), emptyList(), logs, emptyList(), emptyList(), emptyList()),
+            earnedDate.plusDays(1), emptyList(),
+        )
+        val earned = state.plannedOn(earnedDate).single()
+        assertEquals(HabitDayState.Completed, earned.dayState)
+        assertEquals(true, earned.successful)
+        assertTrue(state.plannedOn(earnedDate.plusDays(2)).isEmpty())
+
+        val bounded = habit.copy(endType = HabitEndType.Never, endValue = null,
+            targetPeriod = TargetPeriod.Week, comparison = TargetComparison.AtMost, targetMin = 2.0)
+        val boundedState = buildHabitUiState(
+            HabitData(listOf(bounded), emptyList(), listOf(planningLog(habit.id, earnedDate, 2.0)),
+                emptyList(), emptyList(), emptyList()), earnedDate.plusDays(1), emptyList(),
+        )
+        assertNull(boundedState.plannedOn(earnedDate).single().successful)
+        assertEquals(HabitDayState.Pending, boundedState.plannedOn(earnedDate).single().dayState)
+    }
+
+    @Test fun planningDoesNotImportEvidenceFromAfterItsRequestedOrCurrentDate() {
+        val date = LocalDate.of(2026, 9, 16)
+        val habit = planningHabit(date).copy(targetPeriod = TargetPeriod.Week, targetMin = 2.0)
+        val state = buildHabitUiState(
+            HabitData(listOf(habit), emptyList(), listOf(planningLog(habit.id, date.plusDays(2), 2.0)),
+                emptyList(), emptyList(), emptyList()), date.plusDays(1), emptyList(),
+        )
+        for (requested in listOf(date, date.plusDays(2))) {
+            val planned = state.plannedOn(requested).single()
+            assertEquals(0.0, planned.value, 0.0)
+            assertNull(planned.successful)
+        }
+    }
+
+    private fun planningHabit(date: LocalDate) = Habit(
+        id = 1, uuid = "planning", measurementId = "planning-measurement", name = "Planning",
+        notes = "", area = "", tags = emptyList(), icon = "", trackingMode = HabitTrackingMode.Count,
+        dimension = UnitDimension.Count, unitId = "count", precision = 0,
+        comparison = TargetComparison.AtLeast, targetMin = 1.0, targetMax = null,
+        targetPeriod = TargetPeriod.Day, rollingDays = null, scheduleType = HabitScheduleType.Daily,
+        scheduleInterval = 1, weekdays = emptySet(), flexibleTimesPerWeek = null,
+        startDate = date, endType = HabitEndType.Never, endDate = null, endValue = null,
+        quickIncrement = 1.0, quickActions = emptyList(), reminderMinutes = emptyList(),
+        weekdayReminderMinutes = emptyMap(), weekStart = java.time.DayOfWeek.MONDAY,
+        timerStartedAtMillis = null, pinned = false, position = 0, archived = false, paused = false,
+        createdAtMillis = 1, updatedAtMillis = 1,
+    )
+
+    private fun planningLog(id: Long, date: LocalDate, value: Double = 1.0) = HabitLog(
+        id = id, uuid = "planning-log", habitId = id, value = value, canonicalValue = value,
+        enteredUnitId = "count", status = HabitLogStatus.Recorded,
+        timestamp = date.atStartOfDay(ZoneOffset.UTC).toInstant(), localDate = date,
+        zoneId = "UTC", offsetSeconds = 0, note = "", sourceType = MeasurementSourceType.Habit,
+        sourceId = null, measurementEntryId = null, createdAtMillis = 1, updatedAtMillis = 1,
+    )
+
 }

@@ -1,6 +1,10 @@
 package com.whip.app
 
 import android.content.Intent
+import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.hasScrollToIndexAction
+import androidx.test.espresso.Espresso.closeSoftKeyboard
+import com.whip.app.ui.entryDisplayTitle
 import android.graphics.Rect
 import android.os.Build
 import android.view.accessibility.AccessibilityWindowInfo
@@ -101,6 +105,125 @@ class TrackHistoryJourneyE2ETest {
 
     @Test @AndroidFontScale
     fun archivedHistoryCanBeSearchedRecreatedAndRestoredAtLargeText() = verifyHistory(true)
+
+
+    @Test fun entryCorrectionRetainsEntriesAndActivityInspectorsAndDuplicateDraft() {
+        val before = runBlocking {
+            app.backupRepository.deleteAllData()
+            app.settingsRepository.update { AppSettings(setupCompleted = true, themeMode = AppThemeMode.Light, dynamicColor = false) }
+            val id = app.trackRepository.create(TrackDraft(trackName, fields = listOf(
+                TrackFieldDraft("Walk", TrackFieldType.ShortText, primary = true),
+                TrackFieldDraft("Notes", TrackFieldType.LongText),
+            )))
+            val form = requireNotNull(app.trackRepository.projection(id))
+            val note = form.fields.single { it.name == "Notes" }
+            for (title in listOf("River trail after the rain", "Existing trail")) {
+                app.trackRepository.addEntry(id, TrackEntryDraft(app.clock.today(), values = mapOf(
+                    form.primaryField.uuid to TrackValueDraft(textValue = title),
+                    note.uuid to TrackValueDraft(textValue = "Saved $title"),
+                )))
+            }
+            requireNotNull(app.trackRepository.projection(id))
+        }
+        val title = "River trail after the rain"
+        val nameTag = "track-entry-short-text-${before.primaryField.uuid}"
+        val noteTag = "track-entry-long-text-${before.fields.single { it.name == "Notes" }.uuid}"
+        launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
+            compose.onNodeWithContentDescription("Tracks tab").performClick()
+            compose.onNodeWithTag("track-list").performScrollToNode(hasTestTag("track-card-${before.track.id}"))
+            compose.onNodeWithTag("track-card-${before.track.id}").performClick()
+            compose.waitUntil(15_000) { compose.onAllNodesWithTag("track-entry-page-loading").fetchSemanticsNodes().isEmpty() }
+            entryNode(hasContentDescription("Search Entries in $trackName")).performClick()
+            entryNode(hasTestTag("track-entry-search")).performTextReplacement("River trail")
+            closeSoftKeyboard()
+            awaitEntryText(title)
+            entryNode(hasText(title)).performClick()
+            compose.onNodeWithTag("entity-inspector-title").assertTextEquals(title)
+            compose.onNodeWithTag("entity-inspector-edit").performClick()
+            compose.onAllNodesWithTag("entity-inspector-title").assertCountEquals(0)
+            compose.onNodeWithTag("track-entry-editor-list").performScrollToNode(hasTestTag(nameTag))
+            compose.onNodeWithTag(nameTag).performTextReplacement("Existing trail")
+            compose.onNodeWithTag("track-entry-editor-list").performScrollToNode(hasTestTag(noteTag))
+            compose.onNodeWithTag(noteTag).performTextReplacement("Unsaved correction stays here")
+            closeSoftKeyboard()
+            compose.onNodeWithTag("track-entry-editor-list").performScrollToNode(hasText("Review Existing trail ·", substring = true))
+            compose.onNodeWithText("Review Existing trail ·", substring = true).performClick()
+            compose.onNodeWithText("Switching to the other Entry will discard unsaved changes to this Entry.").assertIsDisplayed()
+            compose.onNodeWithText("Keep Editing This Entry").performClick()
+            compose.onAllNodesWithTag("entity-inspector-title").assertCountEquals(0)
+            compose.onNodeWithTag("track-entry-editor-list").performScrollToNode(hasTestTag(noteTag))
+            compose.onNodeWithTag(noteTag).assertIsDisplayed().assertTextContains("Unsaved correction stays here")
+            scenario.recreate()
+            compose.onAllNodesWithTag("entity-inspector-title").assertCountEquals(0)
+            compose.onNodeWithTag("track-entry-editor-list").performScrollToNode(hasTestTag(nameTag))
+            compose.onNodeWithTag(nameTag).assertIsDisplayed().assertTextContains("Existing trail")
+            compose.onNodeWithTag("track-entry-editor-list").performScrollToNode(hasTestTag(noteTag))
+            compose.onNodeWithTag(noteTag).assertIsDisplayed().assertTextContains("Unsaved correction stays here")
+            captureVisualCatalogSurface("overhaul.tracks.editing-duplicate-retained-draft")
+            compose.onNodeWithContentDescription("Close Entry Editor").performClick()
+            compose.onNodeWithText("Discard", substring = false).performClick()
+            compose.waitUntil(10_000) { compose.onAllNodesWithTag("track-entry-editor-surface").fetchSemanticsNodes().isEmpty() }
+            compose.onNodeWithTag("entity-inspector-title").assertTextEquals(title)
+            scenario.recreate()
+            compose.onNodeWithTag("entity-inspector-title").assertTextEquals(title)
+            captureVisualCatalogSurface("overhaul.tracks.entries-inspector-after-cancel")
+            compose.onNodeWithContentDescription("Close Track Entry details").performClick()
+            entryNode(hasTestTag("track-entry-search")).assertTextContains("River trail")
+            compose.onNodeWithTag("track-destination-Entries").assertIsSelected()
+            assertEquals(before.entries, runBlocking { requireNotNull(app.trackRepository.projection(before.track.id)).entries })
+
+            compose.onNodeWithContentDescription("Back to Tracks").performClick()
+            compose.onNodeWithTag("track-workspace-destination-Activity").performClick()
+            compose.onNodeWithContentDescription("Filter Track Activity").performClick()
+            compose.onNodeWithTag("track-activity-search").performTextReplacement("River trail")
+            closeSoftKeyboard()
+            compose.onNodeWithText("Apply", substring = false).performClick()
+            compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText(title))
+            compose.onNodeWithText(title).performClick()
+            compose.onNodeWithTag("entity-inspector-edit").performClick()
+            compose.onAllNodesWithTag("entity-inspector-title").assertCountEquals(0)
+            compose.onNodeWithTag("track-entry-editor-list").performScrollToNode(hasTestTag(noteTag))
+            compose.onNodeWithTag(noteTag).performTextReplacement("Saved correction from Activity")
+            closeSoftKeyboard()
+            compose.onAllNodesWithTag("entity-inspector-title").assertCountEquals(0)
+            compose.onNodeWithTag(noteTag).assertIsDisplayed().assertTextContains("Saved correction from Activity")
+            scenario.recreate()
+            compose.onAllNodesWithTag("entity-inspector-title").assertCountEquals(0)
+            compose.onNodeWithTag("track-entry-editor-list").performScrollToNode(hasTestTag(noteTag))
+            compose.onNodeWithTag(noteTag).assertIsDisplayed().assertTextContains("Saved correction from Activity")
+            captureVisualCatalogSurface("overhaul.tracks.activity-editing-restored-draft")
+            compose.onNodeWithText("Save", substring = false).performClick()
+            compose.waitUntil(10_000) { compose.onAllNodesWithTag("track-entry-editor-surface").fetchSemanticsNodes().isEmpty() }
+            try {
+                compose.waitUntil(10_000) {
+                    compose.onAllNodesWithTag("entity-inspector-title").fetchSemanticsNodes().isNotEmpty()
+                }
+            } finally {
+                captureVisualCatalogSurface("overhaul.tracks.activity-returned-after-save")
+            }
+            compose.onNodeWithTag("entity-inspector-title").assertTextEquals(title)
+            scenario.recreate()
+            try {
+                compose.waitUntil(10_000) {
+                    compose.onAllNodesWithTag("entity-inspector-title").fetchSemanticsNodes().isNotEmpty()
+                }
+            } finally {
+                captureVisualCatalogSurface("overhaul.tracks.activity-restored-after-save")
+            }
+            compose.onNodeWithTag("entity-inspector-title").assertTextEquals(title)
+            compose.onNodeWithText("Saved correction from Activity").assertIsDisplayed()
+            captureVisualCatalogSurface("overhaul.tracks.activity-inspector-after-save")
+            compose.onNodeWithContentDescription("Close Track Entry details").performClick()
+            compose.onNodeWithTag("track-workspace-destination-Activity").assertIsSelected()
+            compose.onNodeWithText("Text: River trail").assertIsDisplayed()
+            val after = runBlocking { requireNotNull(app.trackRepository.projection(before.track.id)) }
+            assertEquals(2, after.entries.size)
+            assertEquals("Saved correction from Activity", after.entries.single { after.entryDisplayTitle(it) == title }
+                .value(before.fields.single { it.name == "Notes" }.id)?.textValue)
+            assertEquals(before.entries.single { before.entryDisplayTitle(it) == "Existing trail" },
+                after.entries.single { after.entryDisplayTitle(it) == "Existing trail" })
+        }
+    }
 
     private fun verifyHistory(large: Boolean) {
         val trackId = runBlocking {

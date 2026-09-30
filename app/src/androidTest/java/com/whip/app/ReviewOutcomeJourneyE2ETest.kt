@@ -1,6 +1,16 @@
 package com.whip.app
 
 import android.content.Intent
+import androidx.activity.compose.setContent
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toPixelMap
+import com.whip.app.core.ReviewPeriod
+import com.whip.app.ui.*
+import com.whip.app.ui.theme.WhipTheme
+import kotlinx.coroutines.flow.first
+import org.junit.Assert.assertEquals
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.test.core.app.ApplicationProvider
@@ -83,6 +93,73 @@ class ReviewOutcomeJourneyE2ETest {
             compose.onNodeWithTag("review-outcome-list").assertIsDisplayed()
             captureVisualCatalogSurface("deep.review.returned-context")
         }
+    }
+
+
+    @Test fun archivedFinishedWorkoutKeepsItsOneDayReviewCountAndVisiblePoint() {
+        val date = app.clock.today().withDayOfMonth(1)
+        val id = runBlocking {
+            app.backupRepository.deleteAllData()
+            app.settingsRepository.update { AppSettings(setupCompleted = true, themeMode = AppThemeMode.Dark, dynamicColor = false) }
+            val exercise = app.gymRepository.createExercise(ExerciseDraft("Retained review exercise"))
+            val workout = app.gymRepository.startWorkout("Retained finished workout", localDate = date)
+            val placement = app.gymRepository.addExerciseToWorkout(workout, exercise)
+            app.gymRepository.addSet(placement, WorkoutSetDraft(weight = 40.0, reps = 5, completed = true))
+            app.gymRepository.finishWorkout(workout)
+            workout
+        }
+        val source = mutableStateOf(runBlocking { app.gymRepository.sessions.first().single { it.id == id } })
+        var pointColor = Color.Transparent
+        launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
+            // Fixed-date production Review host, not a device-clock change or shell archive gesture.
+            scenario.onActivity { activity ->
+                activity.setContent {
+                    WhipTheme(darkTheme = true, dynamicColor = false) {
+                        pointColor = MaterialTheme.colorScheme.primary
+                        val session = source.value
+                        ReviewDialog(
+                            taskState = TaskUiState(currentDate = date, loading = false),
+                            habitState = HabitUiState(loading = false), goalState = GoalUiState(loading = false),
+                            gymState = GymUiState(loading = false, allSessions = listOf(session),
+                                history = listOf(session).filterNot { it.archived },
+                                archivedWorkouts = listOf(session).filter { it.archived }),
+                            period = ReviewPeriod.Monthly, sections = setOf(ReviewSection.Gym),
+                            onPeriodChange = {}, onDismiss = {},
+                        )
+                    }
+                }
+            }
+            for ((stage, archived) in listOf("before" to false, "archived" to true, "restored" to false)) {
+                val stored = runBlocking {
+                    val dao = app.database.gymDao()
+                    val current = requireNotNull(dao.getSession(id))
+                    dao.updateSession(current.copy(archived = archived))
+                    app.gymRepository.sessions.first().single { it.id == id }
+                }
+                compose.runOnIdle { source.value = stored }
+                compose.onNodeWithTag("review-total-Gym", useUnmergedTree = true).assertTextEquals("1")
+                val chart = compose.onNodeWithContentDescription("Workouts daily values: 1", useUnmergedTree = true)
+                chart.performScrollTo().assertIsDisplayed()
+                val pixels = chart.captureToImage().toPixelMap()
+                var colored = 0
+                for (x in 0 until pixels.width) for (y in 0 until pixels.height) {
+                    val color = pixels[x, y]
+                    if (kotlin.math.abs(color.red - pointColor.red) < 0.03f &&
+                        kotlin.math.abs(color.green - pointColor.green) < 0.03f &&
+                        kotlin.math.abs(color.blue - pointColor.blue) < 0.03f) colored++
+                }
+                org.junit.Assert.assertTrue("The sole observation must paint a visible point: $colored pixels", colored > 12)
+                compose.onNodeWithTag("review-signal-Gym").performClick()
+                val row = compose.onNodeWithTag("review-outcome-Gym:$id:$date")
+                row.performScrollTo().assertTextContains("Retained finished workout", substring = true)
+                if (archived) row.assertTextContains("Archived", substring = true)
+                captureVisualCatalogSurface("overhaul.review.finished-workout-$stage")
+                compose.onNodeWithContentDescription("Back to Review & Trends").performClick()
+            }
+        }
+        val restored = runBlocking { app.gymRepository.sessions.first().single { it.id == id } }
+        org.junit.Assert.assertFalse(restored.archived)
+        assertEquals(WorkoutSessionState.Finished, restored.state)
     }
 
     private fun sourceJourney(section: ReviewSection, title: String) {

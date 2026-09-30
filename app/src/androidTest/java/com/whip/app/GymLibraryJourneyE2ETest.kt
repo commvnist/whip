@@ -8,6 +8,10 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso.closeSoftKeyboard
 import com.whip.app.core.AppSettings
 import com.whip.app.core.AppThemeMode
+import com.whip.app.core.PlatePreset
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
 import com.whip.app.domain.*
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -497,6 +501,109 @@ class GymLibraryJourneyE2ETest {
             compose.onNodeWithContentDescription("Edit machine ${current.name}").performScrollTo().performClick()
             compose.onNodeWithTag("machine-editor-name").assertTextContains(current.name)
             assertEquals(originalHistory, history())
+        }
+    }
+
+
+    @Test fun populatedInsightsReturnsFromExactSourceWithRangeExerciseAndPointRetained() {
+        val source = runBlocking {
+            prepare()
+            val first = app.gymRepository.createExercise(ExerciseDraft("Recent default exercise",
+                defaultGraphMetric = GymGraphMetric.MaxWeight.name))
+            val chosen = app.gymRepository.createExercise(ExerciseDraft("Chosen older trend",
+                defaultGraphMetric = GymGraphMetric.MaxWeight.name))
+            val date = LocalDate.now().minusDays(150)
+            val target = app.gymRepository.startWorkout("Exact older trend source",
+                startedAt = date.atStartOfDay(ZoneOffset.UTC).toInstant(), localDate = date)
+            val targetPlacement = app.gymRepository.addExerciseToWorkout(target, chosen)
+            val targetSet = app.gymRepository.addSet(targetPlacement, WorkoutSetDraft(weight = 67.0, reps = 6, completed = true))
+            app.gymRepository.finishWorkout(target)
+            val recent = app.gymRepository.startWorkout("Recent distractor", startedAt = Instant.now())
+            val recentPlacement = app.gymRepository.addExerciseToWorkout(recent, first)
+            app.gymRepository.addSet(recentPlacement, WorkoutSetDraft(weight = 31.0, reps = 5, completed = true))
+            app.gymRepository.finishWorkout(recent)
+            target to targetSet
+        }
+        launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
+            compose.onNodeWithContentDescription("Gym tab").performClick()
+            // Capture the full graph after normal timer cleanup, before any analysis navigation.
+            compose.waitUntil(10_000) { history().first.none { it.restTimerCleanupPending } }
+            val historical = history()
+            compose.onNodeWithTag("gym-destination-Insights").performClick()
+            val list = compose.onNodeWithTag("gym-progress-list")
+            list.performScrollToNode(hasTestTag("gym-progress-exercise-selector"))
+            compose.onNode(hasClickAction() and hasAnyAncestor(hasTestTag("gym-progress-exercise-selector"))).performClick()
+            compose.onNode(hasText("Chosen older trend") and hasAnyAncestor(hasTestTag("gym-exercise-filter-menu"))).performClick()
+            list.performScrollToNode(hasText("Graph Options"))
+            compose.onNodeWithText("Graph Options").performClick()
+            list.performScrollToNode(hasText("3 Months"))
+            compose.onNodeWithText("3 Months").performClick()
+            compose.onNodeWithText("All Time").performClick()
+            list.performScrollToNode(hasText("Data Points"))
+            compose.onNodeWithText("Data Points").performClick()
+            list.performScrollToNode(hasText("67 kg"))
+            compose.onNodeWithText("67 kg").performClick()
+            compose.onNodeWithTag("gym-chart-point-open-workout").assertIsDisplayed()
+            captureVisualCatalogSurface("overhaul.gym.insights-return.selected-source")
+            compose.onNodeWithTag("gym-chart-point-open-workout").performClick()
+            compose.onNodeWithTag("gym-history-back-insights").assertIsDisplayed()
+            compose.onNodeWithTag("history-workout-toggle-${source.first}").performScrollTo().assert(hasContentDescription("Exact older trend source", substring = true))
+            compose.onNodeWithTag("history-set-performed-${source.second}").performScrollTo().assertTextContains("67 kg × 6 reps")
+            captureVisualCatalogSurface("overhaul.gym.insights-return.exact-history")
+            scenario.recreate()
+            androidx.test.espresso.Espresso.pressBack()
+            // Returning restores the exact open point inspector, not just the destination tab.
+            compose.onNodeWithTag("gym-chart-point-open-workout").assertIsDisplayed()
+            compose.onNodeWithText("Close").performClick()
+            list.performScrollToNode(hasTestTag("gym-progress-exercise-selector"))
+            compose.onNode(hasText("Chosen older trend") and hasAnyAncestor(hasTestTag("gym-progress-exercise-selector")),
+                useUnmergedTree = true).assertIsDisplayed()
+            list.performScrollToNode(hasText("All Time"))
+            compose.onNodeWithText("All Time").assertIsDisplayed()
+            list.performScrollToNode(hasText("67 kg"))
+            compose.onNodeWithText("67 kg").assertIsDisplayed()
+            captureVisualCatalogSurface("overhaul.gym.insights-return.retained-analysis")
+            assertEquals(historical, history())
+        }
+    }
+
+    @Test fun crossUnitSavedPlatePresetConvertsAuthoredTargetAndRestoresItsHardware() {
+        val poundPreset = PlatePreset("Saved pound rack", "pound", 45.0, listOf(45.0, 25.0, 5.0),
+            plateQuantities = mapOf(45.0 to 4, 25.0 to 2, 5.0 to 2), collarWeight = 5.0)
+        val kilogramPreset = PlatePreset("Saved kilogram rack", "kilogram", 20.0, listOf(20.0, 10.0, 2.5),
+            plateQuantities = mapOf(20.0 to 4, 10.0 to 2, 2.5 to 2))
+        runBlocking {
+            prepare()
+            app.settingsRepository.update { it.copy(gymWeightUnitId = "kilogram",
+                platePresets = listOf(poundPreset, kilogramPreset)) }
+        }
+        fun field(label: String): SemanticsNodeInteraction {
+            compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText(label))
+            return compose.onNodeWithText(label)
+        }
+        launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
+            compose.onNodeWithContentDescription("Gym tab").performClick()
+            compose.onNodeWithTag("gym-destination-Library").performClick()
+            compose.onNodeWithTag("gym-library-Tools").performScrollTo().performClick()
+            compose.onNodeWithText("Plate Calculator").performClick()
+            field("Target (kg)").performTextReplacement("100")
+            closeSoftKeyboard()
+            field("Saved pound rack").performClick()
+            field("Target (lb)").assertTextContains("220.5")
+            field("Bar / sled / base (lb)").assertTextContains("45")
+            field("Total collars / fixed add-on (lb)").assertTextContains("5")
+            field("Optional total inventory quantities").assertTextContains("45:4,25:2,5:2")
+            captureVisualCatalogSurface("overhaul.gym.plate-preset.converted-pound")
+            scenario.recreate()
+            field("Target (lb)").assertTextContains("220.5")
+            field("Saved pound rack").assertIsSelected()
+            field("Saved kilogram rack").performClick()
+            field("Target (kg)").assertTextContains("100")
+            field("Bar / sled / base (kg)").assertTextContains("20")
+            field("Available plates (kg), comma-separated").assertTextContains("20,10,2.5")
+            field("Optional total inventory quantities").assertTextContains("20:4,10:2,2.5:2")
+            captureVisualCatalogSurface("overhaul.gym.plate-preset.converted-kilogram")
+            assertEquals(listOf(poundPreset, kilogramPreset), runBlocking { app.settingsRepository.current() }.platePresets)
         }
     }
 

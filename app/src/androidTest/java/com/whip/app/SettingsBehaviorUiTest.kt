@@ -40,13 +40,14 @@ import org.junit.Before
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
+import org.junit.rules.RuleChain
 import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class SettingsBehaviorUiTest {
-    @get:Rule
     val compose = createAndroidComposeRule<MainActivity>()
+    @get:Rule val rules: RuleChain = RuleChain.outerRule(AndroidFontScaleRule()).around(compose)
 
     private val app: WhipApplication
         get() = ApplicationProvider.getApplicationContext()
@@ -529,6 +530,28 @@ class SettingsBehaviorUiTest {
         compose.onNodeWithTag("settings-enable-quiet-hours").assertIsNotEnabled()
         compose.onNodeWithTag("settings-field-quiet-hours-start-cancel").performClick()
         compose.onNodeWithTag("settings-enable-quiet-hours").assertIsEnabled()
+    }
+
+    @Test
+    @AndroidFontScale
+    fun enlargedCategoryParentKeepsItsPositionAfterChildRecreationAndBack() {
+        assertEquals(2f, InstrumentationRegistry.getInstrumentation().targetContext.resources.configuration.fontScale, 0.01f)
+        compose.onNodeWithTag("workspace-settings-action").performClick()
+        val about = hasTestTag("settings-section-About Whip")
+        compose.onNodeWithTag("settings-category-list").performScrollToNode(about)
+        val before = compose.onNode(about).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        captureVisualCatalogSurface("overhaul.settings.parent-before")
+        compose.onNode(about).performClick()
+        compose.onNodeWithContentDescription("Back to Settings").assertIsDisplayed()
+        compose.activityRule.scenario.recreate()
+        compose.waitUntil(10_000) {
+            compose.onAllNodesWithContentDescription("Back to Settings").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithContentDescription("Back to Settings").performClick()
+        val after = compose.onNode(about).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        assertEquals("Category scroll offset survives child recreation", before.top, after.top, 1f)
+        assertEquals(before.bottom, after.bottom, 1f)
+        captureVisualCatalogSurface("overhaul.settings.parent-return")
     }
 
     private fun openAppearanceSettings() {

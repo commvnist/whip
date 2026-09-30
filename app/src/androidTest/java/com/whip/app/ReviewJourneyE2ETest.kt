@@ -190,6 +190,37 @@ class ReviewJourneyE2ETest {
         }
     }
 
+
+    @Test fun emptySelectedWeekStillOffersTheOlderThirtyDayCorrelation() {
+        runBlocking {
+            app.backupRepository.deleteAllData()
+            app.settingsRepository.update { AppSettings(setupCompleted = true, themeMode = AppThemeMode.Dark,
+                dynamicColor = false, reviewPeriod = ReviewPeriod.Weekly,
+                reviewSections = setOf(ReviewSection.Habits, ReviewSection.Goals)) }
+            val today = app.clock.today()
+            val habit = app.habitRepository.create(HabitDraft("Earlier paired reflection", startDate = today.minusDays(20)))
+            val goal = app.goalRepository.create(GoalDraft("Earlier paired progress", type = GoalType.ReachValue,
+                startDate = today.minusDays(20), targetMin = 20.0))
+            repeat(7) { index ->
+                val date = today.minusDays(20L - index)
+                app.habitRepository.setCheckOff(habit, date, true)
+                app.goalRepository.recordMeasurement(goal, index + 1.0, date)
+            }
+        }
+        launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
+            openReview()
+            compose.onNodeWithText("No Outcomes in This View").performScrollTo().assertIsDisplayed()
+            compose.onAllNodesWithTag("review-signal-Habits").assertCountEquals(0)
+            compose.onNodeWithTag("review-correlations-toggle").performScrollTo().performClick()
+            val result = hasText("Habit outcomes ↔ Goal progress:", substring = true)
+            compose.onNode(result).performScrollTo().assertTextContains("(n=30)", substring = true)
+            captureVisualCatalogSurface("overhaul.review.empty-week-older-correlation")
+            scenario.recreate()
+            compose.onNode(result).performScrollTo().assertIsDisplayed()
+            compose.onNodeWithText("No Outcomes in This View").performScrollTo().assertIsDisplayed()
+        }
+    }
+
     private fun openReview() {
         val action = (hasText("Review & Trends") or hasText("Review Progress")) and hasClickAction()
         compose.waitUntil(15_000) { compose.onAllNodes(action).fetchSemanticsNodes().isNotEmpty() }

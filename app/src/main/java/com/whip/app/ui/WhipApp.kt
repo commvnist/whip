@@ -193,6 +193,7 @@ import com.whip.app.domain.TrackEntryMutationReceipt
 import com.whip.app.domain.ElapsedDisplay
 import com.whip.app.domain.elapsedDisplayValue
 import com.whip.app.domain.HabitDayProgress
+import com.whip.app.domain.HabitDayState
 import com.whip.app.core.zoneId
 import com.whip.app.core.supportedTrackedRecordTypes
 import com.whip.app.core.WhipLaunchActions
@@ -7807,10 +7808,12 @@ internal fun HabitUiState.plannedOn(date: LocalDate): List<HabitDayProgress> {
     if (date == currentDate) return today
     return all.mapNotNull { current ->
         val habit = current.habit
-        val habitLogs = logs.filter { it.habitId == habit.id }
+        val habitLogs = logs.filter { it.habitId == habit.id && it.localDate <= minOf(date, currentDate) }
         val habitPauses = pauses.filter { it.habitId == habit.id }
         val habitSkips = skips.filter { it.habitId == habit.id }
-        if (habit.archived || habit.hasEnded(habitLogs, date, habitPauses, customUnits, habitSkips)) return@mapNotNull null
+        if (habit.archived) return@mapNotNull null
+        val dayState = habit.dayStateOn(date, currentDate, habitLogs, habitPauses, habitSkips, customUnits)
+        val ended = habit.hasEnded(habitLogs, date, habitPauses, customUnits, habitSkips)
         val explicitlyPaused = habitPauses.any { pause ->
             !date.isBefore(pause.startDate) && (pause.endDate == null || !date.isAfter(pause.endDate))
         }
@@ -7820,10 +7823,14 @@ internal fun HabitUiState.plannedOn(date: LocalDate): List<HabitDayProgress> {
         val monthCount = flexible?.completed.takeIf { habit.scheduleType == com.whip.app.domain.HabitScheduleType.FlexibleTimesPerMonth } ?: 0
         current.copy(
             date = date,
-            scheduled = habit.isScheduledOn(date, weekCount, monthCount),
+            scheduled = dayState == HabitDayState.Completed || !ended && habit.isScheduledOn(date, weekCount, monthCount),
             value = habit.valueForPeriod(habitLogs, date, customUnits),
-            successful = habit.outcomeForPeriod(habitLogs, date, customUnits),
-            dayState = habit.dayStateOn(date, currentDate, habitLogs, habitPauses, habitSkips, customUnits),
+            successful = when (dayState) {
+                HabitDayState.Completed -> true
+                HabitDayState.BelowTarget -> false
+                else -> null
+            },
+            dayState = dayState,
         ).takeIf(HabitDayProgress::scheduled)
     }
 }

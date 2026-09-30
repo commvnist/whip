@@ -290,6 +290,45 @@ class WidgetContentTest {
         assertEquals(HabitWidgetAction.Open, content.rows.single { it.habit.id == review.id }.action)
     }
 
+    @Test
+    fun widgetPeriodTruthKeepsOpenBoundsPendingAndIgnoresFutureEvidence() {
+        val bounded = habit(1).copy(
+            targetPeriod = TargetPeriod.Week, comparison = TargetComparison.AtMost, targetMin = 2.0,
+        )
+        val future = habit(2).copy(targetPeriod = TargetPeriod.Week, targetMin = 2.0)
+        val content = trackingContent(listOf(bounded, future), listOf(
+            log(1).copy(value = 2.0, canonicalValue = 2.0, status = HabitLogStatus.Recorded),
+            log(2).copy(value = 2.0, canonicalValue = 2.0, localDate = today.plusDays(1)),
+        ), showCompleted = false)
+        assertEquals(2, content.scheduledHabits)
+        assertEquals(0, content.completedHabits)
+        assertFalse(content.rows.first { it.habit.id == 1L }.completed)
+        assertEquals(0.0, content.rows.first { it.habit.id == 2L }.value, 0.0)
+    }
+
+    @Test
+    fun widgetKeepsFiniteEarnedDayInItsDenominatorAndOmitsTheFollowingDay() {
+        val finite = habit(1).copy(endType = HabitEndType.AfterCompletions, endValue = 1.0)
+        val logs = listOf(log(1))
+        val earned = trackingContent(listOf(finite), logs)
+        assertEquals(1, earned.scheduledHabits)
+        assertEquals(1, earned.completedHabits)
+        assertTrue(earned.rows.single().completed)
+        val hidden = trackingContent(listOf(finite), logs, showCompleted = false)
+        assertTrue(hidden.rows.isEmpty())
+        assertEquals(1, hidden.completedHabits)
+        val later = trackingContent(listOf(finite), logs, date = today.plusDays(1))
+        assertEquals(0, later.scheduledHabits)
+        assertTrue(later.rows.isEmpty())
+    }
+
+    private fun trackingContent(
+        habits: List<Habit>, logs: List<HabitLog>, date: LocalDate = today, showCompleted: Boolean = true,
+    ) = calculateHabitTrackingContent(
+        habits, logs, emptyList(), emptyList(), emptyList(), emptyList(), emptyList(), emptyList(),
+        date, AreaScope.All, showCompleted,
+    )
+
     private fun task(
         id: Long,
         scheduleKind: ScheduleKind,

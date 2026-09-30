@@ -1,0 +1,49 @@
+{
+  "serial": "emulator-5554",
+  "systemFontScale": 2.0,
+  "productionApkSha256": "80390d4d580186ce6faeec466c3ad0a1155f0350239907ea1eb1db59c0936099",
+  "areaTestApkSha256": "db52a3180f038606c0a30fd45c7a8f9be5cfc55a5da87e548cd733805f9fc7d5",
+  "settingsTestApkSha256": "a6ea511374b9fe193dba07e277676e03cf962717bddaafb3332d39e5294efead",
+  "files": [
+    {
+      "file": "area-parent-before.png",
+      "rawSha256": "e3e98b2a22d796018efd9a0d92fd76d297cb15eb717428cdaa412c85e75d4c9b",
+      "copySha256": "e3e98b2a22d796018efd9a0d92fd76d297cb15eb717428cdaa412c85e75d4c9b"
+    },
+    {
+      "file": "area-parent-before.xml",
+      "rawSha256": "7b4529ba244da6108e3f9872d77f589068bc433efcc3b99e5d7d2d284a95d86e",
+      "copySha256": "85ae8668a5e50f03dfd021122247328fae569d91297e6dc26b6d9292ad97e2b5"
+    },
+    {
+      "file": "area-parent-return.png",
+      "rawSha256": "e3e98b2a22d796018efd9a0d92fd76d297cb15eb717428cdaa412c85e75d4c9b",
+      "copySha256": "e3e98b2a22d796018efd9a0d92fd76d297cb15eb717428cdaa412c85e75d4c9b"
+    },
+    {
+      "file": "area-parent-return.xml",
+      "rawSha256": "7b4529ba244da6108e3f9872d77f589068bc433efcc3b99e5d7d2d284a95d86e",
+      "copySha256": "85ae8668a5e50f03dfd021122247328fae569d91297e6dc26b6d9292ad97e2b5"
+    },
+    {
+      "file": "settings-parent-before.png",
+      "rawSha256": "35ac2c380d422c0aafc9d5ccf5cbb1e13b8d926190934c07271e336a3a09752b",
+      "copySha256": "35ac2c380d422c0aafc9d5ccf5cbb1e13b8d926190934c07271e336a3a09752b"
+    },
+    {
+      "file": "settings-parent-before.xml",
+      "rawSha256": "c65246de9588891c0ab5c0a5542c74aaf6a47c5f7397cfa9df89ec7e1bb719cd",
+      "copySha256": "1090680583bc2367aaefd36d2c0383cd591c309272ce37a887df3cf6e878af1b"
+    },
+    {
+      "file": "settings-parent-return.png",
+      "rawSha256": "35ac2c380d422c0aafc9d5ccf5cbb1e13b8d926190934c07271e336a3a09752b",
+      "copySha256": "35ac2c380d422c0aafc9d5ccf5cbb1e13b8d926190934c07271e336a3a09752b"
+    },
+    {
+      "file": "settings-parent-return.xml",
+      "rawSha256": "c65246de9588891c0ab5c0a5542c74aaf6a47c5f7397cfa9df89ec7e1bb719cd",
+      "copySha256": "1090680583bc2367aaefd36d2c0383cd591c309272ce37a887df3cf6e878af1b"
+    }
+  ]
+}

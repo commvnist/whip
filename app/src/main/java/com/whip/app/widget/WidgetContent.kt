@@ -5,6 +5,8 @@ import com.whip.app.domain.Habit
 import com.whip.app.domain.HabitChecklistItem
 import com.whip.app.domain.HabitChecklistState
 import com.whip.app.domain.HabitLog
+import com.whip.app.domain.HabitDayState
+import com.whip.app.domain.dayStateOn
 import com.whip.app.domain.HabitPause
 import com.whip.app.domain.HabitScheduleType
 import com.whip.app.domain.HabitSkip
@@ -23,7 +25,6 @@ import com.whip.app.domain.hasEnded
 import com.whip.app.domain.isNeutralDate
 import com.whip.app.domain.isScheduledOn
 import com.whip.app.domain.matches
-import com.whip.app.domain.outcomeForPeriod
 import com.whip.app.domain.valueForPeriod
 import com.whip.app.ui.buildUiState
 import com.whip.app.ui.mirrorMeasurementEntriesAsHabitLogs
@@ -153,10 +154,12 @@ internal fun calculateHabitTrackingContent(
                     selectedHabitIds?.contains(habit.id) == false
                 )
         ) return@mapNotNull null
-        val logs = projectedLogs.filter { it.habitId == habit.id }
+        val logs = projectedLogs.filter { it.habitId == habit.id && it.localDate <= today }
         val pauses = habitPauses.filter { it.habitId == habit.id }
         val skips = habitSkips.filter { it.habitId == habit.id }
-        if (!hasActiveTimer && habit.hasEnded(logs, today, pauses, customUnits, skips)) return@mapNotNull null
+        val dayState = habit.dayStateOn(today, today, logs, pauses, skips, customUnits)
+        val completed = dayState == HabitDayState.Completed
+        if (!hasActiveTimer && !completed && habit.hasEnded(logs, today, pauses, customUnits, skips)) return@mapNotNull null
         if (!hasActiveTimer && habit.isNeutralDate(today, pauses, skips)) return@mapNotNull null
         val flexible = habit.flexibleProgress(logs, today, pauses, skips)
         val isScheduled = when (habit.scheduleType) {
@@ -166,7 +169,6 @@ internal fun calculateHabitTrackingContent(
             else -> habit.isScheduledOn(today)
         }
         if (!isScheduled && !hasActiveTimer) return@mapNotNull null
-        val completed = habit.outcomeForPeriod(logs, today, customUnits) == true
         ScheduledHabit(
             habit = habit,
             completed = completed,

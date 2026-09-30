@@ -29,6 +29,7 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -667,6 +668,41 @@ class AreaFeatureUiTest {
         compose.onNodeWithText("Main is your only active Area.", substring = true).assertIsDisplayed()
         compose.onNodeWithText("Create Area").performClick()
         assertEquals("create", choice.get())
+    }
+
+    @Test
+    @AndroidFontScale
+    fun enlargedAreaParentRetainsItsIndexThroughCreateCancelAndDetailRestoration() {
+        val application = ApplicationProvider.getApplicationContext<WhipApplication>()
+        val viewModel = SettingsViewModel(application)
+        val restoration = StateRestorationTester(compose)
+        restoration.setContent {
+            WhipTheme(dynamicColor = false) {
+                AreaManagementDialog(
+                    state = SettingsUiState(areas = (1..30).map {
+                        area("parent-$it", "Parent Area $it").copy(position = it)
+                    }),
+                    viewModel = viewModel, onDismiss = {},
+                )
+            }
+        }
+        val target = "Open area details for Parent Area 25"
+        compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasContentDescription(target))
+        val before = compose.onNodeWithContentDescription(target).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        captureVisualCatalogSurface("overhaul.areas.parent-before")
+        compose.onNodeWithText("Create Area").performClick()
+        compose.assertDialogFontScale()
+        compose.onNodeWithText("Cancel").performClick()
+        val cancelled = compose.onNodeWithContentDescription(target).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        assertEquals("Create Cancel retains the parent offset", before.top, cancelled.top, 1f)
+        compose.onNodeWithContentDescription(target).performClick()
+        compose.onNodeWithTag("area-back-action").assertIsDisplayed()
+        restoration.emulateSavedInstanceStateRestore()
+        compose.onNodeWithTag("area-back-action").assertIsDisplayed().performClick()
+        val restored = compose.onNodeWithContentDescription(target).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        assertEquals("Child restoration retains the parent offset", before.top, restored.top, 1f)
+        assertEquals(before.bottom, restored.bottom, 1f)
+        captureVisualCatalogSurface("overhaul.areas.parent-return")
     }
 
     private fun area(id: String, name: String, archived: Boolean = false) = Area(

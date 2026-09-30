@@ -1,0 +1,185 @@
+{
+  "device": "emulator-5556",
+  "avd": "whip_api34_parallel",
+  "api": 34,
+  "accepted_unique_methods": 4,
+  "full_native_campaign": "pending integration-owned execution",
+  "assets": [
+    {
+      "file": "old-workout-selected-lower-day.png",
+      "sha256": "bd8be40e4624ad6772d63f32172f40f57e574a25a029b2a73a04e0b8141f79bb",
+      "source": "build/overhaul-evidence/routines/second-qa/final-captures/overhaul.gym.older-picker.selected-day (2).png",
+      "source_sha256": "bd8be40e4624ad6772d63f32172f40f57e574a25a029b2a73a04e0b8141f79bb",
+      "copy_policy": "original bytes",
+      "method": "olderThanFiftyWorkoutImportsIntoSelectedDayAndPersistsAcrossReopen",
+      "receipt": "build/overhaul-evidence/routines/second-qa/final-result.json",
+      "app_sha256": "80390d4d580186ce6faeec466c3ad0a1155f0350239907ea1eb1db59c0936099",
+      "test_sha256": "db52a3180f038606c0a30fd45c7a8f9be5cfc55a5da87e548cd733805f9fc7d5"
+    },
+    {
+      "file": "old-workout-selected-lower-day.xml",
+      "sha256": "9a89e1c2365b68bc9940e4074991a35e0c287708624b1aed22dfcdb92045f551",
+      "source": "build/overhaul-evidence/routines/second-qa/final-captures/overhaul.gym.older-picker.selected-day (2).xml",
+      "source_sha256": "5555721e0d4446a5e733fbb4310dd0fafc696e7ad7b7a1e89d840804d864528d",
+      "copy_policy": "LF line endings; parsed hierarchy unchanged",
+      "method": "olderThanFiftyWorkoutImportsIntoSelectedDayAndPersistsAcrossReopen",
+      "receipt": "build/overhaul-evidence/routines/second-qa/final-result.json",
+      "app_sha256": "80390d4d580186ce6faeec466c3ad0a1155f0350239907ea1eb1db59c0936099",
+      "test_sha256": "db52a3180f038606c0a30fd45c7a8f9be5cfc55a5da87e548cd733805f9fc7d5"
+    },
+    {
+      "file": "old-workout-reopened-prescription.png",
+      "sha256": "85a94bb0499fb1529fe37c8a47f0f7ad30452e944fbc4cdad47be457f9dcb622",
+      "source": "build/overhaul-evidence/routines/second-qa/final-captures/overhaul.gym.older-picker.reopened.png",
+      "source_sha256": "85a94bb0499fb1529fe37c8a47f0f7ad30452e944fbc4cdad47be457f9dcb622",
+      "copy_policy": "original bytes",
+      "method": "olderThanFiftyWorkoutImportsIntoSelectedDayAndPersistsAcrossReopen",
+      "receipt": "build/overhaul-evidence/routines/second-qa/final-result.json",
+      "app_sha256": "80390d4d580186ce6faeec466c3ad0a1155f0350239907ea1eb1db59c0936099",
+      "test_sha256": "db52a3180f038606c0a30fd45c7a8f9be5cfc55a5da87e548cd733805f9fc7d5"
+    },
+    {
+      "file": "old-workout-reopened-prescription.xml",
+      "sha256": "03abb7a89fc81253ab4f08b9da949a03bcf16b70ae1dcd83a8cb39e59e72b151",
+      "source": "build/overhaul-evidence/routines/second-qa/final-captures/overhaul.gym.older-picker.reopened.xml",
+      "source_sha256": "9271c334136812e3b7e754b7b33b0f2055fdb8d83eced3dffeb334b74b18eee0",
+      "copy_policy": "LF line endings; parsed hierarchy unchanged",
+      "method": "olderThanFiftyWorkoutImportsIntoSelectedDayAndPersistsAcrossReopen",
+      "receipt": "build/overhaul-evidence/routines/second-qa/final-result.json",
+      "app_sha256": "80390d4d580186ce6faeec466c3ad0a1155f0350239907ea1eb1db59c0936099",
+      "test_sha256": "db52a3180f038606c0a30fd45c7a8f9be5cfc55a5da87e548cd733805f9fc7d5"
+    },
+    {
+      "file": "insights-exact-source-history.png",
+      "sha256": "137cfd0e69c96752088cc5b3605f90c7870002891b7c9fe6ed2ba96998c764d9",
+      "source": "build/overhaul-evidence/routines/second-qa/final-captures/overhaul.gym.insights-return.exact-history (1).png",
+      "source_sha256": "137cfd0e69c96752088cc5b3605f90c7870002891b7c9fe6ed2ba96998c764d9",
+      "copy_policy": "original bytes",
+      "method": "populatedInsightsReturnsFromExactSourceWithRangeExerciseAndPointRetained",
+      "receipt": "build/overhaul-evidence/routines/second-qa/final-result.json",
+      "app_sha256": "80390d4d580186ce6faeec466c3ad0a1155f0350239907ea1eb1db59c0936099",
+      "test_sha256": "db52a3180f038606c0a30fd45c7a8f9be5cfc55a5da87e548cd733805f9fc7d5"
+    },
+    {
+      "file": "insights-exact-source-history.xml",
+      "sha256": "65e663722787d4efd5e36355308ce8aae2d9084b8060f3bd3cacf75c6a43e608",
+      "source": "build/overhaul-evidence/routines/second-qa/final-captures/overhaul.gym.insights-return.exact-history (1).xml",
+      "source_sha256": "061e1756ce0b79d5bac885a3398e33c7e8bb1477f4bb02997a7c4c03a323fc88",
+      "copy_policy": "LF line endings; parsed hierarchy unchanged",
+      "method": "populatedInsightsReturnsFromExactSourceWithRangeExerciseAndPointRetained",
+      "receipt": "build/overhaul-evidence/routines/second-qa/final-result.json",
+      "app_sha256": "80390d4d580186ce6faeec466c3ad0a1155f0350239907ea1eb1db59c0936099",
+      "test_sha256": "db52a3180f038606c0a30fd45c7a8f9be5cfc55a5da87e548cd733805f9fc7d5"
+    },
+    {
+      "file": "insights-restored-analysis.png",
+      "sha256": "74e782677029b4c383799143fbdad8662df6a98b0fc6d60cc84f5787b75bc332",
+      "source": "build/overhaul-evidence/routines/second-qa/final-captures/overhaul.gym.insights-return.retained-analysis (1).png",
+      "source_sha256": "74e782677029b4c383799143fbdad8662df6a98b0fc6d60cc84f5787b75bc332",
+      "copy_policy": "original bytes",
+      "method": "populatedInsightsReturnsFromExactSourceWithRangeExerciseAndPointRetained",
+      "receipt": "build/overhaul-evidence/routines/second-qa/final-result.json",
+      "app_sha256": "80390d4d580186ce6faeec466c3ad0a1155f0350239907ea1eb1db59c0936099",
+      "test_sha256": "db52a3180f038606c0a30fd45c7a8f9be5cfc55a5da87e548cd733805f9fc7d5"
+    },
+    {
+      "file": "insights-restored-analysis.xml",
+      "sha256": "6bfbbdd99c4fe187be11801713e4667b5d95d4b3855126fd6192bc4d4583e611",
+      "source": "build/overhaul-evidence/routines/second-qa/final-captures/overhaul.gym.insights-return.retained-analysis (1).xml",
+      "source_sha256": "e07b9bc4549f67af069741990bf29ede7e6720e41523312236c7f3934116104b",
+      "copy_policy": "LF line endings; parsed hierarchy unchanged",
+      "method": "populatedInsightsReturnsFromExactSourceWithRangeExerciseAndPointRetained",
+      "receipt": "build/overhaul-evidence/routines/second-qa/final-result.json",
+      "app_sha256": "80390d4d580186ce6faeec466c3ad0a1155f0350239907ea1eb1db59c0936099",
+      "test_sha256": "db52a3180f038606c0a30fd45c7a8f9be5cfc55a5da87e548cd733805f9fc7d5"
+    },
+    {
+      "file": "saved-preset-pound-equipment.png",
+      "sha256": "f2347f5bb5284e493928635a569239bc3ed77d76b18789348286bc10688b549f",
+      "source": "build/overhaul-evidence/routines/second-qa/replay-captures/overhaul.gym.plate-preset.converted-pound.png",
+      "source_sha256": "f2347f5bb5284e493928635a569239bc3ed77d76b18789348286bc10688b549f",
+      "copy_policy": "original bytes",
+      "method": "crossUnitSavedPlatePresetConvertsAuthoredTargetAndRestoresItsHardware",
+      "receipt": "build/overhaul-evidence/routines/second-qa/replay-result.json",
+      "app_sha256": "80390d4d580186ce6faeec466c3ad0a1155f0350239907ea1eb1db59c0936099",
+      "test_sha256": "087def280a778ca79f202e27f28089d0f49f0b20139d8bc9caf52a82f1cd520a"
+    },
+    {
+      "file": "saved-preset-pound-equipment.xml",
+      "sha256": "3cb6cd6d84d071785ccb49b566ebe7046f64655cce5d81508baae5e928440d54",
+      "source": "build/overhaul-evidence/routines/second-qa/replay-captures/overhaul.gym.plate-preset.converted-pound.xml",
+      "source_sha256": "cbe9fc9ff96d1dc8dbaf5cebcbd15a4711109184b2cf3feb7fe11d5f8cd9b26c",
+      "copy_policy": "LF line endings; parsed hierarchy unchanged",
+      "method": "crossUnitSavedPlatePresetConvertsAuthoredTargetAndRestoresItsHardware",
+      "receipt": "build/overhaul-evidence/routines/second-qa/replay-result.json",
+      "app_sha256": "80390d4d580186ce6faeec466c3ad0a1155f0350239907ea1eb1db59c0936099",
+      "test_sha256": "087def280a778ca79f202e27f28089d0f49f0b20139d8bc9caf52a82f1cd520a"
+    },
+    {
+      "file": "saved-preset-kilogram-equipment.png",
+      "sha256": "2e7be74e52588082c551c79a54c3b7a87c5ecb06946abca220c493a0160e927a",
+      "source": "build/overhaul-evidence/routines/second-qa/replay-captures/overhaul.gym.plate-preset.converted-kilogram.png",
+      "source_sha256": "2e7be74e52588082c551c79a54c3b7a87c5ecb06946abca220c493a0160e927a",
+      "copy_policy": "original bytes",
+      "method": "crossUnitSavedPlatePresetConvertsAuthoredTargetAndRestoresItsHardware",
+      "receipt": "build/overhaul-evidence/routines/second-qa/replay-result.json",
+      "app_sha256": "80390d4d580186ce6faeec466c3ad0a1155f0350239907ea1eb1db59c0936099",
+      "test_sha256": "087def280a778ca79f202e27f28089d0f49f0b20139d8bc9caf52a82f1cd520a"
+    },
+    {
+      "file": "saved-preset-kilogram-equipment.xml",
+      "sha256": "55fa4c78a377b677f6585627c6af907d873a2eb2427ef0be0ed9f314cbd6bedc",
+      "source": "build/overhaul-evidence/routines/second-qa/replay-captures/overhaul.gym.plate-preset.converted-kilogram.xml",
+      "source_sha256": "144925fd4a362be42f4dcc5752e5c34b7cb32a42c4b0ae0dd0559872afd5b45c",
+      "copy_policy": "LF line endings; parsed hierarchy unchanged",
+      "method": "crossUnitSavedPlatePresetConvertsAuthoredTargetAndRestoresItsHardware",
+      "receipt": "build/overhaul-evidence/routines/second-qa/replay-result.json",
+      "app_sha256": "80390d4d580186ce6faeec466c3ad0a1155f0350239907ea1eb1db59c0936099",
+      "test_sha256": "087def280a778ca79f202e27f28089d0f49f0b20139d8bc9caf52a82f1cd520a"
+    },
+    {
+      "file": "middle-phase-reopened-prescription.png",
+      "sha256": "ce62318731a6da79c6af5c065f49cb1626a0911d5bfb6e1de7c8fd5a2dc7ad67",
+      "source": "build/overhaul-evidence/routines/second-qa/phase-accepted-captures/overhaul.gym.phase-room.reopened (1).png",
+      "source_sha256": "ce62318731a6da79c6af5c065f49cb1626a0911d5bfb6e1de7c8fd5a2dc7ad67",
+      "copy_policy": "original bytes",
+      "method": "com.whip.app.RoutineAuthoringJourneyE2ETest#transformedMiddlePhasePersistsReopensAndInstantiatesWithoutChangingOtherPhases",
+      "receipt": "build/overhaul-evidence/routines/second-qa/phase-result.json",
+      "app_sha256": "80390d4d580186ce6faeec466c3ad0a1155f0350239907ea1eb1db59c0936099",
+      "test_sha256": "a6ea511374b9fe193dba07e277676e03cf962717bddaafb3332d39e5294efead"
+    },
+    {
+      "file": "middle-phase-reopened-prescription.xml",
+      "sha256": "8c97485d5dd40a8456e4306f6d6057aa27b476f18e5189fcd13ffc3e02014c50",
+      "source": "build/overhaul-evidence/routines/second-qa/phase-accepted-captures/overhaul.gym.phase-room.reopened (1).xml",
+      "source_sha256": "71a747eab11fdbcfb8e4878ce93ab1136ce2a2ab2558882049cad0bfc5ab6565",
+      "copy_policy": "LF line endings; parsed hierarchy unchanged",
+      "method": "com.whip.app.RoutineAuthoringJourneyE2ETest#transformedMiddlePhasePersistsReopensAndInstantiatesWithoutChangingOtherPhases",
+      "receipt": "build/overhaul-evidence/routines/second-qa/phase-result.json",
+      "app_sha256": "80390d4d580186ce6faeec466c3ad0a1155f0350239907ea1eb1db59c0936099",
+      "test_sha256": "a6ea511374b9fe193dba07e277676e03cf962717bddaafb3332d39e5294efead"
+    },
+    {
+      "file": "middle-phase-instantiated-workout.png",
+      "sha256": "9df90e8b3575253127b1b7c9268022ad87a6a3b684f62bbd318cfd8efdb01b7c",
+      "source": "build/overhaul-evidence/routines/second-qa/phase-accepted-captures/overhaul.gym.phase-room.instantiated.png",
+      "source_sha256": "9df90e8b3575253127b1b7c9268022ad87a6a3b684f62bbd318cfd8efdb01b7c",
+      "copy_policy": "original bytes",
+      "method": "com.whip.app.RoutineAuthoringJourneyE2ETest#transformedMiddlePhasePersistsReopensAndInstantiatesWithoutChangingOtherPhases",
+      "receipt": "build/overhaul-evidence/routines/second-qa/phase-result.json",
+      "app_sha256": "80390d4d580186ce6faeec466c3ad0a1155f0350239907ea1eb1db59c0936099",
+      "test_sha256": "a6ea511374b9fe193dba07e277676e03cf962717bddaafb3332d39e5294efead"
+    },
+    {
+      "file": "middle-phase-instantiated-workout.xml",
+      "sha256": "852451a49e79fc79460e76122514251c775508df0b798c8b7ff3b9ccdd3b594b",
+      "source": "build/overhaul-evidence/routines/second-qa/phase-accepted-captures/overhaul.gym.phase-room.instantiated.xml",
+      "source_sha256": "503a458f59956a8aada8ff335a3763e154dbad41829b0057bee03bf0bf8843d2",
+      "copy_policy": "LF line endings; parsed hierarchy unchanged",
+      "method": "com.whip.app.RoutineAuthoringJourneyE2ETest#transformedMiddlePhasePersistsReopensAndInstantiatesWithoutChangingOtherPhases",
+      "receipt": "build/overhaul-evidence/routines/second-qa/phase-result.json",
+      "app_sha256": "80390d4d580186ce6faeec466c3ad0a1155f0350239907ea1eb1db59c0936099",
+      "test_sha256": "a6ea511374b9fe193dba07e277676e03cf962717bddaafb3332d39e5294efead"
+    }
+  ]
+}

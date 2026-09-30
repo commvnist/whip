@@ -559,6 +559,8 @@ fun Habit.completionRateOverRecentPeriods(
         }
         return if (outcomes.isEmpty()) 0.0 else outcomes.count { it }.toDouble() / outcomes.size
     }
+    val activeThrough = lastActiveDate(evidence, through, pauses, customUnits, skips)
+    val activeEvidence = evidence.filter { it.localDate <= activeThrough }
     fun periodStart(day: LocalDate): LocalDate = when (scheduleType) {
         HabitScheduleType.FlexibleTimesPerWeek -> day.with(TemporalAdjusters.previousOrSame(weekStart))
         HabitScheduleType.FlexibleTimesPerMonth -> day.withDayOfMonth(1)
@@ -566,14 +568,14 @@ fun Habit.completionRateOverRecentPeriods(
     }
     val starts = buildList {
         val firstPeriod = maxOf(periodStart(startDate), periodStart(since))
-        var cursor = periodStart(through)
+        var cursor = periodStart(activeThrough)
         while (!cursor.isBefore(firstPeriod)) {
             add(cursor)
             cursor = if (scheduleType == HabitScheduleType.FlexibleTimesPerWeek) cursor.minusWeeks(1) else cursor.minusMonths(1)
         }
     }
     val outcomes = starts.mapNotNull { start ->
-        val progress = flexibleProgress(evidence, start, pauses, skips) ?: return@mapNotNull null
+        val progress = flexibleProgress(activeEvidence, start, pauses, skips) ?: return@mapNotNull null
         if (progress.target == 0) return@mapNotNull null
         val complete = progress.completed >= progress.target
         val periodClosed = when (scheduleType) {

@@ -22,3 +22,11 @@ Same emulator-5554, normal system font scale1.0, actual visible native tab taps:
 [Goal/Habit final selected originals](after/goals-habits/) include exact endpoint percentages, finite flexible2weeks, Home1of1, next logical-date empty state and open weekly upper-bound Pending/Ready evidence. Composite method counts and original failures are in the [Goal/Habit receipt](../../../docs/quality/GOALS_HABITS_ACCEPTANCE_2026-09-30.md) and [Routine/Gym/Task receipt](../../../docs/quality/ROUTINE_GYM_TASK_ACCEPTANCE_2026-09-30.md).
 
 Repository XML copies use LF line endings; device metadata/content and original PNG pixels are preserved. Raw device XML remains in the ignored evidence directories.
+
+## Follow-up acceptance originals
+
+[Actual200% Settings category return](verified/parent-return/settings-parent-return.png) follows About Whip, actual Activity recreation and Back; [Area parent return](verified/parent-return/area-parent-return.png) follows Create/Cancel, details and Compose saved-state restoration. Native bounds retain the same parent offset, and before/after PNG bytes are identical in each round trip. Matching XML and raw/copy SHA256 provenance accompany them; both returned originals personally inspected. These are restoration acceptance pairs, not invented old-build visual redesign screenshots.
+
+[Accepted persisted Gym journeys](verified/gym-follow-up/README.md) preserve exact source/phase/unit evidence and separate first failed attempts from accepted replays.
+
+[Review and Track follow-up originals](verified/review-track-follow-up/README.md) preserve the visible inspector-over-editor defect, corrected foreground drafts and accepted saved-context return, alongside truthful Review count/chart evidence and separate failed attempts.

@@ -39,9 +39,9 @@ Final package app SHA256 `cb5c6169bff1f01c2c17cd379126a3c4c243ffc2f11a81b5820e49
 
 ## Historical finding trace and acceptance limits
 
-The original audit is [DESIGN_COHERENCE_UX_AUDIT_2026-09-29.md](DESIGN_COHERENCE_UX_AUDIT_2026-09-29.md). These statuses distinguish implementation from fresh native acceptance.
+The original audit is [DESIGN_COHERENCE_UX_AUDIT_2026-09-29.md](DESIGN_COHERENCE_UX_AUDIT_2026-09-29.md). This table records the first validated batch and distinguishes implementation from fresh native acceptance. The accepted GYM-01/04/06/09 follow-up journeys below supersede their pending entries here.
 
-| Finding | Current implementation and evidence | Remaining acceptance |
+| Finding | First-batch implementation and evidence | Acceptance still pending at first batch |
 |---|---|---|
 | GYM-01 | Shared phase replacement preserves common/sibling rows; selected-phase warmups use that phase's working load. Phase isolation native test passes; latest RoutineBuilderStateTest45 and RoutineWarmupTest4 pass. | Full Room reopen/instantiation of the specifically transformed multiphase fixture is not established by the isolated UI callback test. |
 | GYM-02 | RoutineBuilderViewModel retains submitted receipt/draft; duplicate/late callbacks and cancellation settle; parent Save/Back/fields freeze. Delayed save/failure/restoration native case and complete durable save/reopen/performance/later-edit/History journey pass in second package. | Final broad campaign remains integration-owned. |
@@ -56,6 +56,29 @@ The original audit is [DESIGN_COHERENCE_UX_AUDIT_2026-09-29.md](DESIGN_COHERENCE
 | TASK-04 | Completed inspector stable key remains when opening definition editor; saved inspector section owns return context. | Actual completed-inspector edit/cancel/save layering and selected-section return require native verification. |
 | TASK-05 | Integration repaired the exact consumer to read frozen ScheduledSubtask title/notes, rather than the current step definition. Source independently verified in TaskComponents861/864. | Integration owns the differing-definition-versus-snapshot native fixture and its acceptance receipt. |
 
-Latest readiness JVM acceptance reported by integration:460/460 passed. The focused XML independently confirms RoutineBuilderStateTest45/45, RoutineWarmupTest4/4 and GymUxRulesTest28/28 at2026-09-30T04:41Z (77 focused tests). Earlier failures in a shared architecture assertion and Track CSV ceiling assertion were repaired by integration; the initial failed runs remain part of the logs.
+Historical intermediate readiness receipt:460/460 passed; this is not the current aggregate. The focused XML independently confirms RoutineBuilderStateTest45/45, RoutineWarmupTest4/4 and GymUxRulesTest28/28 at2026-09-30T04:41Z (77 focused tests). Earlier failures in a shared architecture assertion and Track CSV ceiling assertion were repaired by integration; the initial failed runs remain part of the logs.
 
-No lane commit or push performed. Integration owns final lint/type/build/JVM/native aggregation, evidence disposition, cohesive commits and push. No full overhaul completion is claimed.
+No lane commit or push performed. Integration committed and pushed the first validated batch as [4f534f85](https://github.com/commvnist/whip/commit/4f534f858b64e3478a4c21f9f6720ff54dc2dcaa). The follow-up fixtures below remain integration-owned for commit and aggregation. No full overhaul completion is claimed.
+
+
+## Finite follow-up native acceptance after the first commit
+
+Current disposition: **four of four unique journeys accepted**, across three immutable test packages on the same app APK SHA25680390d4d580186ce6faeec466c3ad0a1155f0350239907ea1eb1db59c0936099. [Curated PNG/XML evidence and hash provenance](../../artifacts/ux-overhaul/2026-09-30/verified/gym-follow-up/README.md) contains accepted journeys only.
+
+| Finding | Exact method and current receipt |
+|---|---|
+| GYM-04 | PASS GymLibraryJourneyE2ETest#populatedInsightsReturnsFromExactSourceWithRangeExerciseAndPointRetained: actual chosen older exercise, All Time range, exact67kg×6 source; Activity recreation and Back restore the open point, chosen exercise and range. Entire settled history graph remains equal. |
+| GYM-06 | PASS GymLibraryJourneyE2ETest#crossUnitSavedPlatePresetConvertsAuthoredTargetAndRestoresItsHardware: authored100kg converts to220.5lb with stored pound preset, recreation retains selected state and values, kilogram preset returns100kg with its hardware/inventory. Persisted presets remain equal. |
+| GYM-09 | PASS RoutineAuthoringJourneyE2ETest#olderThanFiftyWorkoutImportsIntoSelectedDayAndPersistsAcrossReopen:56 actual sessions, pagination exposes the oldest after picker recreation; import targets Lower, leaves Upper empty, persists73kg×9 with effort/rest/tempo/note, reopens intact, and leaves exact settled source sessions unchanged. |
+| GYM-01 | PASS RoutineAuthoringJourneyE2ETest#transformedMiddlePhasePersistsReopensAndInstantiatesWithoutChangingOtherPhases: transformed middle-phase Room save/reopen preserves common/sibling drafts; current-phase instantiation retains exact loads/reps/classification/notes and source identity. Exact full program label and session/set identities survive final Activity recreation. |
+
+Complete local receipts are in build/overhaul-evidence/routines/second-qa/:
+- native-first.log / first-result.json:4 run,0 pass,4 fixture failures.
+- native-replay.log / replay-result.json:4 run,1 pass,3 fixture failures; accepted preset test APK087def280a778ca79f202e27f28089d0f49f0b20139d8bc9caf52a82f1cd520a.
+- native-diagnostic.log / diagnostic-result.json:3 run,0 pass,3 fixture failures. Reopen PNG/XML established valid retained placement and Upper0/Lower1 structure.
+- native-final.log / final-result.json:3 run,2 pass,1 label assertion failure in72.861s; accepted older/Insights test APKdb52a3180f038606c0a30fd45c7a8f9be5cfc55a5da87e548cd733805f9fc7d5.
+- native-phase-accepted.log / phase-result.json:1 run,1 pass,0 failures in50.004s; accepted phase test APKa6ea511374b9fe193dba07e277676e03cf962717bddaafb3332d39e5294efead. All8 fresh phase PNG/XML assets were pulled and all4 PNGs visually inspected. Emulator5556 is released to integration for the full fresh campaign.
+
+Routine reopen fixtures await the actual outline/placement pane. History equality baselines are captured after app startup acknowledges pending timer cleanup: GymDao.acknowledgeRestTimerCleanup changes only restTimerCleanupPending. All business fields, placements and sets comparisons remain exact; none are normalized away.
+
+Integration's archived full JVM receipt is now759 tests across124 suites, zero failures/errors/skips in build/qa-overhaul/2026-09-30/batch-two-all-jvm-accepted/. Prior754 and intermediate460/464 receipts remain historical. Full fresh native inventory on three emulators is pending; focused passes do not establish full-overhaul completion.
