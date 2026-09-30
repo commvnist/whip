@@ -35,15 +35,7 @@ class DeepProductivityJourneyTest {
         compose.onNode(list).performScrollToNode(matcher)
         return compose.onNode(matcher and hasAnyAncestor(hasTestTag(surface)))
     }
-    private fun openCardDetails(kind: String, id: Long, title: String) {
-        compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasTestTag("$kind-card-$id"))
-        compose.onNodeWithTag("$kind-card-title-$id", useUnmergedTree = true).performClick()
-        compose.waitUntil(10_000) {
-            compose.onAllNodes(hasTestTag("entity-inspector-title") and hasText(title))
-                .fetchSemanticsNodes().isNotEmpty()
-        }
-        compose.onNodeWithTag("entity-inspector-title").assertIsDisplayed().assertTextEquals(title)
-    }
+
     private fun awaitHabitLogs(count: Int) {
         compose.waitUntil(10_000) { runBlocking { app.habitRepository.logs.first().size == count } }
         compose.waitUntil(10_000) { compose.onAllNodesWithTag("habit-value-dialog").fetchSemanticsNodes().isEmpty() }
@@ -58,7 +50,7 @@ class DeepProductivityJourneyTest {
         }
         launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
             compose.onNodeWithContentDescription("Habits tab").performClick()
-            openCardDetails("habit", id, "Water")
+            compose.openProductivityCardDetails("habit", id, "Water")
             inside("habit-detail-surface", hasText("+0.5 L")).performClick()
             awaitHabitLogs(1)
             inside("habit-detail-surface", hasText("Add Amount")).performClick()
@@ -95,7 +87,7 @@ class DeepProductivityJourneyTest {
         }
         launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
             compose.onNodeWithContentDescription("Habits tab").performClick()
-            openCardDetails("habit", id, "Evening reset")
+            compose.openProductivityCardDetails("habit", id, "Evening reset")
             inside("habit-detail-surface", hasText("Today's Checklist")).assertIsDisplayed()
             captureVisualCatalogSurface("deep.habits.execution.large")
             compose.onNodeWithTag("habit-detail-section-Insights").performClick()
@@ -119,7 +111,7 @@ class DeepProductivityJourneyTest {
         }
         launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
             compose.onNodeWithContentDescription("Goals tab").performClick()
-            openCardDetails("goal", id, "Practice regularly")
+            compose.openProductivityCardDetails("goal", id, "Practice regularly")
             compose.onNodeWithText("Record Completion", substring = false).performClick()
             compose.onAllNodesWithTag("goal-measurement-value").assertCountEquals(0)
             compose.onNodeWithTag("goal-new-completion").assertTextEquals("One completion")
@@ -267,7 +259,7 @@ class DeepProductivityJourneyTest {
         val originals = runBlocking { app.goalRepository.milestones.first().filter { it.goalId == id } }
         launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
             compose.onNodeWithContentDescription("Goals tab").performClick()
-            openCardDetails("goal", id, "Publish research")
+            compose.openProductivityCardDetails("goal", id, "Publish research")
             compose.onNodeWithContentDescription("Edit Goal").performClick()
             inList("goal-editor-fields", hasTestTag("goal-milestone-name-0")).assertIsDisplayed()
             compose.onAllNodesWithTag("goal-milestone-weight-0").assertCountEquals(0)

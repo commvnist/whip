@@ -18,6 +18,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
@@ -644,10 +645,13 @@ class ProductivityCardDesignUiTest {
         }
 
         compose.onNodeWithText("2/3 items", substring = true).assertIsDisplayed()
+        captureVisualCatalogSurface("card-repair.checklist.collapsed")
         compose.onNodeWithText("Done · 1 day streak").performScrollTo().assertIsDisplayed()
         compose.onAllNodesWithText("2 / 3 items complete").assertCountEquals(0)
-        checklistItems.forEach { (item, _) -> compose.onAllNodesWithText(item.name).assertCountEquals(0) }
-        compose.onNodeWithContentDescription("Check off habit Medication").performClick()
+        checklistItems.forEach { (item, _) -> compose.onNodeWithText(item.name).performScrollTo().assertIsDisplayed() }
+        compose.onNodeWithTag("habit-checklist-item-3", useUnmergedTree = true).performClick()
+        compose.runOnIdle { assertEquals(listOf(habit.id, 3L, date, true), checklistUpdate) }
+        compose.onNodeWithContentDescription("Check off habit Medication").performScrollTo().performClick()
         compose.runOnIdle { assertTrue(parentCompletionRequested) }
         compose.onAllNodesWithText("2 / 3 items complete").assertCountEquals(0)
 
@@ -655,6 +659,7 @@ class ProductivityCardDesignUiTest {
         compose.onNodeWithText("2 / 3 items complete").assertIsDisplayed()
         compose.onAllNodesWithText("1").assertCountEquals(0)
         checklistItems.forEach { (item, _) -> compose.onNodeWithText(item.name).assertIsDisplayed() }
+        captureVisualCatalogSurface("card-repair.checklist.expanded")
         val checklistHeight = height("habit-checklist-item-3")
         assertTrue("Habit checklist row must remain 48 dp; was $checklistHeight", checklistHeight >= 47.99.dp)
         val completedText = compose.onNodeWithTag("habit-checklist-text-1", useUnmergedTree = true)
@@ -929,7 +934,7 @@ class ProductivityCardDesignUiTest {
         )
         compose.onNodeWithContentDescription("Expand goal Days since smoking").assertExists()
         compose.onAllNodesWithText("Reset Timer").assertCountEquals(0)
-        compose.onNodeWithTag("goal-primary-action-8").assertIsDisplayed()
+        compose.onNodeWithTag("goal-card-reset-8", useUnmergedTree = true).assertIsDisplayed().assertHasClickAction()
         compose.onNodeWithTag("goal-card-reset-8", useUnmergedTree = true).performClick()
         val elapsedMetric = compose.onNodeWithTag("goal-card-status-8", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
         val elapsedIdentity = compose.onNodeWithTag("goal-icon-8", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
@@ -1031,6 +1036,10 @@ class ProductivityCardDesignUiTest {
 
         compose.onNodeWithTag("goal-expand-11", useUnmergedTree = true).performScrollTo().performClick()
         compose.onNodeWithTag("goal-card-reset-11", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
+        captureVisualCatalogSurface("card-repair.reset.two-hundred-percent")
+        val resetHeightPx = compose.onNodeWithTag("goal-card-reset-11", useUnmergedTree = true).fetchSemanticsNode().layoutInfo.height
+        val minimumHeightPx = with(compose.density) { 48.dp.toPx() }
+        assertTrue("Reset touch target must remain 48 dp: $resetHeightPx px, minimum $minimumHeightPx px", resetHeightPx >= minimumHeightPx)
         assertTrue(height("goal-card-reset-11") >= 48.dp)
     }
 
@@ -1121,10 +1130,10 @@ class ProductivityCardDesignUiTest {
         .right
         .value
 
-    private fun height(tag: String) = compose
-        .onNodeWithTag(tag, useUnmergedTree = true)
-        .getUnclippedBoundsInRoot()
-        .let { it.bottom - it.top }
+    // Convert the native layout size once; subtracting converted coordinates loses precision.
+    private fun height(tag: String) = with(compose.density) {
+        compose.onNodeWithTag(tag, useUnmergedTree = true).fetchSemanticsNode().layoutInfo.height.toDp()
+    }
 
     private fun verticalCenter(tag: String): Float = compose
         .onNodeWithTag(tag, useUnmergedTree = true)

@@ -1293,6 +1293,7 @@ class RoutineRepositoryTest {
             val set = gym.sets.first().single { it.workoutExerciseId == placement.id }
             assertEquals(expectedPhase, session.sourceRoutinePhaseIndex)
             assertEquals(expectedCycle, session.sourceRoutineCycle)
+            assertEquals(0, set.position)
             assertEquals(expected, set.enteredWeight!!, 0.0)
         }
 

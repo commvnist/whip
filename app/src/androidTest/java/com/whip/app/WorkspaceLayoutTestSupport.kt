@@ -55,3 +55,14 @@ internal fun ComposeTestRule.assertWorkspaceMeasure(maxWidth: Dp) {
     assertEquals("Workspace must center in the available pane", viewport.center.x, column.center.x, 1f)
     assertTrue("Header controls must align with the working column", header.left >= column.left - 1f && header.right <= column.right + 1f)
 }
+
+/** Tap the title to open details without activating a nested daily control. */
+internal fun ComposeTestRule.openProductivityCardDetails(kind: String, id: Long, title: String) {
+    onNode(hasScrollToIndexAction()).performScrollToNode(hasTestTag("$kind-card-$id"))
+    onNodeWithTag("$kind-card-title-$id", useUnmergedTree = true).performClick()
+    waitUntil(10_000) {
+        onAllNodes(hasTestTag("entity-inspector-title") and hasText(title))
+            .fetchSemanticsNodes().isNotEmpty()
+    }
+    onNodeWithTag("entity-inspector-title").assertIsDisplayed().assertTextEquals(title)
+}

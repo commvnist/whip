@@ -1,0 +1,148 @@
+{
+  "recorded_utc": "2026-09-30T10:31:13.666827+00:00",
+  "integration": {
+    "serial": "emulator-5554",
+    "tests_run": 15,
+    "passed": 15,
+    "duration_seconds": 85.49,
+    "log": "build/qa-overhaul/2026-09-30/card-routine-repair-card-class.log",
+    "app_sha256": "e56ba3202deb6851bdd8dcebcb99f9f3fa8c7604489a1dd5422fde8a02400b37",
+    "test_sha256": "6c57a5476de50de1b55b129ddbb48d8302982f2980e025331dcc4820383daa48"
+  },
+  "routine_replay": {
+    "device": "emulator-5556",
+    "apks": {
+      "app-debug.apk": "e56ba3202deb6851bdd8dcebcb99f9f3fa8c7604489a1dd5422fde8a02400b37",
+      "app-debug-androidTest.apk": "5bd61491953dcfe769ac4444ea88c46f59669c50d4f3af8b69315a03fe016919"
+    },
+    "capture_cutoff_device_epoch": 1790763985,
+    "selectors": [
+      "com.whip.app.RoutineRepositoryTest#programmedRoutineAdvancesSafelyAcrossDaysPhasesAndTrainingMaxCycles",
+      "com.whip.app.RoutineAuthoringJourneyE2ETest#transformedMiddlePhasePersistsReopensAndInstantiatesWithoutChangingOtherPhases"
+    ],
+    "source_manifest_sha256": "6ce7c242fd1d4d2c18543f1217751523c96bd13ccc89c437d4a55cfbefe0382d",
+    "source_manifest_path": "build/qa-overhaul/2026-09-30/card-routine-repair-diagnostic/source-sha256.txt",
+    "tests_run": 2,
+    "passed": 2,
+    "failed": 0,
+    "duration_seconds": 51.421,
+    "status_code_0_count": 2,
+    "captures": [
+      {
+        "path": "build/overhaul-evidence/routines/instantiation-repair-replay/captures/overhaul.gym.phase-room.transformed (6).png",
+        "sha256": "358d9010a6dc5f7c2f4e1997f9b5c1a463aa15ea8d464486ae38a21c5771fe95",
+        "device_modified_epoch": 1790764010
+      },
+      {
+        "path": "build/overhaul-evidence/routines/instantiation-repair-replay/captures/overhaul.gym.phase-room.transformed (6).xml",
+        "sha256": "5d78be23885d47927db50ee3760f81d2dd22e0c9935af2ff9ba9f9b2bf31ef91",
+        "device_modified_epoch": 1790764011
+      },
+      {
+        "path": "build/overhaul-evidence/routines/instantiation-repair-replay/captures/overhaul.gym.phase-room.reopen-diagnostic (4).png",
+        "sha256": "e69d1a1f31d097c1c178dd85bbb8a439b340cd0306382fa19f2a4b1266b7ae4b",
+        "device_modified_epoch": 1790764020
+      },
+      {
+        "path": "build/overhaul-evidence/routines/instantiation-repair-replay/captures/overhaul.gym.phase-room.reopen-diagnostic (4).xml",
+        "sha256": "5db3e0140f0cd5d98c7f5b53ea9562458f66ad75bd973d048268a584f7323464",
+        "device_modified_epoch": 1790764021
+      },
+      {
+        "path": "build/overhaul-evidence/routines/instantiation-repair-replay/captures/overhaul.gym.phase-room.reopened (3).png",
+        "sha256": "b352302fcbb1f7c77393b03ad08d6f71e3182c6ebc9500fdc2a340cdaabd346f",
+        "device_modified_epoch": 1790764023
+      },
+      {
+        "path": "build/overhaul-evidence/routines/instantiation-repair-replay/captures/overhaul.gym.phase-room.reopened (3).xml",
+        "sha256": "ce70e51d86f18c96afe355dd9fb9404f0654c125e47f8d8cd951c9513ede026c",
+        "device_modified_epoch": 1790764025
+      },
+      {
+        "path": "build/overhaul-evidence/routines/instantiation-repair-replay/captures/overhaul.gym.phase-room.instantiated (1).png",
+        "sha256": "c58a20178daf454f3e42861e1600949955d1294be3d917f5590891d92abb48f6",
+        "device_modified_epoch": 1790764035
+      },
+      {
+        "path": "build/overhaul-evidence/routines/instantiation-repair-replay/captures/overhaul.gym.phase-room.instantiated (1).xml",
+        "sha256": "0387e1da0cb5a5cebd4ced61d723cb3df5e0307e8076f87fefe82aaa31a06919",
+        "device_modified_epoch": 1790764036
+      }
+    ]
+  },
+  "entries": [
+    {
+      "path": "artifacts/ux-overhaul/2026-09-30/verified/card-routine-repair/card-repair.checklist.collapsed.png",
+      "device_path": "/sdcard/Download/whip-ui-catalog/card-repair.checklist.collapsed (1).png",
+      "sha256": "93aebccb6bce97dcd6403746b55b91b3b471817cd0ec4e4f99190e2b8a5a7362"
+    },
+    {
+      "path": "artifacts/ux-overhaul/2026-09-30/verified/card-routine-repair/card-repair.checklist.collapsed.xml",
+      "device_path": "/sdcard/Download/whip-ui-catalog/card-repair.checklist.collapsed (1).xml",
+      "sha256": "5936241012b39d854dc02bd8024799203459ae3f341a6286c55aa6028a01d764"
+    },
+    {
+      "path": "artifacts/ux-overhaul/2026-09-30/verified/card-routine-repair/card-repair.checklist.expanded.png",
+      "device_path": "/sdcard/Download/whip-ui-catalog/card-repair.checklist.expanded (1).png",
+      "sha256": "46cd9fb0e44070481f40338ebabe3fe34f0b872fba5bb5484f6252d981443531"
+    },
+    {
+      "path": "artifacts/ux-overhaul/2026-09-30/verified/card-routine-repair/card-repair.checklist.expanded.xml",
+      "device_path": "/sdcard/Download/whip-ui-catalog/card-repair.checklist.expanded (1).xml",
+      "sha256": "52fd9a9b43a9915959ce5009d50d022da24e6daf955b90f523cb44d885761a2f"
+    },
+    {
+      "path": "artifacts/ux-overhaul/2026-09-30/verified/card-routine-repair/card-repair.reset.two-hundred-percent.png",
+      "device_path": "/sdcard/Download/whip-ui-catalog/card-repair.reset.two-hundred-percent (1).png",
+      "sha256": "570fa4c97d35fe5594a837d5418edebc5a07bf8e8cb582354b449e56d49d2273"
+    },
+    {
+      "path": "artifacts/ux-overhaul/2026-09-30/verified/card-routine-repair/card-repair.reset.two-hundred-percent.xml",
+      "device_path": "/sdcard/Download/whip-ui-catalog/card-repair.reset.two-hundred-percent (1).xml",
+      "sha256": "a8bbfffe1357a842a0313e604ab916e1d963255bc6dfc1b428f944dc1b5199f3"
+    },
+    {
+      "path": "artifacts/ux-overhaul/2026-09-30/verified/card-routine-repair/routine.instantiated.png",
+      "source_path": "build/overhaul-evidence/routines/instantiation-repair-replay/captures/overhaul.gym.phase-room.instantiated (1).png",
+      "sha256": "c58a20178daf454f3e42861e1600949955d1294be3d917f5590891d92abb48f6"
+    },
+    {
+      "path": "artifacts/ux-overhaul/2026-09-30/verified/card-routine-repair/routine.instantiated.xml",
+      "source_path": "build/overhaul-evidence/routines/instantiation-repair-replay/captures/overhaul.gym.phase-room.instantiated (1).xml",
+      "sha256": "0387e1da0cb5a5cebd4ced61d723cb3df5e0307e8076f87fefe82aaa31a06919"
+    },
+    {
+      "path": "artifacts/ux-overhaul/2026-09-30/verified/card-routine-repair/experience.goals.working-milestones.png",
+      "source_path": "build/qa-overhaul/2026-09-30/goals-habits/six-card-journey-replay/originals/experience.goals.working-milestones.png",
+      "sha256": "b4a654b56e5e08930617c83ef54ff1943c8bd46181e30cf2111279fddcbfa529",
+      "device_epoch": 1790763986
+    },
+    {
+      "path": "artifacts/ux-overhaul/2026-09-30/verified/card-routine-repair/experience.goals.working-milestones.xml",
+      "source_path": "build/qa-overhaul/2026-09-30/goals-habits/six-card-journey-replay/originals/experience.goals.working-milestones.xml",
+      "sha256": "8fbf5f2c26caa27d616767a358a747d769497cab10b990fb91ddeec741b9ffd7",
+      "device_epoch": 1790763986
+    },
+    {
+      "path": "artifacts/ux-overhaul/2026-09-30/verified/card-routine-repair/experience.habits.working-checklist.large.png",
+      "source_path": "build/qa-overhaul/2026-09-30/goals-habits/six-card-journey-replay/originals/experience.habits.working-checklist.large.png",
+      "sha256": "8f39aacc6cd56b4016fb558fdb861d8ccb755cccb28df9b6da23b1fa52c8ca63",
+      "device_epoch": 1790763971
+    },
+    {
+      "path": "artifacts/ux-overhaul/2026-09-30/verified/card-routine-repair/experience.habits.working-checklist.large.xml",
+      "source_path": "build/qa-overhaul/2026-09-30/goals-habits/six-card-journey-replay/originals/experience.habits.working-checklist.large.xml",
+      "sha256": "95d141404a6b97cff8334630730c1c0c922612c055f9c11938037e8d8ebd6768",
+      "device_epoch": 1790763972
+    }
+  ],
+  "goals_habits_replay": {
+    "serial": "emulator-5558",
+    "tests_run": 6,
+    "passed": 6,
+    "duration_seconds": 176.587,
+    "app_sha256": "e56ba3202deb6851bdd8dcebcb99f9f3fa8c7604489a1dd5422fde8a02400b37",
+    "test_sha256": "5bd61491953dcfe769ac4444ea88c46f59669c50d4f3af8b69315a03fe016919",
+    "log": "build/qa-overhaul/2026-09-30/goals-habits/six-card-journey-replay/instrumentation.log"
+  }
+}

@@ -1344,7 +1344,7 @@ fun HabitProgressCard(
                     item, customUnits, onQuickValue, onSetValue, onAddAmount, onDecrement, onUndo, canUndo,
                     includePrimaryIncrement = numericPrimaryLabel != primaryLabel,
                 )
-                HabitTrackingMode.Checklist -> HabitChecklist(item, onChecklist)
+                HabitTrackingMode.Checklist -> HabitChecklist(item, onChecklist, showProgress = !management && disclosure.expanded)
                 HabitTrackingMode.Duration -> onAddAmount?.let { add ->
                     WhipTextButton(onClick = add, modifier = Modifier.testTag("habit-manual-duration-${habit.id}")) {
                         Text("Enter Duration")
@@ -1419,6 +1419,7 @@ private fun HabitChecklist(
     item: HabitDayProgress,
     onChecklist: (Long, Long, LocalDate, Boolean) -> Unit,
     enabled: Boolean = true,
+    showProgress: Boolean = true,
 ) {
     val habit = item.habit
     item.checklistItems.forEach { (checklistItem, completed) ->
@@ -1463,7 +1464,7 @@ private fun HabitChecklist(
     }
     val completedItems = item.checklistItems.count { it.second }
     val totalItems = item.checklistItems.size
-    if (totalItems > 0) {
+    if (showProgress && totalItems > 0) {
         LinearProgressIndicator(
             progress = { completedItems.toFloat() / totalItems },
             modifier = Modifier.fillMaxWidth(),

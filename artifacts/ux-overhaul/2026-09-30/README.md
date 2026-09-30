@@ -32,3 +32,5 @@ Repository XML copies use LF line endings; device metadata/content and original 
 [Review and Track follow-up originals](verified/review-track-follow-up/README.md) preserve the visible inspector-over-editor defect, corrected foreground drafts and accepted saved-context return, alongside truthful Review count/chart evidence and separate failed attempts.
 
 [Fresh grouped Calendar/Task regression originals](verified/grouped-regression/README.md) accompany the exact eight-method repair replay; acceptance frames are distinct from visual redesign before/after evidence.
+
+[Card/routine repair originals](verified/card-routine-repair/README.md): one collapsed checklist progress count with direct rows retained, native200% Reset sizing, phased session persistence and actual details journeys. Focused23/23 passed; full campaign remains separate.

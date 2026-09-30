@@ -597,7 +597,7 @@ class RoomRoutineRepository(
                     .takeIf(List<Double>::isNotEmpty)
                     ?.let { if (programmed) 100.0 else it[selectedDay.progressionIndex % it.size] }
                     ?: 100.0
-                planned.forEach { template ->
+                planned.forEachIndexed { position, template ->
                     gymDao.insertWorkoutSet(
                         template.toWorkoutSet(
                             ids.nextId(), workoutExerciseId, now, workoutExerciseEntity,
@@ -607,7 +607,7 @@ class RoomRoutineRepository(
                             trainingMaxPercent = routineExercise.trainingMaxPercent,
                             progressionPercent = progression,
                             explicitTrainingMaxKg = routineExercise.trainingMaxKg,
-                        ),
+                        ).copy(position = position),
                     )
                 }
             } else if (routineExercise.copyPreviousWorkout) {

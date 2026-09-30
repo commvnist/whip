@@ -2,6 +2,8 @@
 
 ### VER-20260930-001 - Resumed three-lane UX overhaul checkpoint
 
+- Current10:18UTC: KqdBtz naturally ended10:10:46UTC, exit1; no runner remains. Accepted537/1342; all completed793 contain787pass/6fail/0skip,549unexecuted. Original XML/logs retained; rejected stop never executed. Routine creation-position race and duplicate checklist progress are repaired, native card-title helper consolidated, actualReset selector corrected and proven47.99997dp coordinate-rounding accounted using126px native layout size at density2.625. Final focused native23/23 and affected readiness3m26s pass. Original gallery/provenance retained; full current-source local gate passes1m16s with759/124 JVM methods/suites and all required build/coverage gates, then one frozen full campaign. Complete acceptance remains pending.
+
 - First validated source/evidence batch normally pushed as [4f534f85](https://github.com/commvnist/whip/commit/4f534f858b64e3478a4c21f9f6720ff54dc2dcaa), remote exact hash verified. All35 prior tracked edits and handoff preserved; unrelated prior phone signature receipt remains unstaged. No Actions workflows/runs/check-runs for this commit.
 - Arch WSL source/build/tools, Windows parent invocation; disposable API34 serials5554/5556/5558 have actual assigned interaction/original evidence. Owner phone untouched.
 - First aggregate local gate754 JVM, lint/compile/debug/release/bundle/benchmark/coverage/static gates and final readiness pass. Native evidence is composite focused acceptance, not full inventory. [Acceptance matrix and limitations](../quality/UX_OVERHAUL_2026-09-30.md), [original gallery](../../artifacts/ux-overhaul/2026-09-30/README.md).

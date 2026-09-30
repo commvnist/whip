@@ -44,7 +44,7 @@ class ProductivityExperienceJourneyTest {
         val milestones = runBlocking { app.goalRepository.milestones.first().filter { it.goalId == id } }
         launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
             compose.onNodeWithContentDescription("Goals tab").performClick()
-            compose.onNodeWithTag("goal-card-$id").performScrollTo().performClick()
+            compose.openProductivityCardDetails("goal", id, "Publish the guide")
             inside("goal-detail-surface", hasTestTag("goal-milestone-${milestones[0].id}")).performClick()
             compose.waitUntil(10_000) { runBlocking { app.goalRepository.milestones.first().count { it.goalId == id && it.completed } == 1 } }
             inside("goal-detail-surface", hasText("25% complete")).assertIsDisplayed()
@@ -57,7 +57,7 @@ class ProductivityExperienceJourneyTest {
             inside("goal-detail-surface", hasText("Complete Goal")).performClick()
             compose.waitUntil(10_000) { runBlocking { app.goalRepository.get(id)?.status == GoalStatus.Completed } }
             compose.onNodeWithTag("goal-destination-History").performClick()
-            compose.onNodeWithTag("goal-card-$id").performScrollTo().performClick()
+            compose.openProductivityCardDetails("goal", id, "Publish the guide")
             inside("goal-detail-surface", hasTestTag("goal-milestone-${milestones[0].id}")).assertIsNotEnabled()
             compose.onAllNodesWithTag("goal-completion-opportunity").assertCountEquals(0)
         }
@@ -72,7 +72,7 @@ class ProductivityExperienceJourneyTest {
         val items = runBlocking { app.habitRepository.checklistItems.first().filter { it.habitId == id } }
         launchMainActivity(Intent(app, MainActivity::class.java)).use { scenario ->
             compose.onNodeWithContentDescription("Habits tab").performClick()
-            compose.onNodeWithTag("habit-card-$id").performScrollTo().performClick()
+            compose.openProductivityCardDetails("habit", id, "Evening routine")
             inside("habit-detail-surface", hasTestTag("habit-checklist-item-${items[0].id}")).performClick()
             compose.waitUntil(10_000) { runBlocking { app.habitRepository.checklistStates.first().count { it.habitId == id && it.completed } == 1 } }
             inside("habit-detail-surface", hasTestTag("habit-checklist-item-${items[1].id}")).performClick()
