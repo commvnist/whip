@@ -1,0 +1,44 @@
+{
+  "device": "emulator-5554",
+  "avd": "whip_api34",
+  "production_apk_sha256": "f8c713b97d439c4a9df5d09fd3e3c47e8717b9adc29c2425331d7855a718d856",
+  "accepted_unique_native_methods": 4,
+  "attempts": [
+    {
+      "class": "com.whip.app.AdaptiveWhipScreenTest",
+      "method": "expandedWorkspacesAlignChromeWithTheirDeclaredContentColumn",
+      "seconds": "20.172",
+      "passed": true,
+      "receipt": "shared/first-final/result-1.xml"
+    },
+    {
+      "class": "com.whip.app.AdaptiveWhipScreenTest",
+      "method": "enlargedTextKeepsEveryCompactPrimaryDestinationVisiblyNamed",
+      "seconds": "6.966",
+      "passed": true,
+      "receipt": "shared/first-final/result-1.xml"
+    },
+    {
+      "class": "com.whip.app.AdaptiveWhipScreenTest",
+      "method": "productivityAndGymWorkspaceNavigationStaysVisibleWhileLoadingOrFailed",
+      "seconds": "15.576",
+      "passed": false,
+      "receipt": "shared/first-final/result-1.xml"
+    },
+    {
+      "class": "com.whip.app.AdaptiveWhipScreenTest",
+      "method": "everyPrimaryWorkspaceUsesTheSameHeaderAndNavigationGeometry",
+      "seconds": "54.877",
+      "passed": true,
+      "receipt": "shared/first-final/result-1.xml"
+    },
+    {
+      "class": "com.whip.app.AdaptiveWhipScreenTest",
+      "method": "productivityAndGymWorkspaceNavigationStaysVisibleWhileLoadingOrFailed",
+      "seconds": "14.709",
+      "passed": true,
+      "receipt": "shared/final-native/result-1.xml"
+    }
+  ],
+  "no_passed_method_rerun": true
+}

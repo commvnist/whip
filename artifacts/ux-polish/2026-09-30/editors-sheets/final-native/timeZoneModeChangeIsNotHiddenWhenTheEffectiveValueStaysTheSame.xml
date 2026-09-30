@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="1" failures="0" errors="0" skipped="0" time="8.615" timestamp="2026-09-30T17:50:11" hostname="localhost">
+  <testsuite name="com.whip.app.ui.SettingsResponsiveUiTest" tests="1" failures="0" errors="0" skipped="0" time="6.707" timestamp="2026-09-30T17:50:11" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_qa3(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="timeZoneModeChangeIsNotHiddenWhenTheEffectiveValueStaysTheSame" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="6.707" />
+  </testsuite>
+</testsuites>

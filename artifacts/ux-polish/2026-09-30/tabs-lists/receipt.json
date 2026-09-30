@@ -1,0 +1,148 @@
+{
+  "device": "emulator-5556",
+  "avd": "whip_api34_parallel",
+  "normal_config": {
+    "width_px": 1080,
+    "height_px": 2400,
+    "density_dpi": 420,
+    "font_scale": 1.0
+  },
+  "wide_config": {
+    "width_px": 1920,
+    "height_px": 1200,
+    "density_dpi": 240,
+    "font_scale": 1.0
+  },
+  "large_native_font_scale": 2.0,
+  "production_apk_sha256": "f8c713b97d439c4a9df5d09fd3e3c47e8717b9adc29c2425331d7855a718d856",
+  "final_test_apk_sha256": "4870e4a50453596aa936589124ea0a83d7b957f3943f3b2cd942314e9074e156",
+  "accepted_unique_native_methods": 2,
+  "direct_final": {
+    "class": "com.whip.app.ReviewAvailabilityUiTest",
+    "method": "reviewHierarchyAndPageEdgesRemainConsistentAtLargeText",
+    "tests": 1,
+    "passed": 1,
+    "failures": 0,
+    "skipped": 0,
+    "status_codes": [
+      1,
+      0
+    ],
+    "runner_time_seconds": 7.718,
+    "raw_log": "artifacts/ux-polish/2026-09-30/tabs-lists/accepted-native/direct-native.log",
+    "note": "Direct runner output is the result source; no XML result was fabricated."
+  },
+  "original_runs": [
+    {
+      "name": "baseline-alignment-failure",
+      "original_xml": "build/instrumentation-results-5cTVxR/batch-1/result-1.xml",
+      "copy": "artifacts/ux-polish/2026-09-30/tabs-lists/results/baseline-alignment-failure.xml",
+      "tests": 1,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0,
+      "original_sha256": "129f4433fb535d5c82b30a1a1f6988de8918e2c468b700134242b6e0deecbb03",
+      "copy_sha256": "1997d48069b587643a6dddc734bd1db3d3cb8eb852ac28d223f15361c069ff2c",
+      "copy_normalization": "CRLF to LF only"
+    },
+    {
+      "name": "initial-final-layout-flag-failure",
+      "original_xml": "build/instrumentation-results-mHkAEF/batch-1/result-1.xml",
+      "copy": "artifacts/ux-polish/2026-09-30/tabs-lists/results/initial-final-layout-flag-failure.xml",
+      "tests": 1,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0,
+      "original_sha256": "7d6e88e54dcff2980f0aef04540438f60fbe23060d90025c628db41903a861d4",
+      "copy_sha256": "1c3239252d27354b947d0f7fd7cb436a5b7c889be5a846440dcd6e9cf3ed4529",
+      "copy_normalization": "CRLF to LF only"
+    },
+    {
+      "name": "diagnostic-allocation-failure",
+      "original_xml": "build/instrumentation-results-GRnPNC/batch-1/result-1.xml",
+      "copy": "artifacts/ux-polish/2026-09-30/tabs-lists/results/diagnostic-allocation-failure.xml",
+      "tests": 1,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0,
+      "original_sha256": "3a52356db79cdd932ae97676006c3f2fece8b573a042986b8764156739121b04",
+      "copy_sha256": "c23293e00a0946ef64ba682ee0b349b35da5a5b02144f5b044714526ab8d37f7",
+      "copy_normalization": "CRLF to LF only"
+    },
+    {
+      "name": "partial-review-pass",
+      "original_xml": "build/instrumentation-results-IFSj6J/batch-1/result-1.xml",
+      "copy": "artifacts/ux-polish/2026-09-30/tabs-lists/results/partial-review-pass.xml",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "original_sha256": "e6735376cbba342cef4f9bc8b2f92cfee882f4f3d63755fc082585edd07cdd22",
+      "copy_sha256": "62390f8bee16ab072d4f0643dfc99e857f1ad558a5340f31db022551e12f3432",
+      "copy_normalization": "CRLF to LF only"
+    }
+  ],
+  "accepted_large_assets": [
+    {
+      "media_id": 1000000908,
+      "raw_name": "fresh.polish.review.hierarchy.large (3).png",
+      "device_date_modified_epoch": 1790791528,
+      "sha256": "ca994dbe0c5911b2dc412962fe699d7bf9fd5bdfe0b9bf9270e2665f888f1b56",
+      "copy": "artifacts/ux-polish/2026-09-30/tabs-lists/accepted-native/fresh.polish.review.hierarchy.large.png"
+    },
+    {
+      "media_id": 1000000909,
+      "raw_name": "fresh.polish.review.hierarchy.large (3).xml",
+      "device_date_modified_epoch": 1790791528,
+      "sha256": "d34d0093bda0db3cc77a9e0ac5054c543c24a576613172425249a65c77fc879d",
+      "copy": "artifacts/ux-polish/2026-09-30/tabs-lists/accepted-native/fresh.polish.review.hierarchy.large.xml"
+    }
+  ],
+  "layout_accounting": {
+    "paragraph_width": 827.0,
+    "measured_width": 705,
+    "laid_out_line_right": 704.40234,
+    "paragraph_height": 111.0,
+    "measured_height": 111,
+    "did_overflow_width": true,
+    "did_overflow_height": false,
+    "correction": "Require positive lines, no exceeded max lines, no height overflow, and every laid-out line bound inside measured size with zero tolerance."
+  },
+  "manual_geometry": {
+    "normal_destination_left": {
+      "before": 32,
+      "after": 53
+    },
+    "normal_overview_height": {
+      "before": 86,
+      "after": 62
+    },
+    "wide_destination_left": {
+      "before": 24,
+      "after": 36
+    },
+    "wide_control_content_left": 36,
+    "wide_overview_height": {
+      "before": 49,
+      "after": 35
+    }
+  },
+  "selected_comparable_originals": [
+    "baseline-review.png",
+    "after-review.png",
+    "baseline-review-wide.png",
+    "after-review-wide.png"
+  ],
+  "excluded_attempts": [
+    "baseline-habit-create.* (launcher)",
+    "manual-habits-empty.xml (Home)",
+    "manual-habit-editor.* (Add menu)",
+    "after-review-wide-transition.png (black transition)"
+  ],
+  "limitations": [
+    "Focused emulator evidence, not complete-suite certification.",
+    "TalkBack speech, OEM, locale and fold hardware not certified.",
+    "Habit/Goal populated manual journeys were on frozen baseline; production changes there are only shared loading/error titles.",
+    "No phone operations from this worker."
+  ]
+}

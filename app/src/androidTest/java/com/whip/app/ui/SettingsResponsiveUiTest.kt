@@ -777,6 +777,8 @@ class SettingsResponsiveUiTest {
             "This setting or its mode changed elsewhere. Your draft is still here; review it before saving.",
         ).assertIsDisplayed()
         compose.onNodeWithTag("settings-field-time-zone-cancel").performClick()
+        compose.onNodeWithText("Discard Unsaved Changes?").assertIsDisplayed()
+        compose.onNodeWithText("Discard Changes").performClick()
         compose.runOnIdle { assertEquals(null, current) }
     }
 
@@ -802,6 +804,8 @@ class SettingsResponsiveUiTest {
             "This setting or its mode changed elsewhere. Your draft is still here; review it before saving.",
         ).assertIsDisplayed()
         compose.onNodeWithTag("settings-field-quiet-hours-start-cancel").performClick()
+        compose.onNodeWithText("Discard Unsaved Changes?").assertIsDisplayed()
+        compose.onNodeWithText("Discard Changes").performClick()
         compose.runOnIdle { assertEquals(22 * 60, current) }
     }
 
@@ -842,6 +846,8 @@ class SettingsResponsiveUiTest {
         compose.onNodeWithTag("settings-section-Appearance & Home").performClick()
         compose.onNodeWithTag("settings-field-default-rest-time-seconds-editor").assertIsDisplayed()
         compose.onNodeWithTag("settings-field-default-rest-time-seconds-cancel").performClick()
+        compose.onNodeWithText("Discard Unsaved Changes?").assertIsDisplayed()
+        compose.onNodeWithText("Discard Changes").performClick()
 
         compose.onNodeWithTag("settings-list")
             .performScrollToNode(hasTestTag("settings-field-default-rest-time-seconds"))

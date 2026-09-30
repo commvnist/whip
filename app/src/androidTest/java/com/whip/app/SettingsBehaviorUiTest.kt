@@ -466,6 +466,58 @@ class SettingsBehaviorUiTest {
     }
 
     @Test
+    @AndroidFontScale
+    fun typedSettingCancelKeepsDraftThroughRecreationAndReturnsAfterSave() {
+        openSettingsSection("Gym")
+        val field = "settings-field-default-rest-time-seconds"
+        compose.onNodeWithTag("settings-list").performScrollToNode(hasTestTag(field))
+        val initial = app.settingsRepository.current().defaultRestSeconds
+        compose.onNodeWithTag(field).performClick()
+        compose.onNodeWithTag("$field-input").performTextReplacement("300")
+        compose.onNodeWithTag("$field-input").assertTextContains("300")
+        compose.onNodeWithTag("$field-save").assertIsEnabled()
+        captureVisualCatalogSurface("polish.settings.dirty-native200")
+        compose.onNodeWithTag("$field-cancel").performClick()
+        compose.onNodeWithText("Discard Unsaved Changes?").assertIsDisplayed()
+        compose.assertDialogFontScale()
+        compose.runOnIdle { assertEquals(initial, app.settingsRepository.current().defaultRestSeconds) }
+        captureVisualCatalogSurface("polish.settings.cancel-confirm-native200")
+        compose.onNodeWithText("Keep Editing").performClick()
+        compose.onNodeWithTag("$field-input").assertTextContains("300")
+
+        compose.activityRule.scenario.recreate()
+        compose.waitUntil(10_000) {
+            compose.onAllNodesWithTag("$field-input").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithTag("$field-input").assertTextContains("300")
+        compose.onNodeWithTag("$field-cancel").performClick()
+        compose.onNodeWithText("Discard Changes").performClick()
+        compose.onAllNodesWithTag("$field-editor").assertCountEquals(0)
+        compose.runOnIdle { assertEquals(initial, app.settingsRepository.current().defaultRestSeconds) }
+
+        compose.onNodeWithTag(field).performClick()
+        compose.onNodeWithTag("$field-cancel").performClick()
+        compose.onAllNodesWithTag("$field-editor").assertCountEquals(0)
+        compose.onAllNodesWithText("Discard Unsaved Changes?").assertCountEquals(0)
+        compose.onNodeWithTag(field).performClick()
+        compose.onNodeWithTag("$field-input").performTextReplacement("300")
+        compose.onNodeWithTag("$field-save").assertIsEnabled().performTouchInput {
+            down(center)
+            up()
+            advanceEventTime(40)
+            down(center)
+            up()
+        }
+        compose.waitUntil(10_000) {
+            app.settingsRepository.current().defaultRestSeconds == 300 &&
+                compose.onAllNodesWithTag("$field-editor").fetchSemanticsNodes().isEmpty()
+        }
+        compose.onNodeWithTag(field).assertIsDisplayed()
+        compose.onNodeWithText("300", substring = false).assertIsDisplayed()
+        captureVisualCatalogSurface("polish.settings.saved-return-native200")
+    }
+
+    @Test
     fun hardwareBackRequiresExplicitDiscardAndCannotNavigateBehindATypedEditor() {
         openSettingsSection("Gym")
         compose.onNodeWithTag("settings-list")

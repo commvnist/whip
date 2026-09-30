@@ -1,6 +1,7 @@
 package com.whip.app
 
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.test.*
@@ -23,6 +24,68 @@ class ReviewAvailabilityUiTest {
     private val compose = createComposeRule()
     @get:Rule val rules: RuleChain = RuleChain.outerRule(AndroidFontScaleRule()).around(compose)
     private val today = LocalDate.of(2026, 9, 10)
+
+    @AndroidFontScale
+    @Test fun reviewHierarchyAndPageEdgesRemainConsistentAtLargeText() {
+        var dismissed = false
+        val restore = StateRestorationTester(compose)
+        restore.setContent {
+            val period = rememberSaveable { mutableStateOf(ReviewPeriod.Weekly) }
+            val sections = rememberSaveable { mutableStateOf(ReviewSection.entries.toSet()) }
+            WhipTheme(darkTheme = true, dynamicColor = false) {
+                ReviewDialog(
+                    taskState = TaskUiState(loading = false), habitState = HabitUiState(loading = false),
+                    goalState = GoalUiState(loading = false), gymState = GymUiState(loading = false),
+                    trackState = TrackUiState(loading = false), period = period.value,
+                    sections = sections.value, onPeriodChange = { period.value = it },
+                    onSectionsChange = { sections.value = it }, onDismiss = { dismissed = true },
+                )
+            }
+        }
+        compose.onNodeWithTag("review-compact-dashboard").assertIsDisplayed()
+        captureVisualCatalogSurface("fresh.polish.review.hierarchy.large")
+        val destination = compose.onNodeWithTag("review-destination-title").fetchSemanticsNode().boundsInRoot
+        val options = compose.onNodeWithTag("review-options-toggle").fetchSemanticsNode().boundsInRoot
+        assertEquals("Review header and content should share their leading edge", options.left, destination.left, 1f)
+        val destinationLayouts = mutableListOf<TextLayoutResult>()
+        val overviewLayouts = mutableListOf<TextLayoutResult>()
+        compose.onNodeWithText("Review & Trends", useUnmergedTree = true)
+            .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(destinationLayouts) }
+        compose.onNodeWithText("Overview", useUnmergedTree = true).performScrollTo()
+            .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(overviewLayouts) }
+        org.junit.Assert.assertTrue("The section heading must be subordinate to the page title",
+            overviewLayouts.single().layoutInput.style.fontSize < destinationLayouts.single().layoutInput.style.fontSize)
+        fun describeTextLayouts(layouts: List<TextLayoutResult>) = layouts.joinToString { layout ->
+            "text=${layout.layoutInput.text.text}; fontScale=${layout.layoutInput.density.fontScale}; " +
+                "style=${layout.layoutInput.style}; size=${layout.size}; constraints=${layout.layoutInput.constraints}; " +
+                "paragraph=${layout.multiParagraph.width}x${layout.multiParagraph.height}; " +
+                "didOverflowWidth=${layout.didOverflowWidth}; didOverflowHeight=${layout.didOverflowHeight}; " +
+                "lineCount=${layout.lineCount}; lines=" + (0 until layout.lineCount).joinToString { line ->
+                    "$line:[${layout.getLineLeft(line)},${layout.getLineTop(line)}," +
+                        "${layout.getLineRight(line)},${layout.getLineBottom(line)}]"
+                }
+        }
+        // A wrap-content Text may retain wider paragraph allocation; check its laid-out line bounds.
+        fun fitsMeasuredBounds(layout: TextLayoutResult): Boolean =
+            layout.lineCount > 0 && !layout.multiParagraph.didExceedMaxLines && !layout.didOverflowHeight &&
+                (0 until layout.lineCount).all { line ->
+                    layout.getLineLeft(line) >= 0f && layout.getLineRight(line) <= layout.size.width &&
+                        layout.getLineTop(line) >= 0f && layout.getLineBottom(line) <= layout.size.height
+                }
+        org.junit.Assert.assertTrue("Review destination title must not overflow: " + describeTextLayouts(destinationLayouts),
+            destinationLayouts.all(::fitsMeasuredBounds))
+        org.junit.Assert.assertTrue("Review section title must not overflow: " + describeTextLayouts(overviewLayouts),
+            overviewLayouts.all(::fitsMeasuredBounds))
+        compose.onNodeWithTag("review-options-toggle").performScrollTo().performClick()
+        compose.onNodeWithText("Monthly").performScrollTo().performClick()
+        val gym = hasText("Gym") and hasAnyAncestor(hasTestTag("review-controls"))
+        compose.onNode(gym).performScrollTo().performClick()
+        restore.emulateSavedInstanceStateRestore()
+        compose.onNodeWithText("Monthly").performScrollTo().assertIsSelected()
+        compose.onNode(gym).performScrollTo().assertIsNotSelected()
+        compose.onNodeWithContentDescription("Close Review & Trends").assertIsDisplayed().performClick()
+        compose.runOnIdle { org.junit.Assert.assertTrue(dismissed) }
+    }
 
     @AndroidFontScale
     @Test fun outcomeCardsKeepLongLabelsTotalsAndDailyScaleReadableAtLargeText() {

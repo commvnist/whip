@@ -1,0 +1,17 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="1" failures="1" errors="0" skipped="0" time="7.174" timestamp="2026-09-30T17:57:03" hostname="localhost">
+  <testsuite name="com.whip.app.ReviewAvailabilityUiTest" tests="1" failures="1" errors="0" skipped="0" time="5.615" timestamp="2026-09-30T17:57:03" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="reviewHierarchyAndPageEdgesRemainConsistentAtLargeText" classname="com.whip.app.ReviewAvailabilityUiTest" time="5.615">
+      <failure>java.lang.AssertionError: Review destination title must not overflow: text=Review &amp; Trends; fontScale=2.0; style=TextStyle(color=Color(0.90588236, 0.8862745, 0.85490197, 1.0, sRGB IEC61966-2.1), brush=null, alpha=1.0, fontSize=24.0.sp, fontWeight=FontWeight(weight=700), fontStyle=null, fontSynthesis=null, fontFamily=null, fontFeatureSettings=null, letterSpacing=Unspecified, baselineShift=null, textGeometricTransform=null, localeList=null, background=Color(0.0, 0.0, 0.0, 0.0, None), textDecoration=null, shadow=null, drawStyle=null, textAlign=Unspecified, textDirection=Unspecified, lineHeight=30.0.sp, textIndent=null, platformStyle=null, lineHeightStyle=null, lineBreak=LineBreak(strategy=Strategy.Unspecified, strictness=Strictness.Unspecified, wordBreak=WordBreak.Unspecified), hyphens=Hyphens.Unspecified, textMotion=null); size=705 x 111; constraints=Constraints(minWidth = 0, maxWidth = 827, minHeight = 0, maxHeight = 2141); paragraph=827.0x111.0; didOverflowWidth=true; didOverflowHeight=false; lineCount=1; lines=0:[0.0,0.0,704.40234,111.0]
+at org.junit.Assert.fail(Assert.java:89)
+at org.junit.Assert.assertTrue(Assert.java:42)
+at com.whip.app.ReviewAvailabilityUiTest.reviewHierarchyAndPageEdgesRemainConsistentAtLargeText(ReviewAvailabilityUiTest.kt:68)
+</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

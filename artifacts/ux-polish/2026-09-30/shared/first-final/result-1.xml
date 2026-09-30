@@ -1,0 +1,29 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="4" failures="1" errors="0" skipped="0" time="99.855" timestamp="2026-09-30T17:49:50" hostname="localhost">
+  <testsuite name="com.whip.app.AdaptiveWhipScreenTest" tests="4" failures="1" errors="0" skipped="0" time="97.591" timestamp="2026-09-30T17:49:50" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="expandedWorkspacesAlignChromeWithTheirDeclaredContentColumn" classname="com.whip.app.AdaptiveWhipScreenTest" time="20.172" />
+    <testcase name="enlargedTextKeepsEveryCompactPrimaryDestinationVisiblyNamed" classname="com.whip.app.AdaptiveWhipScreenTest" time="6.966" />
+    <testcase name="productivityAndGymWorkspaceNavigationStaysVisibleWhileLoadingOrFailed" classname="com.whip.app.AdaptiveWhipScreenTest" time="15.576">
+      <failure>java.lang.AssertionError: Failed to assert the following: (Text + InputText + EditableText contains 'Could Not Load' (ignoreCase: false))
+Semantics of the node:
+Node #984 at (l=53.0, t=524.0, r=754.0, b=567.0)px, Tag: 'workspace-context-summary'
+Text = '[Could Not Load Tasks]'
+[Heading]
+Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+Selector used: (TestTag = 'workspace-context-summary')
+
+at androidx.compose.ui.test.AssertionsKt.assert(Assertions.kt:293)
+at androidx.compose.ui.test.AssertionsKt.assert$default(Assertions.kt:283)
+at androidx.compose.ui.test.AssertionsKt.assertTextContains(Assertions.kt:237)
+at androidx.compose.ui.test.AssertionsKt.assertTextContains$default(Assertions.kt:233)
+at com.whip.app.AdaptiveWhipScreenTest.productivityAndGymWorkspaceNavigationStaysVisibleWhileLoadingOrFailed(AdaptiveWhipScreenTest.kt:204)
+</failure>
+    </testcase>
+    <testcase name="everyPrimaryWorkspaceUsesTheSameHeaderAndNavigationGeometry" classname="com.whip.app.AdaptiveWhipScreenTest" time="54.877" />
+  </testsuite>
+</testsuites>

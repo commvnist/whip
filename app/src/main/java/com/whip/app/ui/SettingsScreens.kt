@@ -2437,6 +2437,11 @@ private fun <T> TransactionalSettingsField(
     val dirty = inputTooLong || draftText != baselineText
     val saving = coordinator.saving
     val hasUncommittedIntent = dirty || externalConflict != null || durabilityRetryRequired
+    fun requestDismiss() {
+        if (saving) return
+        if (hasUncommittedIntent) confirmDiscard = true else resetEditor(close = true)
+    }
+
     val inputProblem = when {
         inputTooLong -> "Use at most $maxInputLength characters."
         validationRequested && parsed == null -> invalidMessage
@@ -2490,11 +2495,7 @@ private fun <T> TransactionalSettingsField(
             stableHeight = false,
             inputBlocked = saving,
             inputBlockedLabel = "Saving $label",
-            onDismissRequest = {
-                if (!saving) {
-                    if (hasUncommittedIntent) confirmDiscard = true else resetEditor(close = true)
-                }
-            },
+            onDismissRequest = ::requestDismiss,
             title = { Text("Edit $label") },
             text = {
                 Column(
@@ -2551,7 +2552,7 @@ private fun <T> TransactionalSettingsField(
                                     event.key == Key.Escape &&
                                     !saving
                                 ) {
-                                    if (hasUncommittedIntent) confirmDiscard = true else resetEditor(close = true)
+                                    requestDismiss()
                                     true
                                 } else {
                                     false
@@ -2586,7 +2587,7 @@ private fun <T> TransactionalSettingsField(
             },
             dismissButton = {
                 WhipTextButton(
-                    onClick = { resetEditor(close = true) },
+                    onClick = ::requestDismiss,
                     enabled = !saving,
                     modifier = Modifier.testTag("$testTag-cancel"),
                 ) { Text("Cancel") }

@@ -358,7 +358,7 @@ private fun ReviewDestinationHeader(
 ) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(
-            horizontal = if (sidebar) WhipSpacing.standard else WhipSpacing.compact,
+            horizontal = if (sidebar) WhipSpacing.screenExpanded else WhipSpacing.screenCompact,
             vertical = WhipSpacing.compact,
         ),
         horizontalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
@@ -470,12 +470,16 @@ private fun ReviewOverview(
         modifier = Modifier.fillMaxWidth().testTag("review-overview"),
         verticalArrangement = Arrangement.spacedBy(WhipSpacing.standard),
     ) {
-        WhipPageHeader(
-            title = "Overview",
-            supportingText = if (includedSections.isNotEmpty() && (hasReviewData || !availability.outcomesComplete)) {
-                "$rangeLabel · Select any card to review its outcomes."
-            } else rangeLabel,
-        )
+        Column(verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro)) {
+            WhipSectionHeading("Overview")
+            Text(
+                if (includedSections.isNotEmpty() && (hasReviewData || !availability.outcomesComplete)) {
+                    "$rangeLabel · Select any card to review its outcomes."
+                } else rangeLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         ReviewAvailabilityNotice(availability, retryActions)
         if (!hasReviewData && availability.outcomesComplete) {
             WhipEmptyState(

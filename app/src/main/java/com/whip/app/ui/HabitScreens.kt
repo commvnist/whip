@@ -197,7 +197,7 @@ fun HabitAreaContent(
                 testTagValue = HabitDestination::name,
                 barTestTag = "habit-workspace-navigation",
             )
-            WhipWorkspaceHeader("Loading habits")
+            WhipWorkspaceHeader(domainLoadTitle("habits", state.errorMessage))
             DomainLoadContent("habits", PaddingValues(), state.errorMessage, viewModel::retryLoading)
         }
         return

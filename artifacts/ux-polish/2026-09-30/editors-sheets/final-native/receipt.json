@@ -1,0 +1,98 @@
+{
+  "device": "emulator-5558",
+  "avd": "whip_api34_qa3",
+  "api": 34,
+  "physical_pixels": [
+    1080,
+    2400
+  ],
+  "density_dpi": 420,
+  "app_sha256": "f8c713b97d439c4a9df5d09fd3e3c47e8717b9adc29c2425331d7855a718d856",
+  "test_sha256": "0795b521565dddf48dfeffabe2f7a947b1df7fc8b68685c5977a3acbe7fd3601",
+  "passed_distinct_methods": 5,
+  "failures": 0,
+  "errors": 0,
+  "skips": 0,
+  "reuse": 0,
+  "methods": [
+    {
+      "class": "com.whip.app.SettingsBehaviorUiTest",
+      "method": "typedSettingCancelKeepsDraftThroughRecreationAndReturnsAfterSave",
+      "status": "passed",
+      "method_seconds": 57.786,
+      "suite_seconds": 60.118,
+      "engine_run": "WOGrbz",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "reused": 0
+    },
+    {
+      "class": "com.whip.app.ui.SettingsResponsiveUiTest",
+      "method": "timeZoneModeChangeIsNotHiddenWhenTheEffectiveValueStaysTheSame",
+      "status": "passed",
+      "method_seconds": 6.707,
+      "suite_seconds": 8.615,
+      "engine_run": "wfFjTw",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "reused": 0
+    },
+    {
+      "class": "com.whip.app.ui.SettingsResponsiveUiTest",
+      "method": "coupledQuietHoursDisableIsNotHiddenByTheDefaultDisplayValue",
+      "status": "passed",
+      "method_seconds": 8.294,
+      "suite_seconds": 10.176,
+      "engine_run": "VHTXCQ",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "reused": 0
+    },
+    {
+      "class": "com.whip.app.ui.SettingsResponsiveUiTest",
+      "method": "wideSettingsCannotSwitchCategoriesBehindATypedEditor",
+      "status": "passed",
+      "method_seconds": 14.464,
+      "suite_seconds": 16.061,
+      "engine_run": "FaxjsN",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "reused": 0
+    },
+    {
+      "class": "com.whip.app.SettingsBehaviorUiTest",
+      "method": "hardwareBackRequiresExplicitDiscardAndCannotNavigateBehindATypedEditor",
+      "status": "passed",
+      "method_seconds": 17.781,
+      "suite_seconds": 19.086,
+      "engine_run": "Dh9qDm",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "reused": 0
+    }
+  ],
+  "final_method_bound_seconds": 120,
+  "baseline_failed_method": {
+    "engine_run": "TtBRZT",
+    "failures": 1,
+    "errors": 0,
+    "skipped": 0,
+    "failure": "Dirty Cancel did not display Discard Unsaved Changes? at line479"
+  },
+  "stale_baseline_capture_excluded": "baseline-native/polish.settings.dirty-native200.png",
+  "baseline_visible_native200": [
+    "before-setting-dirty-native200.png",
+    "before-setting-cancel-native200.png"
+  ],
+  "coverage_limit": "Five targeted native methods; no full class or full suite rerun."
+}

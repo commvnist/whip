@@ -218,7 +218,7 @@ fun GoalAreaContent(
                 testTagPrefix = "goal-destination",
                 barTestTag = "goal-workspace-navigation",
             )
-            WhipWorkspaceHeader("Loading goals")
+            WhipWorkspaceHeader(domainLoadTitle("goals", state.errorMessage))
             DomainLoadContent("goals", PaddingValues(), state.errorMessage, viewModel::retryLoading)
         }
         return

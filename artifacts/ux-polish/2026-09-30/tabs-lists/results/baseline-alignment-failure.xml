@@ -1,0 +1,18 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="1" failures="1" errors="0" skipped="0" time="10.047" timestamp="2026-09-30T17:21:00" hostname="localhost">
+  <testsuite name="com.whip.app.ReviewAvailabilityUiTest" tests="1" failures="1" errors="0" skipped="0" time="8.245" timestamp="2026-09-30T17:21:00" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="reviewHierarchyAndPageEdgesRemainConsistentAtLargeText" classname="com.whip.app.ReviewAvailabilityUiTest" time="8.245">
+      <failure>java.lang.AssertionError: Review header and content should share their leading edge expected:&lt;53.0&gt; but was:&lt;32.0&gt;
+at org.junit.Assert.fail(Assert.java:89)
+at org.junit.Assert.failNotEquals(Assert.java:835)
+at org.junit.Assert.assertEquals(Assert.java:577)
+at com.whip.app.ReviewAvailabilityUiTest.reviewHierarchyAndPageEdgesRemainConsistentAtLargeText(ReviewAvailabilityUiTest.kt:49)
+</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

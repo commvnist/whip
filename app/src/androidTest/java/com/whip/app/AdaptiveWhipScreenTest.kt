@@ -151,7 +151,10 @@ class AdaptiveWhipScreenTest {
                 val goalViewModel: GoalViewModel = viewModel()
                 val gymViewModel: GymViewModel = viewModel()
                 WhipScreen(
-                    state = TaskUiState(loading = false),
+                    state = TaskUiState(
+                        loading = !failed.value,
+                        errorMessage = "Task refresh failed".takeIf { failed.value },
+                    ),
                     habitState = HabitUiState(
                         loading = !failed.value,
                         errorMessage = "Habit refresh failed".takeIf { failed.value },
@@ -180,6 +183,7 @@ class AdaptiveWhipScreenTest {
         }
 
         val workspaces = listOf(
+            "Tasks tab" to "task-workspace-navigation",
             "Habits tab" to "habit-workspace-navigation",
             "Goals tab" to "goal-workspace-navigation",
             "Gym tab" to "gym-workspace-navigation",
@@ -195,7 +199,10 @@ class AdaptiveWhipScreenTest {
         workspaces.forEach { (tab, navigation) ->
             compose.onNodeWithContentDescription(tab).performClick()
             compose.onNodeWithTag(navigation).assertIsDisplayed()
-            compose.onNodeWithText("Could Not Load", substring = true).assertIsDisplayed()
+            compose.onNode(hasText("Could Not Load", substring = true) and !hasTestTag("workspace-context-summary")).assertIsDisplayed()
+            captureVisualCatalogSurface("polish.workspace.failed.${tab.substringBefore(' ').lowercase()}")
+            compose.onNodeWithTag("workspace-context-summary").assertTextContains("Could Not Load", substring = true)
+            compose.onAllNodesWithText("Loading", substring = true).assertCountEquals(0)
         }
     }
 

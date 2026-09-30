@@ -16,6 +16,9 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 
+internal fun domainLoadTitle(domain: String, errorMessage: String?): String =
+    if (errorMessage == null) "Loading ${domain.uiTitleCase()}" else "Could Not Load ${domain.uiTitleCase()}"
+
 @Composable
 fun DomainLoadContent(
     domain: String,
@@ -40,13 +43,13 @@ fun DomainLoadContent(
             if (errorMessage == null) {
                 WhipStatusCard(
                     kind = WhipStatusKind.Loading,
-                    title = "Loading ${domain.uiTitleCase()}",
+                    title = domainLoadTitle(domain, errorMessage),
                     message = "This content will appear when loading is complete.",
                 )
             } else {
                 WhipStatusCard(
                     kind = WhipStatusKind.Error,
-                    title = "Could Not Load ${domain.uiTitleCase()}",
+                    title = domainLoadTitle(domain, errorMessage),
                     message = errorMessage,
                     actionLabel = "Try Again",
                     onAction = onRetry,

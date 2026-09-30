@@ -632,7 +632,7 @@ fun GymAreaContent(
                 testTagPrefix = "gym-destination",
                 barTestTag = "gym-workspace-navigation",
             )
-            WhipWorkspaceHeader("Loading gym data")
+            WhipWorkspaceHeader(domainLoadTitle("gym data", state.errorMessage))
             DomainLoadContent("gym data", PaddingValues(), state.errorMessage, viewModel::retryLoading)
         }
         return

@@ -1,0 +1,71 @@
+INSTRUMENTATION_STATUS: class=com.whip.app.AdaptiveWhipScreenTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stream=
+com.whip.app.AdaptiveWhipScreenTest:
+INSTRUMENTATION_STATUS: test=productivityAndGymWorkspaceNavigationStaysVisibleWhileLoadingOrFailed
+INSTRUMENTATION_STATUS_CODE: 1
+s_glBindAttribLocation: bind attrib 0 name position
+s_glBindAttribLocation: bind attrib 1 name color
+s_glBindAttribLocation: bind attrib 2 name localCoord
+INSTRUMENTATION_STATUS: class=com.whip.app.AdaptiveWhipScreenTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: Failed to assert the following: (Text + InputText + EditableText contains 'Could Not Load' (ignoreCase: false))
+Semantics of the node:
+Node #313 at (l=53.0, t=524.0, r=754.0, b=567.0)px, Tag: 'workspace-context-summary'
+Text = '[Loading tasks]'
+[Heading]
+Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+Selector used: (TestTag = 'workspace-context-summary')
+
+	at androidx.compose.ui.test.AssertionsKt.assert(Assertions.kt:293)
+	at androidx.compose.ui.test.AssertionsKt.assert$default(Assertions.kt:283)
+	at androidx.compose.ui.test.AssertionsKt.assertTextContains(Assertions.kt:237)
+	at androidx.compose.ui.test.AssertionsKt.assertTextContains$default(Assertions.kt:233)
+	at com.whip.app.AdaptiveWhipScreenTest.productivityAndGymWorkspaceNavigationStaysVisibleWhileLoadingOrFailed(AdaptiveWhipScreenTest.kt:204)
+
+INSTRUMENTATION_STATUS: stream=
+Error in productivityAndGymWorkspaceNavigationStaysVisibleWhileLoadingOrFailed(com.whip.app.AdaptiveWhipScreenTest):
+java.lang.AssertionError: Failed to assert the following: (Text + InputText + EditableText contains 'Could Not Load' (ignoreCase: false))
+Semantics of the node:
+Node #313 at (l=53.0, t=524.0, r=754.0, b=567.0)px, Tag: 'workspace-context-summary'
+Text = '[Loading tasks]'
+[Heading]
+Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+Selector used: (TestTag = 'workspace-context-summary')
+
+	at androidx.compose.ui.test.AssertionsKt.assert(Assertions.kt:293)
+	at androidx.compose.ui.test.AssertionsKt.assert$default(Assertions.kt:283)
+	at androidx.compose.ui.test.AssertionsKt.assertTextContains(Assertions.kt:237)
+	at androidx.compose.ui.test.AssertionsKt.assertTextContains$default(Assertions.kt:233)
+	at com.whip.app.AdaptiveWhipScreenTest.productivityAndGymWorkspaceNavigationStaysVisibleWhileLoadingOrFailed(AdaptiveWhipScreenTest.kt:204)
+
+INSTRUMENTATION_STATUS: test=productivityAndGymWorkspaceNavigationStaysVisibleWhileLoadingOrFailed
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_RESULT: stream=
+
+Time: 16.164
+There was 1 failure:
+1) productivityAndGymWorkspaceNavigationStaysVisibleWhileLoadingOrFailed(com.whip.app.AdaptiveWhipScreenTest)
+java.lang.AssertionError: Failed to assert the following: (Text + InputText + EditableText contains 'Could Not Load' (ignoreCase: false))
+Semantics of the node:
+Node #313 at (l=53.0, t=524.0, r=754.0, b=567.0)px, Tag: 'workspace-context-summary'
+Text = '[Loading tasks]'
+[Heading]
+Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+Selector used: (TestTag = 'workspace-context-summary')
+
+	at androidx.compose.ui.test.AssertionsKt.assert(Assertions.kt:293)
+	at androidx.compose.ui.test.AssertionsKt.assert$default(Assertions.kt:283)
+	at androidx.compose.ui.test.AssertionsKt.assertTextContains(Assertions.kt:237)
+	at androidx.compose.ui.test.AssertionsKt.assertTextContains$default(Assertions.kt:233)
+	at com.whip.app.AdaptiveWhipScreenTest.productivityAndGymWorkspaceNavigationStaysVisibleWhileLoadingOrFailed(AdaptiveWhipScreenTest.kt:204)
+
+FAILURES!!!
+Tests run: 1,  Failures: 1
+
+
+INSTRUMENTATION_CODE: -1

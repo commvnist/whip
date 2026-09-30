@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="1" failures="0" errors="0" skipped="0" time="16.061" timestamp="2026-09-30T17:51:06" hostname="localhost">
+  <testsuite name="com.whip.app.ui.SettingsResponsiveUiTest" tests="1" failures="0" errors="0" skipped="0" time="14.464" timestamp="2026-09-30T17:51:06" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_qa3(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="wideSettingsCannotSwitchCategoriesBehindATypedEditor" classname="com.whip.app.ui.SettingsResponsiveUiTest" time="14.464" />
+  </testsuite>
+</testsuites>

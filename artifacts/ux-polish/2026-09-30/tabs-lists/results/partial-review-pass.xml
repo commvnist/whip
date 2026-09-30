@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="1" failures="0" errors="0" skipped="0" time="15.249" timestamp="2026-09-30T17:50:50" hostname="localhost">
+  <testsuite name="com.whip.app.ReviewAvailabilityUiTest" tests="1" failures="0" errors="0" skipped="0" time="13.737" timestamp="2026-09-30T17:50:50" hostname="localhost">
+    <properties>
+      <property name="device" value="whip_api34_parallel(AVD) - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="partialReviewPreservesAvailableOutcomesAndRetriesOnlyUnavailableSources" classname="com.whip.app.ReviewAvailabilityUiTest" time="13.737" />
+  </testsuite>
+</testsuites>

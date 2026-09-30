@@ -5963,7 +5963,7 @@ private fun TaskAreaContent(
                 testTagPrefix = "task-destination",
                 barTestTag = "task-workspace-navigation",
             )
-            WhipWorkspaceHeader("Loading tasks")
+            WhipWorkspaceHeader(domainLoadTitle("tasks", state.errorMessage))
             DomainLoadContent("tasks", PaddingValues(), state.errorMessage, onRetryLoading)
         }
         return

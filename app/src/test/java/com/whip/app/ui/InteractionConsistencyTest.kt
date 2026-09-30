@@ -35,6 +35,8 @@ class InteractionConsistencyTest {
         assertEquals("Preview and Restore Backup", "preview and restore backup".uiTitleCase())
         assertEquals("Today's Habits", "today's habits".uiTitleCase())
         assertEquals("Estimated 1RM", "estimated 1RM".uiTitleCase())
+        assertEquals("Loading Habits", domainLoadTitle("habits", null))
+        assertEquals("Could Not Load Habits", domainLoadTitle("habits", "Refresh failed"))
     }
 
     @Test
