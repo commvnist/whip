@@ -2,6 +2,8 @@
 
 ### VER-20260930-001 - Resumed three-lane UX overhaul checkpoint
 
+- Validated routine/checklist/shared-card repair pushed6f0e006abf333ee1725b42c64826b8b9f361de35; exact remote match, zero hosted CI records. Focused23/23 native,759/124 current JVM and all required local gates pass. Sole fifth campaign jdsJXa10:53:49UTC:46accepted +138provisional, active79/124,28/82,31/46, zero failures/skips/reuse; inputs frozen. Historical audit counts are not current counts. Filtered-placement/group canonical creation proposal remains ignored-only and unexecuted; broad native acceptance is pending.
+
 - Current10:18UTC: KqdBtz naturally ended10:10:46UTC, exit1; no runner remains. Accepted537/1342; all completed793 contain787pass/6fail/0skip,549unexecuted. Original XML/logs retained; rejected stop never executed. Routine creation-position race and duplicate checklist progress are repaired, native card-title helper consolidated, actualReset selector corrected and proven47.99997dp coordinate-rounding accounted using126px native layout size at density2.625. Final focused native23/23 and affected readiness3m26s pass. Original gallery/provenance retained; full current-source local gate passes1m16s with759/124 JVM methods/suites and all required build/coverage gates, then one frozen full campaign. Complete acceptance remains pending.
 
 - First validated source/evidence batch normally pushed as [4f534f85](https://github.com/commvnist/whip/commit/4f534f858b64e3478a4c21f9f6720ff54dc2dcaa), remote exact hash verified. All35 prior tracked edits and handoff preserved; unrelated prior phone signature receipt remains unstaged. No Actions workflows/runs/check-runs for this commit.
