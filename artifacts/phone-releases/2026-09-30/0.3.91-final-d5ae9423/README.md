@@ -1,0 +1,13 @@
+# Final Whip overhaul — private phone update installed
+
+The user requested the final verified overhaul on the physical phone and expressly prohibited repeating the full suite. This receipt installs final pushed source **d5ae9423f2c87e13963f4e7033a95d0c0159ca61**, including later production fixes **b937d9ca7a0b8092a884988cdcb99d367ce7d1f6**.
+
+**Installed in place on Samsung SM-F976W**, package commvne.com.whip.app, **0.3.91/code97**. Same-version compatible updates were already proven and authorized. The earlier snapshot hash was 3984fd178d4b95b4b1e4d0a124a2953e9ed8c286a443594e2458afef40164c08. The final installed APK SHA256 is **85ad5c745874e5eb15c8a610ef75c4e836d6b2baa10f5733adc6bd7fe126c9b9**.
+
+- Copied the accepted unsigned artifact, SHA256 1e24a0fac6a3a2f332bc8e37aaf647bfed70d7bd79fa1b02bed7976d4ec46e58, into an isolated final-source checkout and signed it with the established local key. No rebuild, suite rerun or emulator actions. Final source manifest matches, and every signed payload entry is identical to the unsigned artifact.
+- Package/version/non-debuggable output, v2 signature, 16KiB alignment and archive integrity pass. Installed before/after and candidate certificate SHA256 all match cdaaa6cf1d6758396aa4ebb8cb408455010e127a018f6d52d359b93929b6d788.
+- Existing scripts/device release-install performed one adb install -r update and reported Success. Installed bytes exactly match candidate. AppId 10995, first-install time 2026-08-26 17:59:24, data directory and notification permission remain unchanged. Owner records were not inspected; no uninstall, clear, fixture or destructive operation occurred.
+- Existing scripts/device release-run cold foreground launch passed in 152ms. Three-second process-scoped startup inspection found zero crash/database/startup signatures.
+- [Existing phased acceptance](../../../ux-overhaul/2026-09-30/verified/final-regression/README.md): 1,301 unchanged native passes plus 42 final fresh affected passes cover all 1,343 methods. Final local gate restores 759 passing JVM methods from cache. This receipt claims no additional test run.
+- Binary retained locally at build/releases/Whip-0.3.91-code97-final-d5ae9423-private.apk. [Installed facts](installation.json), before/after metadata, signatures, installation and launch receipts are retained here. Connection addresses are redacted.
+- The preexisting modified 0.3.91 AAB receipt remains untouched, SHA256 05e34843fb7926a88d04b25e3c4f0e926e9eb85a1f5f3a84d85a93f858e6adbe. Only this new receipt is committed. No Play/public binary release, artifact upload, credential changes or further phone installation is performed.

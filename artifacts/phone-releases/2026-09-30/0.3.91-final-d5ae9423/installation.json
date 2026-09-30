@@ -1,0 +1,51 @@
+{
+  "recordedUtc": "2026-09-30T15:23:26.653519+00:00",
+  "model": "SM-F976W",
+  "physicalTarget": true,
+  "package": "commvne.com.whip.app",
+  "versionName": "0.3.91",
+  "versionCode": 97,
+  "sourceCommit": "d5ae9423f2c87e13963f4e7033a95d0c0159ca61",
+  "latestProductionFixCommit": "b937d9ca7a0b8092a884988cdcb99d367ce7d1f6",
+  "unsignedApkSha256": "1e24a0fac6a3a2f332bc8e37aaf647bfed70d7bd79fa1b02bed7976d4ec46e58",
+  "signedPayloadMatchesUnsigned": true,
+  "beforeInstalledApkSha256": "3984fd178d4b95b4b1e4d0a124a2953e9ed8c286a443594e2458afef40164c08",
+  "installedApkSha256": "85ad5c745874e5eb15c8a610ef75c4e836d6b2baa10f5733adc6bd7fe126c9b9",
+  "installedMatchesCandidateBytes": true,
+  "certificateSha256": "cdaaa6cf1d6758396aa4ebb8cb408455010e127a018f6d52d359b93929b6d788",
+  "installedCertificateUnchanged": true,
+  "identity": {
+    "appId": {
+      "before": "10995",
+      "after": "10995"
+    },
+    "firstInstallTime": {
+      "before": "2026-08-26 17:59:24",
+      "after": "2026-08-26 17:59:24"
+    },
+    "dataDir": {
+      "before": "/data/user/0/commvne.com.whip.app",
+      "after": "/data/user/0/commvne.com.whip.app"
+    }
+  },
+  "notificationPermissionPreserved": true,
+  "installWorkflow": "scripts/device release-install",
+  "installMode": "adb install -r",
+  "installSuccess": true,
+  "installCount": 1,
+  "coldLaunchMilliseconds": 152,
+  "foreground": true,
+  "processStartupErrors": 0,
+  "sourceManifestSha256": "d75ecae7f0247d53444f5db2185daff23a9cb83aa0d7c057dfff344fb695017b",
+  "buildMethod": "Copy final accepted unsigned artifact and sign locally in isolated checkout.",
+  "rebuildPerformed": false,
+  "testSuiteRerun": false,
+  "emulatorActions": false,
+  "physicalInstrumentation": false,
+  "ownerRecordsInspected": false,
+  "dataClearOrUninstall": false,
+  "mainCheckoutEditedByRelease": false,
+  "publicReleaseOrArtifactUpload": false,
+  "versionLabelReusedWithExplicitAuthorization": true,
+  "existingAcceptance": "1301 unchanged native passes plus 42 fresh affected passes cover 1343 unique methods. Final local gate uses cached 759 JVM methods. No single fresh all-green full-inventory run is claimed."
+}

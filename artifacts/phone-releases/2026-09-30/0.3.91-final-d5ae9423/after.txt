@@ -1,0 +1,11 @@
+    flags=0x0
+    appId=10995
+    versionCode=97 minSdk=26 targetSdk=37
+    versionName=0.3.91
+    flags=[ HAS_CODE ALLOW_CLEAR_USER_DATA ]
+    lastUpdateTime=2026-09-30 11:20:01
+    signatures=PackageSignatures{a049d09 version:2, signatures:[7cdf49c], past signatures:[]}
+    pkgFlags=[ HAS_CODE ALLOW_CLEAR_USER_DATA ]
+      dataDir=/data/user/0/commvne.com.whip.app
+      firstInstallTime=2026-08-26 17:59:24
+        android.permission.POST_NOTIFICATIONS: granted=true, flags=[ USER_SET|USER_SENSITIVE_WHEN_GRANTED|USER_SENSITIVE_WHEN_DENIED]

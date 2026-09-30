@@ -1,0 +1,5 @@
+Final source: d5ae9423f2c87e13963f4e7033a95d0c0159ca61
+Latest production fix: b937d9ca7a0b8092a884988cdcb99d367ce7d1f6
+Unsigned artifact: /tmp/whip-phone-release-20260930-final-d5ae9423/build/phone-release/final-unsigned.apk
+Unsigned SHA256: 1e24a0fac6a3a2f332bc8e37aaf647bfed70d7bd79fa1b02bed7976d4ec46e58
+Retained source manifest checked against isolated final checkout. Every signed payload entry is identical to the accepted unsigned artifact. Existing saved signing key used locally; credentials not printed. No rebuild or suite rerun.
