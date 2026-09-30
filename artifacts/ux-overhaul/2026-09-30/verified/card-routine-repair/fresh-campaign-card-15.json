@@ -1,0 +1,100 @@
+{
+  "campaign": "UYOVBs",
+  "sourceCommit": "b937d9ca7a0b8092a884988cdcb99d367ce7d1f6",
+  "appSha256": "9a210929c30d1fd09970b2e62d8430219f659012a5e2645e0daf8cff7d2fae02",
+  "testSha256": "a5fa92175b042b9c8306a240635b7881d8e436b398862fd992dbb95cbda96cbc",
+  "batch": "7 accepted99/99, no skips/failures/reuse",
+  "selectedClass": "com.whip.app.ProductivityCardDesignUiTest",
+  "methods": [
+    {
+      "method": "pastScheduledBadgeDoesNotCollapseTheTaskTitleInANarrowPane",
+      "seconds": "3.213",
+      "failures": 0,
+      "skips": 0
+    },
+    {
+      "method": "checklistHabitSummaryKeepsParentAndEachSubItemInteractive",
+      "seconds": "11.266",
+      "failures": 0,
+      "skips": 0
+    },
+    {
+      "method": "scheduledDateAndRecurrenceUseFullWidthSummaryAndExpandWithoutDuplication",
+      "seconds": "3.779",
+      "failures": 0,
+      "skips": 0
+    },
+    {
+      "method": "summaryRowsExpandIndependentlyAndWorkspaceTabChangesCollapseThem",
+      "seconds": "5.244",
+      "failures": 0,
+      "skips": 0
+    },
+    {
+      "method": "timerReviewDialogSupportsCorrectionContinueStopAndDiscardAtNarrowWidth",
+      "seconds": "9.509",
+      "failures": 0,
+      "skips": 0
+    },
+    {
+      "method": "habitTimerRemainsReadableOwnedAndReachableAtNarrowLargeText",
+      "seconds": "4.453",
+      "failures": 0,
+      "skips": 0
+    },
+    {
+      "method": "goalSummaryKeepsElapsedTimerResetAndMilestoneControls",
+      "seconds": "7.73",
+      "failures": 0,
+      "skips": 0
+    },
+    {
+      "method": "summaryCardsKeepLongTextReadableAtTwoHundredPercentFontScale",
+      "seconds": "8.513",
+      "failures": 0,
+      "skips": 0
+    },
+    {
+      "method": "habitSummaryStateMatrixKeepsTimerSkipAndSyncedInformation",
+      "seconds": "4.197",
+      "failures": 0,
+      "skips": 0
+    },
+    {
+      "method": "tasksHabitsAndGoalsShareIdentityActionAndEditColumns",
+      "seconds": "6.526",
+      "failures": 0,
+      "skips": 0
+    },
+    {
+      "method": "habitActivityGridExposesOneSpokenDateAndStatePerDay",
+      "seconds": "4.327",
+      "failures": 0,
+      "skips": 0
+    },
+    {
+      "method": "taskSummaryRowsReflowNotesAndSubtaskProgressWithoutLosingActions",
+      "seconds": "4.102",
+      "failures": 0,
+      "skips": 0
+    },
+    {
+      "method": "summaryExpansionSurvivesSavedStateRestoration",
+      "seconds": "4.327",
+      "failures": 0,
+      "skips": 0
+    },
+    {
+      "method": "pausedAndOffScheduleHabitSummariesRemoveAccidentalQuickActions",
+      "seconds": "5.048",
+      "failures": 0,
+      "skips": 0
+    },
+    {
+      "method": "habitAndGoalSummaryRowsKeepDetailsAndInlineActions",
+      "seconds": "7.271",
+      "failures": 0,
+      "skips": 0
+    }
+  ]
+}
