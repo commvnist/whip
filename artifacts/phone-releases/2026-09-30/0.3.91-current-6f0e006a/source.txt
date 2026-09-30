@@ -1,0 +1,5 @@
+Source: 8e8662b6095f65bb6eaa47228e300da1cb9154c3
+App fixes: 6f0e006abf333ee1725b42c64826b8b9f361de35
+Separate checkout: /tmp/whip-phone-release-20260930-6f0e006a
+Build: ./gradlew :app:assembleRelease --offline --no-daemon --no-build-cache --max-workers=2 -Dorg.gradle.jvmargs=-Xmx3g -Dorg.gradle.parallel=false -Dorg.gradle.configuration-cache=false
+Saved local signing variables supplied without printing credentials.

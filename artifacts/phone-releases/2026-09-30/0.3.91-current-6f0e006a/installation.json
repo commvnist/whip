@@ -1,0 +1,55 @@
+{
+  "recordedUtc": "2026-09-30T12:01:40.866191+00:00",
+  "model": "SM-F976W",
+  "physicalTarget": true,
+  "package": "commvne.com.whip.app",
+  "versionName": "0.3.91",
+  "versionCode": 97,
+  "sourceCommit": "8e8662b6095f65bb6eaa47228e300da1cb9154c3",
+  "appFixCommit": "6f0e006abf333ee1725b42c64826b8b9f361de35",
+  "beforeInstalledApkSha256": "d117083b90eaaa1bcf0a39879a8b46eec7ec58c8ca7651f171a72e7d00e7f3dc",
+  "installedApkSha256": "3984fd178d4b95b4b1e4d0a124a2953e9ed8c286a443594e2458afef40164c08",
+  "installedMatchesCandidateBytes": true,
+  "certificateSha256": "cdaaa6cf1d6758396aa4ebb8cb408455010e127a018f6d52d359b93929b6d788",
+  "installedCertificateUnchanged": true,
+  "identity": {
+    "appId": {
+      "before": "10995",
+      "after": "10995"
+    },
+    "firstInstallTime": {
+      "before": "2026-08-26 17:59:24",
+      "after": "2026-08-26 17:59:24"
+    },
+    "dataDir": {
+      "before": "/data/user/0/commvne.com.whip.app",
+      "after": "/data/user/0/commvne.com.whip.app"
+    }
+  },
+  "notificationPermissionPreserved": true,
+  "installWorkflow": "scripts/device release-install",
+  "installMode": "adb install -r",
+  "installSuccess": true,
+  "coldLaunchMilliseconds": 135,
+  "foreground": true,
+  "processStartupErrors": 0,
+  "schemaVersion": 46,
+  "backupDatabaseVersion": 26,
+  "sourceManifestSha256": "67bf9ba487850ffed89798edb3a6715c8912b672531954be0f8acf9301b1d34d",
+  "sourceManifestEntries": 577,
+  "freshBuildSuccessful": true,
+  "freshBuildDuration": "2m47s",
+  "freshBuildAllTasksExecuted": 54,
+  "gradleMaxWorkers": 2,
+  "mainCheckoutEditedByRelease": false,
+  "emulatorActions": false,
+  "physicalInstrumentation": false,
+  "ownerRecordsInspected": false,
+  "dataClearOrUninstall": false,
+  "publicReleaseOrUpload": false,
+  "versionLabelReusedWithExplicitAuthorization": true,
+  "regressionScope": "Full native regression has not passed; parent reports five failures and ongoing repairs. Frozen approved source installed; subsequent uncommitted fixes excluded.",
+  "rawBuildLogSha256": "6c3c8c250d716cf03608764d5d58136fbf54476572ec23124a6626f10896c315",
+  "rawBuildLogRetained": "build/phone-release/fresh-signed-build.log",
+  "committedBuildLogTrailingWhitespaceNormalized": true
+}
