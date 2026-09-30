@@ -1,0 +1,10 @@
+Launching commvne.com.whip.app on [Samsung SM-F976W]...
+Stopping: commvne.com.whip.app
+Starting: Intent { cmp=commvne.com.whip.app/com.whip.app.MainActivity }
+Status: ok
+LaunchState: WARM
+Activity: commvne.com.whip.app/com.whip.app.MainActivity
+TotalTime: 60
+WaitTime: 62
+Complete
+Foreground:     topResumedActivity=ActivityRecord{72009431 u0 commvne.com.whip.app/com.whip.app.MainActivity t16804}

@@ -1,0 +1,9 @@
+Installing signed release on [Samsung SM-F976W]...
+Artifact: commvne.com.whip.app · SHA-256 6f854badba975554c325722708486e38ac3c8dec32f0fb66f02f68fed48eba48
+Performing Streamed Install
+Success
+Installed package: commvne.com.whip.app
+    versionCode=97 minSdk=26 targetSdk=37
+    versionName=0.3.91
+    lastUpdateTime=2026-09-30 18:05:51
+Installed base APK SHA-256: 6f854badba975554c325722708486e38ac3c8dec32f0fb66f02f68fed48eba48
