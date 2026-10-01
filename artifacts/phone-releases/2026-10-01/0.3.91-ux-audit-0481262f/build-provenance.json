@@ -1,0 +1,9 @@
+{
+  "sourceCommit": "0481262f464d69c47a2a87438ea963d077cc32ed",
+  "checkout": "/tmp/whip-phone-release-20261001-0481262f",
+  "buildCommand": "./gradlew --offline :app:assembleRelease",
+  "elapsedSeconds": 143.6,
+  "trackedChangesBeforeAfter": false,
+  "testsRun": false,
+  "bundleBuilt": false
+}

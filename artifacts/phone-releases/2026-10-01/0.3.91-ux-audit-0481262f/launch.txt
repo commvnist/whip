@@ -1,0 +1,9 @@
+Starting: Intent { cmp=commvne.com.whip.app/com.whip.app.MainActivity }
+Status: ok
+LaunchState: WARM
+Activity: commvne.com.whip.app/com.whip.app.MainActivity
+TotalTime: 83
+WaitTime: 84
+Complete
+
+ResumedActivity: ActivityRecord{162562094 u0 commvne.com.whip.app/com.whip.app.MainActivity t67}

@@ -1,0 +1,13 @@
+{
+  "sourceCommit": "0481262f464d69c47a2a87438ea963d077cc32ed",
+  "package": "commvne.com.whip.app",
+  "versionCode": 97,
+  "versionName": "0.3.91",
+  "sha256": "03977e9d61afd92d2e77068236f53fd6a8eec383ae7bc3d059dc32fcd5bfc2e1",
+  "bytes": 4395458,
+  "certificateSha256": "cdaaa6cf1d6758396aa4ebb8cb408455010e127a018f6d52d359b93929b6d788",
+  "debuggable": false,
+  "path": "/root/repos/whip/build/releases/Whip-0.3.91-code97-ux-audit-0481262f.apk",
+  "signaturesVerified": true,
+  "archiveIntegrityVerified": true
+}

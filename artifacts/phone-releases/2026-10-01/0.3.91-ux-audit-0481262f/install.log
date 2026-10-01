@@ -1,0 +1,9 @@
+Installing signed release on [authorized Samsung]...
+Artifact: commvne.com.whip.app · SHA-256 03977e9d61afd92d2e77068236f53fd6a8eec383ae7bc3d059dc32fcd5bfc2e1
+Performing Streamed Install
+Success
+Installed package: commvne.com.whip.app
+    versionCode=97 minSdk=26 targetSdk=37
+    versionName=0.3.91
+    lastUpdateTime=2026-10-01 01:10:56
+Installed base APK SHA-256: 03977e9d61afd92d2e77068236f53fd6a8eec383ae7bc3d059dc32fcd5bfc2e1
