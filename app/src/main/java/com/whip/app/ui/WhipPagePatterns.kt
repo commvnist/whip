@@ -70,6 +70,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.Constraints
 
 internal object WhipSpacing {
     val micro = 4.dp
@@ -101,39 +102,35 @@ internal fun WhipEditorHeader(
     hasActions: Boolean = true,
     actions: @Composable RowScope.() -> Unit = {},
 ) {
-    BoxWithConstraints(modifier.fillMaxWidth().testTag("editor-header")) {
-        val fontScale = LocalDensity.current.fontScale.coerceIn(1f, 2f)
-        val stackActions = hasActions && maxWidth < 360.dp * fontScale
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = WhipSpacing.sibling, vertical = WhipSpacing.sibling),
-            verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                horizontalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                navigationAction()
-                ProvideTextStyle(MaterialTheme.typography.titleLarge) {
-                    Box(
-                        Modifier
-                            .weight(1f)
-                            .semantics { heading() }
-                            .testTag("editor-title"),
-                    ) { title() }
-                }
-                if (!stackActions && hasActions) {
-                    actions()
-                }
+    Layout(
+        modifier = modifier.fillMaxWidth().testTag("editor-header")
+            .padding(horizontal = WhipSpacing.sibling, vertical = WhipSpacing.micro),
+        content = {
+            Box { navigationAction() }
+            ProvideTextStyle(MaterialTheme.typography.titleLarge) {
+                Box(Modifier.semantics { heading() }.testTag("editor-title")) { title() }
             }
-            if (stackActions) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(WhipSpacing.sibling, Alignment.End),
-                    verticalAlignment = Alignment.CenterVertically,
-                    content = actions,
-                )
-            }
+            Row(horizontalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
+                verticalAlignment = Alignment.CenterVertically) { if (hasActions) actions() }
+        },
+    ) { children, constraints ->
+        val gap = WhipSpacing.micro.roundToPx()
+        val loose = constraints.copy(minWidth = 0, minHeight = 0)
+        val navigation = children[0].measure(loose)
+        val actionsPlaceable = children[2].measure(loose)
+        val titleMinimum = children[1].minIntrinsicWidth(Constraints.Infinity)
+        val stack = hasActions && navigation.width + actionsPlaceable.width + titleMinimum + gap * 2 > constraints.maxWidth
+        val titleWidth = (constraints.maxWidth - navigation.width - gap -
+            if (stack) 0 else actionsPlaceable.width + gap).coerceAtLeast(0)
+        val titlePlaceable = children[1].measure(loose.copy(maxWidth = titleWidth))
+        val firstHeight = maxOf(48.dp.roundToPx(), navigation.height, titlePlaceable.height,
+            if (stack) 0 else actionsPlaceable.height)
+        val height = firstHeight + if (stack) gap + actionsPlaceable.height else 0
+        layout(constraints.maxWidth, height) {
+            navigation.placeRelative(0, (firstHeight - navigation.height) / 2)
+            titlePlaceable.placeRelative(navigation.width + gap, (firstHeight - titlePlaceable.height) / 2)
+            actionsPlaceable.placeRelative(constraints.maxWidth - actionsPlaceable.width,
+                if (stack) firstHeight + gap else (firstHeight - actionsPlaceable.height) / 2)
         }
     }
     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)

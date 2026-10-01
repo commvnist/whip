@@ -1,0 +1,44 @@
+# UX audit implementation — 2026-10-01
+
+The full-app audit's eight confirmed findings (F1–F8), five design opportunities (O1–O5), and minor observation-copy item have source implementations. Representative journeys and independent after-pixel critique informed the final changes. This is a debug implementation checkpoint, not a Play/physical-phone release or universal accessibility certification.
+
+Baseline production: `2bdf490639a7a81f29730bb6389b63abe443b590`; receipt: `4cb9a2ea6bb9aa131b478879bf5bd94f9dfacdc9`. The private audit report and original screenshots remain in the separate audit output directory. The implementation report/evidence are local at `implementation-2026-10-01/REPORT.md` in the delegated task workspace; no screenshot bundle is published with this source change.
+
+## Values retained
+
+Equivalent screens/actions share design and code, with justified semantic differences. Routine actions remain direct; scope, identity and source-return context stay clear. Spacing is compact and purposeful. Related controls use equal leading side-by-side peers when they fit, natural shared height for wrapped labels, and readable large-text fallback. The current48dp minimum is implementation policy, not a user-authored universal mandate. Timer Start/Stop/Log, manual Log, completion, cancellation and preview keep their distinct meaning.
+
+Saved history and drafts take priority over visual density. Existing helpers and mutation owners are reused; no dependency, framework or database schema was added. Actual360dp screens and whole recovery journeys supplement tests. The independent consultant challenged the result and exposed further progress, disclosure, width and footer regressions that were corrected.
+
+## Dispositions
+
+| ID | Final behavior / shared owner | Evidence and practical limit |
+|---|---|---|
+| F1 | CompletedTaskRouteEffect closes a present reopened Task normally; only missing records report unavailable. | Ordinary complete→History→reopen→unfinished passes with the completed subtask retained. Recurring/deleted variants were not newly exercised. |
+| F2 | HabitModels/HabitRepository reject negative ordinary Duration logs/positive-history edits, while explicit signed Set Total adjustments and signed numeric measurements remain supported. | Native local error leaves56s unchanged. Exact in-memory regression covers rejection without mutation,10→3 signed subtraction, correction editing and signed Decimal. |
+| F3 | Checklist recorded completion is separate from schedule/item availability, immediately visible with Undo. | Outside-schedule undo/re-record leaves Not Scheduled/unchecked items and exactly one History completion. Focused projection regression passes. |
+| F4 | Goal workspace History projects retained closure events, counts outcomes and directly opens History after reopen/archive; current completed membership is separate. | Native Active Goal retains5.0 closure. Focused tests cover multiple closures, archived/reopened projections and counts. |
+| F5 | Review labels Last7Days/Month to Date and week-start Settings help match existing rolling/month-to-date calculations. Saved enum names and calculation behavior are unchanged. | ReviewCopyTest range assertions pass; native Sep24–30 and Sep1–30 controls/ranges agree. Two native week-start choices were not toggled; the range helper takes no such parameter. |
+| F6 | Empty Review advice uses selected/ready sections and retains loading/unavailable distinctions and supplementary Track evidence. | All-selected native case and subset/all-selected copy regression pass. Fault injection was not added. |
+| F7 | Recorded Rating/date logs suppress invalid Skip with History recovery guidance; authored Skip uses the inspector's existing pending/error owner. | Native recorded Rating and note-only eligibility regression pass. Concurrent stale-state rejection was not forced. |
+| F8 | WhipEditorHeader measures actual content; Settings keeps a persistent full field label/input focal group; Track typed inputs use the measured viewport/existing focus owner. | Real IME/native200%: Settings360×640 full label/value/caret/error; Track360×480 typing/save/restored Name. Settings discard visibly reopens120. Additional typed/preview and TalkBack variants are unexecuted. |
+| O1 | Compact actual-fit headers, integrated Settings navigation/search/close, less repeated Home scope chrome, less nested Track chrome, secondary activity after primary analyses. | Independent actual360dp Home/Settings/Track pixels; no type shrinking or blanket oversized reserves. |
+| O2 | Four named Review totals precede disclosed charts; sparse Goal/Track/Gym lead with dated value, unit, scope, source and limitations. | Zero/populated Review, one-day Goal, one-point Gym and Review exact-source/retained-detail return pass. Additional multi-point/equipment variants remain limits. |
+| O3 | WhipActivityActions supplies equal leading natural-height peers; concise ResponsiveFieldPair bounds pair at normal width; DisclosureButton reserves its caret. | Normal Track Preview/Add, Scale bounds, routine reps and Goal disclosures reviewed. At native200%/360×520, complete stacked Goal peers are individually reachable by normal scrolling; the short body cannot display both simultaneously. Other enlarged field pairs remain shared-policy/source coverage. |
+| O4 | Planning reason, required Area before Schedule, conditional alternate-Area advice, selected navigation glyph and neutral zero-progress rails. | Named native Home/Task/Checklist cases pass. Partial/full rails retain existing fractions; loading/empty/machine variants are not a new native campaign. |
+| O5 | EntityInspector/PaneAwareAlertDialog establish readable width limits before explicit caller widths; wide Goal History groups lifecycle/progress, retaining exact detail. Footer inset is unconditional. | Final-package wide Goal evidence and native default Task footer reviewed; earlier wide organization-only captures are excluded as width proof. Other wide inspectors were not rerun. |
+| Minor | Track observation count uses quantityLabel. | Source verified, no new fixture solely for copy. |
+
+## Focused verification
+
+Each routine check has its own `timeout --kill-after=3s 55s` bound. Exact JVM classes passed after coordinated compilation: HabitPresentationTest3s, HabitTodayProjectionTest10s, GoalProgressPresentationTest1s, ReviewCopyTest1s. Exact in-memory Android method HabitRepositoryTest#ordinaryDurationRejectsNegativeEntriesButSetTotalCanSubtractTime passed: OK1test/0.298s; it constructs its own database and does not clear app data. A cold initial HabitPresentation compile timed out and remains incomplete, not passed.
+
+Final debug APK SHA-256: `253c75e069d3f56a90f6d92fce7f03b4b49c9f97f86115d3f645171e0d403246`; package built in8s and installed-r on the three owned synthetic emulators. Build time is distinct from verification; the first successful cold package took1m25s. Affected Android journey selectors compiled; preexisting data-clearing fixtures were not run. Later source whitespace formatting does not change this compiled behavior.
+
+Exactly three main roles explicitly select gpt-6.1-sol/xhigh, owning5554/5556/5558, plus one independent read-only consultant with the same selection. Runtime metadata is unavailable. Original display/font/rotation settings are restored with local readback receipts. Temporary Track entry text was restored; Task ended unfinished with its completed subtask; Checklist ended with one completion. Synthetic Implementation_Routine was intentionally saved from the existing corrected workout; no workout started.
+
+The original dirty release-signature file and preexisting untracked evidence were preserved/excluded from staging. No full suite, readiness batch, candidate pipeline, physical-phone operation, user-data clear or public release ran. Nick's explicit sub-minute test scope overrides the general readiness batch in AGENTS.md. The full suite is a separate future step requiring explicit clearance.
+
+## Limits
+
+Named cases are representative verification, not complete execution of every original acceptance variant. Widget/OEM cases, fault injection, TalkBack and full source recreation journeys remain unexecuted. The short read-only Track inspector initially clips part of its context subtitle; a separate scrollable header exists in XML, but the recovery gesture was not verified. Goal native200%/360×520 clips the extreme synthetic title's third line at the existing identity cap; Close/Edit remain accessible, while complete-title header-scroll recovery was not certified. These limits remain distinct from the passed editable Name/caret/save and individually reachable peer results. Existing adaptive panes, draft protection, scope and source provenance remain architectural constraints for subsequent review.

@@ -74,6 +74,7 @@ class TrackInsightsJourneyE2ETest {
             compose.onNodeWithContentDescription("Tracks tab").performClick()
             compose.onNodeWithTag("track-card-${projection.track.id}").performClick()
             compose.onNodeWithTag("track-destination-Track Insights").performClick()
+            compose.onNodeWithTag("track-review-range-menu").performClick()
             compose.onNodeWithTag("track-review-range-Month").performClick()
             compose.onNodeWithTag("track-insights-list").performScrollToNode(androidx.compose.ui.test.hasTestTag("track-trend-data-${amount.uuid}"))
             compose.onNodeWithTag("track-trend-data-${amount.uuid}").performClick()
@@ -93,7 +94,7 @@ class TrackInsightsJourneyE2ETest {
             compose.onNodeWithContentDescription("Close Track Entry details").performClick()
             compose.onNodeWithTag(sourceTag).assertIsDisplayed()
             compose.onNodeWithTag("track-insights-list").performScrollToIndex(0)
-            compose.onNodeWithTag("track-review-range-Month").assertIsSelected()
+            compose.onNodeWithContentDescription("Entry Dates: 30 Days").assertIsDisplayed()
             val after = runBlocking { requireNotNull(app.trackRepository.projection(projection.track.id)) }
             assertEquals("Morning", after.primaryText(after.entries.single { it.entry.id != target.entry.id }))
         }

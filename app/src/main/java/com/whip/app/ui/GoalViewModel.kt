@@ -69,7 +69,15 @@ data class GoalUiState(
     val errorMessage: String? = null,
     val customUnits: List<UnitDefinition> = emptyList(),
     val sourceMeasurements: List<MeasurementDefinition> = emptyList(),
-)
+) {
+    val history: List<GoalProjection>
+        get() = (active + completed + archived).filter {
+            it.closureSnapshots.isNotEmpty() || it.goal.status in setOf(GoalStatus.Completed, GoalStatus.Abandoned)
+        }
+}
+
+internal fun GoalProjection.retainedOutcomeCount(): Int = closureSnapshots.size.takeIf { it > 0 }
+    ?: if (goal.status in setOf(GoalStatus.Completed, GoalStatus.Abandoned)) 1 else 0
 
 internal enum class GoalMutationKind {
     Duplicated,

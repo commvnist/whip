@@ -56,13 +56,13 @@ class ReviewJourneyE2ETest {
                     .performScrollToNode(hasTestTag("review-options-toggle"))
                 compose.onNodeWithTag("review-options-toggle").performScrollTo().performClick()
             }
-            compose.onNodeWithText("Monthly").performScrollTo().performClick()
+            compose.onNodeWithText(ReviewPeriod.Monthly.label).performScrollTo().performClick()
             compose.waitUntil(10_000) { app.settingsRepository.current().reviewPeriod == ReviewPeriod.Monthly }
             val gymChoice = hasText("Gym") and hasAnyAncestor(hasTestTag("review-controls"))
             compose.onNode(gymChoice).performScrollTo().performClick()
             compose.waitUntil(10_000) { ReviewSection.Gym !in app.settingsRepository.current().reviewSections }
             scenario.recreate()
-            compose.onNodeWithText("Monthly").performScrollTo().assertIsSelected()
+            compose.onNodeWithText(ReviewPeriod.Monthly.label).performScrollTo().assertIsSelected()
             compose.onNode(gymChoice).assertIsNotSelected()
             captureVisualCatalogSurface("shared.review.options")
             assertWideReviewColumns()

@@ -9,6 +9,8 @@ import com.whip.app.domain.TrackProjection
 import java.time.LocalDate
 import java.util.Locale
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ReviewCopyTest {
@@ -98,6 +100,12 @@ class ReviewCopyTest {
             "2 entries across 3 touched Tracks.",
             formatTrackEvidenceSummary(TrackReviewEvidence(entryCount = 2, touchedTrackCount = 3)),
         )
+    }
+
+    @Test fun emptyOutcomeAdviceOnlyOffersSectionsWhenMoreCanBeSelected() {
+        assertFalse(reviewEmptyOutcomeAdvice(ReviewSection.entries.toSet()).contains("include more sections"))
+        assertTrue(reviewEmptyOutcomeAdvice(setOf(ReviewSection.Tasks)).contains("include more sections"))
+        assertTrue(reviewEmptyOutcomeAdvice(ReviewSection.entries.toSet()).contains("Try another period"))
     }
 
     private fun tracks(entries: List<TrackEntryProjection>) = TrackUiState(

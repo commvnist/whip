@@ -1400,7 +1400,7 @@ internal fun DisclosureButton(
         },
         enabled = enabled,
     ) {
-        Text(label.uiTitleCase())
+        Text(label.uiTitleCase(), Modifier.weight(1f, fill = false))
         Spacer(Modifier.width(6.dp))
         Icon(
             if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,

@@ -540,6 +540,7 @@ internal fun TrackAreaContent(
             collectionMutationState = collectionMutationState,
             onCollectionMutationResultConsumed = viewModel::consumeCollectionMutationResult,
             masterPane = masterPane,
+            hasAlternativeArea = areas.count { !it.archived } > 1,
             onReorderModeChange = onReorderModeChange,
             reorderDismissRequest = reorderDismissRequest,
             onRetryLoading = viewModel::retryLoading,
@@ -593,9 +594,9 @@ internal fun TrackAreaContent(
         movableContentOf<TrackProjection> { currentDetailContent(it) }
     }
     BoxWithConstraints(Modifier.fillMaxSize().padding(innerPadding)) {
-      // On short single-pane detail, Back provides the collection route without
+      // In single-pane detail, Back provides the collection route without
       // spending the history viewport on a second fixed destination bar.
-      val showWorkspaceNavigation = selected == null || (!focusedDetail && (maxWidth >= 760.dp || maxHeight >= 440.dp))
+      val showWorkspaceNavigation = selected == null || (!focusedDetail && maxWidth >= 760.dp)
       Column(Modifier.fillMaxSize()) {
         if (showWorkspaceNavigation) DestinationTabBar(
             selected = workspaceDestination.takeUnless { it == TrackWorkspaceDestination.Archived } ?: archiveReturn,
@@ -685,6 +686,7 @@ internal fun TrackAreaContent(
                         destination = TrackDetailDestination.Insights
                     },
                     onRetryLoading = viewModel::retryLoading,
+                    hasAlternativeArea = areas.count { !it.archived } > 1,
                 )
             }
         }
@@ -1262,6 +1264,7 @@ private fun TrackWorkspaceInsightsPage(
     onOpenArchived: () -> Unit,
     onOpenTrack: (Long) -> Unit,
     onRetryLoading: () -> Unit,
+    hasAlternativeArea: Boolean = false,
 ) {
     var visibleLatestTracks by rememberSaveable { mutableIntStateOf(8) }
     val activeTracks = state.active
@@ -1304,7 +1307,8 @@ private fun TrackWorkspaceInsightsPage(
             else if (activeTracks.isEmpty()) item {
                 WhipEmptyState(
                     title = "No Active Tracks in This View",
-                    supportingText = "Create a Track, or change the Area above to find existing Tracks.",
+                    supportingText = if (hasAlternativeArea) "Create a Track, or change the Area above to find existing Tracks."
+                    else "Create your first Track to start recording Entries.",
                     primaryActionLabel = "Create Track",
                     onPrimaryAction = onCreateTrack,
                     secondaryActionLabel = "View Archived".takeIf { state.archived.isNotEmpty() },
@@ -1410,6 +1414,7 @@ private fun AllTracksPage(
     onReorderModeChange: (Boolean) -> Unit = {},
     reorderDismissRequest: Int = 0,
     onRetryLoading: () -> Unit = {},
+    hasAlternativeArea: Boolean = false,
 ) {
     var moreOpen by rememberSaveable { mutableStateOf(false) }
     var reordering by rememberSaveable { mutableStateOf(false) }
@@ -1578,7 +1583,8 @@ private fun AllTracksPage(
                 },
                 supportingText = when {
                     showArchived -> "Archived Tracks appear here and can be restored."
-                    else -> "Create a reusable log here, or change the Area above to find existing Tracks."
+                    else -> if (hasAlternativeArea) "Create a reusable log here, or change the Area above to find existing Tracks."
+                    else "Create your first reusable log in this Area."
                 },
                 primaryActionLabel = "Create Track".takeUnless { showArchived },
                 onPrimaryAction = onCreate.takeUnless { showArchived },
@@ -2122,7 +2128,23 @@ internal fun TrackEntriesPage(
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         item {
-            TrackReviewRangeControl(reviewScope, today, scopedEntries.size) { range ->
+            TrackReviewRangeControl(reviewScope, today, scopedEntries.size, actions = {
+                WhipPageIconAction(
+                    Icons.Outlined.Search,
+                    "Search Entries in ${projection.track.name}",
+                    {
+                        searchVisible = !searchVisible
+                        if (!searchVisible) query = ""
+                    },
+                    active = searchVisible || query.isNotBlank(),
+                )
+                WhipPageIconAction(Icons.Outlined.FilterAlt, "Filter Entries", { filterOpen = true }, badgeCount = conditions.size, active = conditions.isNotEmpty())
+                WhipPageIconAction(
+                    Icons.AutoMirrored.Outlined.Sort,
+                    "Sort Entries by ${sortField?.name ?: sort.label}, ${sortDirection.label}",
+                    { sortOpen = true },
+                )
+            }) { range ->
                 reviewScope = reviewScope.copy(range = range)
                 coroutineScope.launch { entryListState.scrollToItem(0) }
             }
@@ -2140,29 +2162,6 @@ internal fun TrackEntriesPage(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 WhipTextButton(onClick = onRestore) { Text("Restore Track") }
-            }
-        }
-        item {
-            Row(
-                Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.End,
-            ) {
-                WhipPageIconAction(
-                    Icons.Outlined.Search,
-                    "Search Entries in ${projection.track.name}",
-                    {
-                        searchVisible = !searchVisible
-                        if (!searchVisible) query = ""
-                    },
-                    active = searchVisible || query.isNotBlank(),
-                )
-                WhipPageIconAction(Icons.Outlined.FilterAlt, "Filter Entries", { filterOpen = true }, badgeCount = conditions.size, active = conditions.isNotEmpty())
-                WhipPageIconAction(
-                    Icons.AutoMirrored.Outlined.Sort,
-                    "Sort Entries by ${sortField?.name ?: sort.label}, ${sortDirection.label}",
-                    { sortOpen = true },
-                )
             }
         }
         if (searchVisible) item {
@@ -2464,29 +2463,16 @@ private fun TrackInsightsPage(
     val conditionMode = reviewScope.mode
     val scoped = remember(projection, reviewScope, today) { projection.copy(entries = projection.reviewEntries(reviewScope, today)) }
     val dates = scoped.entries.map { it.entry.entryDate }
+    var activityExpanded by rememberSaveable(projection.track.id) { mutableStateOf(false) }
     LazyColumn(
         Modifier.fillMaxSize().testTag("track-insights-list"),
         contentPadding = WhipPageContentPadding,
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
-            TrackReviewRangeControl(reviewScope, today, scoped.entries.size) { reviewScope = reviewScope.copy(range = it) }
-            WhipOutlinedButton(onClick = onOpenEntries, modifier = Modifier.fillMaxWidth().testTag("track-review-matching-entries")) { Text("View Matching Entries") }
-        }
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    "Summaries of your recorded entries.",
-                    modifier = Modifier.weight(1f),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+            TrackReviewRangeControl(reviewScope, today, scoped.entries.size, actions = {
                 WhipPageIconAction(Icons.Outlined.FilterAlt, "Filter Insights", { filterOpen = true }, badgeCount = conditions.size, active = conditions.isNotEmpty())
-            }
+            }) { reviewScope = reviewScope.copy(range = it) }
         }
         if (conditions.isNotEmpty()) item {
             TrackAppliedConditions(
@@ -2519,15 +2505,14 @@ private fun TrackInsightsPage(
         item {
             WhipSummaryCard(if (conditions.isEmpty() && reviewScope.range == TrackReviewRange.All) "All Entries" else "Matching Entries") {
                 metric("Total", scoped.entries.size.toString())
-                metric("Last 7 Days", dates.trackInsightCount(today, 7).toString())
-                metric("Last 30 Days", dates.trackInsightCount(today, 30).toString())
-                metric("Last 90 Days", dates.trackInsightCount(today, 90).toString())
-                fact("First", dates.minOrNull()?.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)) ?: "—")
-                fact("Latest", dates.maxOrNull()?.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)) ?: "—")
-                fact("Weekly Rate (Last 30 Days)", "${(dates.trackInsightCount(today, 30) / 30.0 * 7.0).formatCompact()} Entries")
+                fact("Latest Entry", dates.maxOrNull()?.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)) ?: "—")
             }
+
         }
-        items(scoped.fields, key = { "insight-field-${it.id}" }) { field ->
+        item {
+            WhipTextButton(onClick = onOpenEntries, modifier = Modifier.testTag("track-review-matching-entries")) { Text("View Matching Entries") }
+        }
+        items(scoped.fields.sortedBy { if (it.type in setOf(TrackFieldType.Number, TrackFieldType.Scale)) 0 else 1 }, key = { "insight-field-${it.id}" }) { field ->
             val values = scoped.entries.mapNotNull { it.value(field.id) }
             val lines = when (field.type) {
                 TrackFieldType.Number -> {
@@ -2604,6 +2589,18 @@ private fun TrackInsightsPage(
                     entryTitle = { projection.entryDisplayTitle(it, BuiltInUnits.all + customUnits) },
                     onOpenEntry = { viewedEntryUuid = it.entry.uuid },
                 )
+            }
+        }
+        item {
+            DisclosureRow("Entry Activity", supportingText = "Recent counts and recorded dates",
+                expanded = activityExpanded, onClick = { activityExpanded = !activityExpanded })
+            if (activityExpanded) WhipSummaryCard("Entry Activity") {
+                metric("Last 7 Days", dates.trackInsightCount(today, 7).toString())
+                metric("Last 30 Days", dates.trackInsightCount(today, 30).toString())
+                metric("Last 90 Days", dates.trackInsightCount(today, 90).toString())
+                fact("First", dates.minOrNull()?.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)) ?: "—")
+                fact("Latest", dates.maxOrNull()?.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)) ?: "—")
+                fact("Weekly Rate (Last 30 Days)", "${(dates.trackInsightCount(today, 30) / 30.0 * 7.0).formatCompact()} Entries")
             }
         }
     }
@@ -3362,13 +3359,17 @@ internal fun TrackEditor(
                 item { HorizontalDivider() }
                 item { EditorSectionHeader("Entry Fields", quantityLabel(fields.size, "Field")) }
                 item {
-                    WhipOutlinedButton(onClick = {
-                        runCatching { draft.entryPreviewProjection() }
-                            .onSuccess { entryPreviewOpen = true }
-                            .onFailure { reportValidationError(it.message ?: "Review the Entry Fields.") }
-                    }, modifier = Modifier.fillMaxWidth().testTag("track-preview-entry")) { Text("Preview Entry Form") }
+                    WhipActivityActions(leadingContent = true) {
+                        WhipOutlinedButton(onClick = {
+                            runCatching { draft.entryPreviewProjection() }
+                                .onSuccess { entryPreviewOpen = true }
+                                .onFailure { reportValidationError(it.message ?: "Review the Entry Fields.") }
+                        }, modifier = Modifier.testTag("track-preview-entry")) { Text("Preview Entry Form") }
+                        WhipOutlinedButton(onClick = { fieldEditorSession++; addingField = true }) {
+                            Icon(Icons.Outlined.Add, null); Spacer(Modifier.width(8.dp)); Text("Add Field")
+                        }
+                    }
                 }
-                item { WhipOutlinedButton(onClick = { fieldEditorSession++; addingField = true }, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Outlined.Add, null); Spacer(Modifier.width(8.dp)); Text("Add Field") } }
                 itemsIndexed(fields, key = { index, field -> field.uuid ?: field.id?.toString() ?: "new-field-$index-${field.name}" }) { index, field ->
                     val reorderInteraction = rememberWhipReorderInteractionState()
                     Card(
@@ -3861,19 +3862,17 @@ private fun TrackFieldEditor(
                                 { selected -> scaleMinText = selected.first.toString(); scaleMaxText = selected.second.toString() },
                             )
                         }
-                        item { BoxWithConstraints(Modifier.fillMaxWidth()) {
-                            val stacked = maxWidth < 360.dp || LocalDensity.current.fontScale >= 1.5f
-                            val boundsInputs: @Composable (Modifier) -> Unit = { inputModifier ->
-                                OutlinedTextField(scaleMinText, { scaleMinText = it }, label = { Text("Minimum") }, modifier = inputModifier.then(minimumVisibility), singleLine = true,
+                        item {
+                            ResponsiveFieldPair(
+                                minimumFieldWidth = 140.dp,
+                                first = { field -> OutlinedTextField(scaleMinText, { scaleMinText = it }, label = { Text("Minimum") }, modifier = field.then(minimumVisibility), singleLine = true,
                                     isError = scaleMinimumError != null,
-                                    supportingText = scaleMinimumError?.let { message -> { Text(message) } })
-                                OutlinedTextField(scaleMaxText, { scaleMaxText = it }, label = { Text("Maximum") }, modifier = inputModifier.then(maximumVisibility), singleLine = true,
+                                    supportingText = scaleMinimumError?.let { message -> { Text(message) } }) },
+                                second = { field -> OutlinedTextField(scaleMaxText, { scaleMaxText = it }, label = { Text("Maximum") }, modifier = field.then(maximumVisibility), singleLine = true,
                                     isError = scaleMaximumError != null,
-                                    supportingText = scaleMaximumError?.let { message -> { Text(message) } })
-                            }
-                            if (stacked) Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { boundsInputs(Modifier.fillMaxWidth()) }
-                            else Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) { boundsInputs(Modifier.weight(1f)) }
-                        } }
+                                    supportingText = scaleMaximumError?.let { message -> { Text(message) } }) },
+                            )
+                        }
                         item {
                             OutlinedTextField(
                                 scaleStepText,
@@ -3998,6 +3997,7 @@ internal fun TrackEntryEditor(
     var deleteConfirm by rememberSaveable(token) { mutableStateOf(false) }
     var validationScrollFieldUuid by rememberSaveable(token) { mutableStateOf<String?>(null) }
     val editorListState = rememberLazyListState()
+    var entryViewport by remember { mutableStateOf(IntSize.Zero) }
     val initialRawNumbers = remember(initialDraft) {
         initialDraft.values.mapNotNull { (fieldUuid, value) ->
             value.enteredNumber?.let { fieldUuid to plainNumericValue(it) }
@@ -4059,7 +4059,8 @@ internal fun TrackEntryEditor(
             ) },
         ) { padding ->
             LazyColumn(
-                Modifier.fillMaxSize().padding(padding).testTag("track-entry-editor-list"),
+                Modifier.fillMaxSize().padding(padding).testTag("track-entry-editor-list")
+                    .onSizeChanged { entryViewport = it },
                 state = editorListState,
                 contentPadding = PaddingValues(20.dp, 16.dp, 20.dp, 96.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -4141,6 +4142,7 @@ internal fun TrackEntryEditor(
                             )
                         },
                         onValue = { value -> stateHolder.updateDraft { it.copy(values = it.values + (field.uuid to value)) } },
+                        viewportSize = entryViewport,
                     )
                 }
                 if (duplicatePrimaryMatches.isNotEmpty()) item {
@@ -4243,8 +4245,10 @@ internal fun TrackEntryField(
     errorMessage: String? = null,
     numberText: String? = null,
     onNumberText: ((String) -> Unit)? = null,
+    viewportSize: IntSize = IntSize.Zero,
     onValue: (TrackValueDraft) -> Unit,
 ) {
+    val inputVisibility = rememberFocusedInputVisibility(viewportSize)
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(5.dp)) {
         val accessibleFieldName = field.name + if (field.required) ", required" else ""
         if (field.type !in setOf(TrackFieldType.ShortText, TrackFieldType.LongText, TrackFieldType.Number, TrackFieldType.SingleChoice)) {
@@ -4261,7 +4265,7 @@ internal fun TrackEntryField(
                 label = { Text(field.name + if (field.required) " *" else "") },
                 singleLine = true,
                 isError = showError,
-                modifier = Modifier.fillMaxWidth().testTag("track-entry-short-text-${field.uuid}").semantics {
+                modifier = Modifier.fillMaxWidth().then(inputVisibility).testTag("track-entry-short-text-${field.uuid}").semantics {
                     contentDescription = accessibleFieldName
                     if (showError) error(errorMessage ?: "${field.name} is invalid")
                 },
@@ -4273,7 +4277,7 @@ internal fun TrackEntryField(
                 minLines = 3,
                 maxLines = 8,
                 isError = showError,
-                modifier = Modifier.fillMaxWidth().testTag("track-entry-long-text-${field.uuid}").semantics {
+                modifier = Modifier.fillMaxWidth().then(inputVisibility).testTag("track-entry-long-text-${field.uuid}").semantics {
                     contentDescription = accessibleFieldName
                     if (showError) error(errorMessage ?: "${field.name} is invalid")
                 },
@@ -4314,7 +4318,7 @@ internal fun TrackEntryField(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
                     isError = showError,
-                    modifier = Modifier.fillMaxWidth().testTag("track-entry-number-${field.uuid}").semantics {
+                    modifier = Modifier.fillMaxWidth().then(inputVisibility).testTag("track-entry-number-${field.uuid}").semantics {
                         contentDescription = buildString {
                             append(accessibleFieldName)
                             unit?.let {
@@ -4450,13 +4454,17 @@ private fun TrackAppliedConditions(
     onClear: () -> Unit,
     onEdit: () -> Unit,
 ) {
+    var expanded by rememberSaveable(projection.track.id) { mutableStateOf(false) }
+    val summaries = conditions.map { condition ->
+        "${projection.conditionFieldName(condition)} ${condition.operator.uiLabel()} ${condition.summaryValue(projection, units)}".trim()
+    }
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(
-            if (mode == TrackConditionMode.MatchAll) "Match All" else "Match Any",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        DisclosureRow(
+            title = "${quantityLabel(conditions.size, "filter")} · ${if (mode == TrackConditionMode.MatchAll) "Match All" else "Match Any"}",
+            supportingText = summaries.joinToString(" · "), expanded = expanded,
+            onClick = { expanded = !expanded },
         )
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (expanded) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             conditions.forEachIndexed { index, condition ->
                 val summary = "${projection.conditionFieldName(condition)} ${condition.operator.uiLabel()} ${condition.summaryValue(projection, units)}".trim()
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {

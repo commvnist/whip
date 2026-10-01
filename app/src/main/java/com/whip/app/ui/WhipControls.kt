@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.Button as MaterialButton
 import androidx.compose.material3.ButtonColors
@@ -34,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 private val LocalWhipActivityActionWidth = staticCompositionLocalOf<Dp?> { null }
+private val LocalWhipActivityActionLeading = staticCompositionLocalOf { false }
 
 /** Activity controls share widths and their group's natural height; ordinary controls keep their defaults. */
 @Composable
@@ -41,6 +44,7 @@ internal fun WhipActivityActions(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     horizontalAlignment: Alignment.Horizontal = Alignment.Start,
+    leadingContent: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     if (!enabled) {
@@ -56,7 +60,10 @@ internal fun WhipActivityActions(
             val width = if (scale >= 1.5f && halfWidth < 140.dp * scale) maxWidth else halfWidth
             width.coerceAtLeast(48.dp).coerceAtMost(maxWidth)
         }
-        CompositionLocalProvider(LocalWhipActivityActionWidth provides cellWidth) {
+        CompositionLocalProvider(
+            LocalWhipActivityActionWidth provides cellWidth,
+            LocalWhipActivityActionLeading provides leadingContent,
+        ) {
             Layout(content = content, modifier = Modifier.fillMaxWidth()) { children, constraints ->
                 val width = cellWidth.roundToPx()
                 val gap = WhipSpacing.compact.roundToPx()
@@ -118,7 +125,12 @@ internal fun WhipButton(
         border = border,
         contentPadding = activityActionPadding(contentPadding),
         interactionSource = interactionSource,
-        content = content,
+        content = {
+            if (LocalWhipActivityActionLeading.current) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start,
+                    verticalAlignment = Alignment.CenterVertically, content = content)
+            } else content()
+        },
     )
 }
 
@@ -144,7 +156,12 @@ internal fun WhipOutlinedButton(
         border = border,
         contentPadding = activityActionPadding(contentPadding),
         interactionSource = interactionSource,
-        content = content,
+        content = {
+            if (LocalWhipActivityActionLeading.current) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start,
+                    verticalAlignment = Alignment.CenterVertically, content = content)
+            } else content()
+        },
     )
 }
 
@@ -170,7 +187,12 @@ internal fun WhipTonalButton(
         border = border,
         contentPadding = activityActionPadding(contentPadding),
         interactionSource = interactionSource,
-        content = content,
+        content = {
+            if (LocalWhipActivityActionLeading.current) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start,
+                    verticalAlignment = Alignment.CenterVertically, content = content)
+            } else content()
+        },
     )
 }
 
@@ -196,7 +218,12 @@ internal fun WhipTextButton(
         border = border,
         contentPadding = activityActionPadding(contentPadding),
         interactionSource = interactionSource,
-        content = content,
+        content = {
+            if (LocalWhipActivityActionLeading.current) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start,
+                    verticalAlignment = Alignment.CenterVertically, content = content)
+            } else content()
+        },
     )
 }
 

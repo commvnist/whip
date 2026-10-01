@@ -589,7 +589,7 @@ internal fun PaneAwareAlertDialog(
         Modifier.absoluteOffset(x = placement.offsetX).width(placement.maxWidth)
     } else modifier
     ProductivityEditorDialog(
-        modifier = resolvedModifier.widthIn(min = 280.dp, max = WhipContentWidth.compactDialog),
+        modifier = Modifier.widthIn(min = 280.dp, max = WhipContentWidth.compactDialog).then(resolvedModifier),
         testTag = testTag,
         onDismissRequest = { if (!inputBlocked) onDismissRequest() },
         title = title,

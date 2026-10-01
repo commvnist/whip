@@ -77,11 +77,11 @@ class ReviewAvailabilityUiTest {
         org.junit.Assert.assertTrue("Review section title must not overflow: " + describeTextLayouts(overviewLayouts),
             overviewLayouts.all(::fitsMeasuredBounds))
         compose.onNodeWithTag("review-options-toggle").performScrollTo().performClick()
-        compose.onNodeWithText("Monthly").performScrollTo().performClick()
+        compose.onNodeWithText(ReviewPeriod.Monthly.label).performScrollTo().performClick()
         val gym = hasText("Gym") and hasAnyAncestor(hasTestTag("review-controls"))
         compose.onNode(gym).performScrollTo().performClick()
         restore.emulateSavedInstanceStateRestore()
-        compose.onNodeWithText("Monthly").performScrollTo().assertIsSelected()
+        compose.onNodeWithText(ReviewPeriod.Monthly.label).performScrollTo().assertIsSelected()
         compose.onNode(gym).performScrollTo().assertIsNotSelected()
         compose.onNodeWithContentDescription("Close Review & Trends").assertIsDisplayed().performClick()
         compose.runOnIdle { org.junit.Assert.assertTrue(dismissed) }

@@ -66,6 +66,21 @@ class HabitTodayProjectionTest {
             .scheduledCompletionRateForDays(twoClosedWeeks, date, monthLogs))
     }
 
+    @Test fun offScheduleChecklistRetainsRecordedOutcomeWithoutChangingAvailabilityOrItems() {
+        val checklist = habit(HabitTrackingMode.Checklist).copy(scheduleType = HabitScheduleType.SelectedWeekdays,
+            weekdays = setOf(DayOfWeek.THURSDAY))
+        val before = state(checklist, emptyList(), date).all.single()
+        val recorded = state(checklist, listOf(log(checklist, date)), date)
+        val after = recorded.all.single()
+        assertEquals(HabitDayState.NotScheduled, after.dayState)
+        assertTrue(recorded.today.isEmpty())
+        assertFalse(before.completionRecordedToday)
+        assertTrue(after.completionRecordedToday)
+        assertEquals(before.checklistItems, after.checklistItems)
+        assertTrue(after.inspectorTodaySummary(0.0, java.time.ZoneId.of("UTC"), false).contains("Completion recorded outside schedule"))
+        assertFalse(state(checklist, emptyList(), date).all.single().completionRecordedToday)
+    }
+
     private fun state(habit: Habit, logs: List<HabitLog>, through: LocalDate) = buildHabitUiState(
         HabitData(listOf(habit), emptyList(), logs, emptyList(), emptyList(), emptyList()), through, emptyList())
 

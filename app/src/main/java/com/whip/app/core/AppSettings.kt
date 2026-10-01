@@ -46,8 +46,8 @@ enum class ReviewSection(val label: String) {
     Gym("Gym"),
 }
 enum class ReviewPeriod(val label: String) {
-    Weekly("Weekly"),
-    Monthly("Monthly"),
+    Weekly("Last 7 Days"),
+    Monthly("Month to Date"),
 }
 
 val DEFAULT_REST_TIMER_PRESET_SECONDS: List<Int> = listOf(60, 90, 120, 150, 180, 300)

@@ -448,7 +448,7 @@ fun GoalAreaContent(
     }
     val list = when (destination) {
         GoalDestination.Active, GoalDestination.Insights -> state.active
-        GoalDestination.Completed -> state.completed
+        GoalDestination.Completed -> state.history
         GoalDestination.Archived -> state.archived
     }
 
@@ -473,7 +473,7 @@ fun GoalAreaContent(
         WhipWorkspaceHeader(
             summary = if (manageOrder) "Reordering Goals" else when (destination) {
                 GoalDestination.Active -> "${quantityLabel(list.size, "goal")} · Active & paused"
-                GoalDestination.Completed -> "${quantityLabel(list.size, "outcome")} · Completed & abandoned"
+                GoalDestination.Completed -> "${quantityLabel(list.sumOf { it.retainedOutcomeCount() }, "outcome")} retained · ${quantityLabel(list.size, "goal")}"
                 GoalDestination.Insights -> "Trends across ${quantityLabel(list.size, "ongoing goal")}"
                 GoalDestination.Archived -> "Archived Goals"
             },
@@ -525,8 +525,8 @@ fun GoalAreaContent(
                             "Choose a template or create an outcome from scratch."
                         } else "Create a goal or start from a template."
                     } else if (destination == GoalDestination.Completed) {
-                        areaScopeLabel?.let { "No completed or abandoned Goals in $it." }
-                            ?: "Completed and abandoned Goals appear here with their individual status."
+                        areaScopeLabel?.let { "No recorded completion or abandonment outcomes in $it." }
+                            ?: "Completion and abandonment outcomes stay here after reopening or archiving a Goal."
                     } else {
                         areaScopeLabel?.let { "No archived Goals in $it." } ?: "Archived Goals remain available here."
                     },
@@ -561,6 +561,7 @@ fun GoalAreaContent(
                         onResetElapsed = { resettingElapsedGoalId = projection.goal.id },
                         onComplete = { completingGoalId = projection.goal.id },
                         reorderMode = manageOrder,
+                        historyMode = destination == GoalDestination.Completed,
                         )
                     }
                     if (manageOrder && destination == GoalDestination.Active && areaScopeLabel == null) {
@@ -671,6 +672,7 @@ fun GoalAreaContent(
             zoneId = editorState.activeZoneId,
             nowMillis = editorState.nowMillis,
             through = editorState.currentDate,
+            openHistory = destination == GoalDestination.Completed,
             customUnits = editorState.customUnits,
             onDismiss = {
                 mutationCoordinator.clear()
@@ -917,12 +919,18 @@ fun GoalCard(
     zoneId: ZoneId = ZoneId.systemDefault(),
     reorderMode: Boolean = false,
     onComplete: (() -> Unit)? = null,
+    historyMode: Boolean = false,
 ) {
     val goal = projection.goal
-    val executable = !reorderMode && !goal.archived && goal.status == GoalStatus.Active
+    val executable = !historyMode && !reorderMode && !goal.archived && goal.status == GoalStatus.Active
     val disclosure = rememberItemDisclosure(itemKey = "goal:${goal.id}")
     val numericSummary = projection.compactNumericReading(customUnits)
-    val compactStatus = listOfNotNull(
+    val compactStatus = if (historyMode) {
+        "${quantityLabel(projection.retainedOutcomeCount(), "outcome")} retained · Currently ${if (goal.archived) "Archived · ${goal.status.inspectorLabel()}" else goal.status.inspectorLabel()}" +
+            projection.closureSnapshots.maxByOrNull { it.completedAtMillis }?.let {
+                "\nLatest: ${it.accessibleHistoryDescription(goal, zoneId, customUnits)}"
+            }.orEmpty()
+    } else listOfNotNull(
         projection.goal.status.takeUnless { it == GoalStatus.Active || it == GoalStatus.Archived }?.inspectorLabel(),
         numericSummary ?: projection.collectionStatus(customUnits, nowMillis, zoneId),
         "Target reached".takeIf { projection.offersCompletion() },
@@ -997,6 +1005,7 @@ fun GoalCard(
                         modifier = Modifier.weight(1f).testTag("goal-card-progress-${goal.id}"),
                         color = if (projection.progress >= 1.0) MaterialTheme.whipColors.success else MaterialTheme.colorScheme.primary,
                         trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        drawStopIndicator = {},
                     )
                     Text(formatGoalProgressPercent(projection.progress), style = MaterialTheme.typography.labelMedium,
                         modifier = Modifier.testTag("goal-card-progress-label-${goal.id}"))
@@ -1025,6 +1034,7 @@ fun GoalCard(
                             modifier = Modifier.weight(1f),
                             color = progressColor,
                             trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        drawStopIndicator = {},
                         )
                         Text(
                             if (goal.type == GoalType.MaintainRange) {
@@ -1431,7 +1441,6 @@ private fun GoalInsightsContent(
                             )
                         }
                     }
-                    val chartValues = insights.points.mapNotNull { it.progress ?: it.canonicalValue }
                     if (projection.goal.type == GoalType.ElapsedSince) {
                         projection.goal.elapsedStartMillis?.let { started ->
                             projection.elapsedDisplayValue(nowMillis, zoneId)?.let { display ->
@@ -1458,14 +1467,7 @@ private fun GoalInsightsContent(
                         projection.numericReading(customUnits)?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
                         projection.consistencyPeriodReading()?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
                         projection.onPace?.let { EntityInspectorFact("Pace", if (it) "On pace" else "Behind pace") }
-                        if (chartValues.size >= 2) {
-                            GoalLineChart(
-                                points = insights.points,
-                                goal = projection.goal,
-                                customUnits = customUnits,
-                                description = "${projection.goal.name} trend with ${chartValues.size} points",
-                            )
-                        } else Text("Log on at least two days for a trend line.")
+                        GoalTrendSummary(insights, projection.goal, customUnits)
                         insights.ratePerDay?.let {
                             EntityInspectorFact("Daily Rate", "${formatGoalCanonicalValue(it, projection.goal.trendUnitId, projection.goal.precision, customUnits, difference = true)} per day")
                         }
@@ -1481,7 +1483,45 @@ private fun GoalInsightsContent(
 }
 
 @Composable
-private fun GoalInsightEvidence(insights: GoalInsightSummary, projection: GoalProjection) {
+private fun GoalTrendSummary(insights: GoalInsightSummary, goal: Goal, customUnits: List<UnitDefinition>) {
+    var showChart by rememberSaveable(goal.id) { mutableStateOf(false) }
+    val observed = insights.points.filter { it.canonicalValue != null }
+    observed.lastOrNull()?.let { point ->
+        EntityInspectorFact("Latest observed-day value", formatGoalCanonicalValue(point.canonicalValue, goal.trendUnitId, goal.precision, customUnits))
+        Text(
+            "${point.date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))} · Current settings, using the calculation window on that date.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+    if (observed.size < 2) {
+        Text(
+            if (observed.isEmpty()) "No numeric observations yet. Record an update to see an observed value."
+            else "One observed day does not establish a trend. Log on another day to compare.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.testTag("goal-sparse-evidence"),
+        )
+    } else {
+        DisclosureButton("Trend Chart", showChart, { showChart = !showChart }, modifier = Modifier.testTag("goal-trend-chart-disclosure"))
+        if (showChart) GoalLineChart(
+            points = insights.points,
+            goal = goal,
+            customUnits = customUnits,
+            description = "${goal.name} trend with ${observed.size} observed days from " +
+                "${observed.first().date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))} to " +
+                observed.last().date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)),
+        )
+    }
+}
+
+@Composable
+private fun GoalInsightEvidence(
+    insights: GoalInsightSummary,
+    projection: GoalProjection,
+    tableExpanded: Boolean = false,
+    onToggleTable: (() -> Unit)? = null,
+) {
     var expanded by rememberSaveable(projection.goal.id) { mutableStateOf(false) }
     val excluded = insights.excludedEntries + insights.outsideWindowEntries
     Text(
@@ -1490,7 +1530,12 @@ private fun GoalInsightEvidence(insights: GoalInsightSummary, projection: GoalPr
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
-    DisclosureButton("About This Data", expanded, { expanded = !expanded })
+    if (onToggleTable == null) {
+        DisclosureButton("About This Data", expanded, { expanded = !expanded })
+    } else WhipActivityActions(leadingContent = true, modifier = Modifier.testTag("goal-data-actions")) {
+        DisclosureButton("About This Data", expanded, { expanded = !expanded })
+        DisclosureButton("Trend Data Table", tableExpanded, onToggleTable)
+    }
     if (projection.goal.aggregationPeriod != GoalAggregationPeriod.All) Text(
         "The trend shows observed days. Current progress uses today's calculation window.",
         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -2705,6 +2750,7 @@ internal fun GoalActionsDialog(
     mutationError: String? = null,
     onToggleMilestone: (GoalMilestoneBoundary, Boolean) -> Unit = { _, _ -> },
     through: LocalDate = LocalWhipToday.current,
+    openHistory: Boolean = false,
 ) {
     var historyQuery by rememberSaveable(projection.goal.id) { mutableStateOf("") }
     val historyLocale = LocalConfiguration.current.locales[0]
@@ -2718,7 +2764,9 @@ internal fun GoalActionsDialog(
     var visibleMeasurements by rememberSaveable(projection.goal.id, normalizedHistoryQuery) { mutableIntStateOf(25) }
     var visibleTrendPoints by rememberSaveable(projection.goal.id) { mutableIntStateOf(25) }
     var showAccessibleTable by rememberSaveable(projection.goal.id) { mutableStateOf(false) }
-    var section by rememberSaveable(projection.goal.id) { mutableStateOf(GoalDetailSection.Overview) }
+    var section by rememberSaveable(projection.goal.id, openHistory) {
+        mutableStateOf(if (openHistory) GoalDetailSection.History else GoalDetailSection.Overview)
+    }
     val insights = remember(projection, through) { buildGoalInsights(projection.goal, projection.entries, projection.milestones, through) }
     val primaryAction = if (projection.goal.archived) {
         EntityInspectorPrimaryAction("restore", "Restore Goal", onArchive)
@@ -2841,19 +2889,7 @@ internal fun GoalActionsDialog(
                             "The closed outcome above is frozen. This trend uses current settings; original target and calculation settings were not stored. See Lifecycle History for closure facts.",
                             style = MaterialTheme.typography.bodySmall,
                         )
-                        val chartValues = insights.points.mapNotNull { it.progress ?: it.canonicalValue }
-                        if (chartValues.size >= 2) {
-                            GoalLineChart(
-                                points = insights.points,
-                                goal = projection.goal,
-                                customUnits = customUnits,
-                                description = "${projection.goal.name} progress chart with ${chartValues.size} points from " +
-                                    "${insights.points.first().date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))} to " +
-                                    insights.points.last().date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)),
-                            )
-                        } else {
-                            Text("Log on at least two days for a trend line.")
-                        }
+                        GoalTrendSummary(insights, projection.goal, customUnits)
                         insights.ratePerDay?.let {
                             EntityInspectorFact("Daily Rate", "${formatGoalCanonicalValue(it, projection.goal.trendUnitId, projection.goal.precision, customUnits, difference = true)} per day")
                         }
@@ -2872,11 +2908,10 @@ internal fun GoalActionsDialog(
                             }
                             EntityInspectorFact("Target", targetRange)
                         }
-                        GoalInsightEvidence(insights, projection)
-                        if (insights.points.isNotEmpty()) DisclosureButton(
-                            label = "Trend data table",
-                            expanded = showAccessibleTable,
-                            onClick = { showAccessibleTable = !showAccessibleTable },
+                        GoalInsightEvidence(
+                            insights, projection,
+                            tableExpanded = showAccessibleTable,
+                            onToggleTable = { showAccessibleTable = !showAccessibleTable }.takeIf { insights.points.isNotEmpty() },
                         )
                     }
                 }
@@ -2898,6 +2933,7 @@ internal fun GoalActionsDialog(
                 }
                 }
                 if (section == GoalDetailSection.History) {
+                    item { GoalHistoryOverview(projection) }
                     if (projection.closureSnapshots.isNotEmpty()) {
                         item {
                             WhipSectionHeading("Lifecycle History", compact = true)
@@ -3036,6 +3072,49 @@ internal fun GoalActionsDialog(
             }
         },
     )
+}
+
+@Composable
+private fun GoalHistoryOverview(projection: GoalProjection) {
+    BoxWithConstraints(Modifier.fillMaxWidth().testTag("goal-history-overview")) {
+        val sideBySide = maxWidth >= 480.dp && LocalDensity.current.fontScale < 1.5f
+        val lifecycle: @Composable (Modifier) -> Unit = { modifier ->
+            EntityInspectorInformationGroup("Lifecycle", modifier) {
+                EntityInspectorFact("Retained outcomes", projection.retainedOutcomeCount().toString())
+                EntityInspectorFact("Current state", if (projection.goal.archived) "Archived · ${projection.goal.status.inspectorLabel()}" else projection.goal.status.inspectorLabel())
+                Text("Reopening keeps recorded outcomes.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        val progress: @Composable (Modifier) -> Unit = { modifier ->
+            EntityInspectorInformationGroup(if (projection.goal.type == GoalType.ElapsedSince) "Timer history" else "Progress records", modifier) {
+                EntityInspectorFact(
+                    when (projection.goal.type) {
+                        GoalType.ElapsedSince -> "Recorded resets"
+                        GoalType.WeightedMilestones -> "Current milestones complete"
+                        else -> "Recorded updates"
+                    },
+                    when (projection.goal.type) {
+                        GoalType.ElapsedSince -> projection.elapsedResetEvents.size.toString()
+                        GoalType.WeightedMilestones -> "${projection.milestones.count { it.completed }} of ${projection.milestones.size}"
+                        else -> projection.entries.size.toString()
+                    },
+                )
+                Text("Lifecycle outcomes and progress records are separate facts.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        if (sideBySide) Row(horizontalArrangement = Arrangement.spacedBy(WhipSpacing.sibling)) {
+            lifecycle(Modifier.weight(1f))
+            progress(Modifier.weight(1f))
+        } else Column(verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro)) {
+            Text("${quantityLabel(projection.retainedOutcomeCount(), "retained outcome")} · Currently ${if (projection.goal.archived) "Archived · ${projection.goal.status.inspectorLabel()}" else projection.goal.status.inspectorLabel()}", style = MaterialTheme.typography.labelLarge)
+            Text(
+                if (projection.goal.type == GoalType.ElapsedSince) quantityLabel(projection.elapsedResetEvents.size, "recorded timer reset")
+                else if (projection.goal.type == GoalType.WeightedMilestones) "${projection.milestones.count { it.completed }} of ${projection.milestones.size} current milestones complete"
+                else quantityLabel(projection.entries.size, "recorded progress update"),
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
 }
 
 private enum class GoalDetailSection(val id: String, val label: String) {

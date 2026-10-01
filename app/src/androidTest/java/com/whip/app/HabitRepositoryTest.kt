@@ -61,6 +61,25 @@ class HabitRepositoryTest {
 
     @After fun tearDown() = database.close()
 
+    @Test fun ordinaryDurationRejectsNegativeEntriesButSetTotalCanSubtractTime() = runBlocking {
+        val today = FixedClock.today()
+        val id = repository.create(durationHabit("Duration validation", "second"))
+        val original = repository.log(id, 10.0)
+        assertTrue(runCatching { repository.log(id, -5.0) }.exceptionOrNull() is IllegalArgumentException)
+        assertTrue(runCatching { repository.log(id, -5.0, date = today.minusDays(1)) }.exceptionOrNull() is IllegalArgumentException)
+        assertTrue(runCatching { repository.updateLog(original, -5.0, HabitLogStatus.Recorded, today, "Invalid elapsed time") }
+            .exceptionOrNull() is IllegalArgumentException)
+        assertEquals(listOf(10.0), repository.logs.first().map { it.value })
+        val correctionId = requireNotNull(repository.setPeriodValue(id, today, 3.0))
+        assertEquals(-7.0, repository.logs.first().single { it.id == correctionId }.value!!, 0.0)
+        repository.updateLog(correctionId, -7.0, HabitLogStatus.Recorded, today, "Corrected total")
+        assertEquals(3.0, repository.habits.first().single().valueForPeriod(repository.logs.first(), today), 0.0)
+        val numeric = repository.create(HabitDraft(name = "Signed measurement", trackingMode = HabitTrackingMode.Decimal,
+            comparison = TargetComparison.None, startDate = today))
+        repository.log(numeric, -2.0)
+        assertEquals(-2.0, repository.logs.first().single { it.habitId == numeric }.value!!, 0.0)
+    }
+
     @Test fun futureHistoryEditsRejectBeforeChangingQuantitativeOrNoteOnlyFacts() = runBlocking {
         val today = FixedClock.today()
         val id = repository.create(HabitDraft(name = "History", trackingMode = HabitTrackingMode.LogOnly,

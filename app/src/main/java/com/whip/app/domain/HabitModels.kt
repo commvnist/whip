@@ -339,7 +339,16 @@ data class HabitDayProgress(
     val flexibleScheduleProgress: Int? = null,
     val flexibleScheduleTarget: Int? = null,
     val dayState: HabitDayState = HabitDayState.Pending,
+    val completionRecordedToday: Boolean = false,
 )
+
+/** Signed deltas belong to total corrections, not ordinary elapsed-time entries. */
+fun Habit.logValueError(value: Double?, allowDurationAdjustment: Boolean = false): String? = when {
+    value != null && !value.isFinite() -> "Enter a valid, finite number"
+    trackingMode == HabitTrackingMode.Duration && value != null && value < 0.0 && !allowDurationAdjustment ->
+        "Duration must be zero or greater"
+    else -> null
+}
 
 data class FlexibleHabitProgress(
     val completed: Int,

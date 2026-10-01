@@ -84,12 +84,14 @@ internal fun AreaPicker(
     modifier: Modifier = Modifier,
     dialogModifier: Modifier = Modifier,
     inheritedFromScope: Boolean = false,
+    required: Boolean = false,
 ) {
     var creating by rememberSaveable { mutableStateOf(false) }
     Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Area", style = MaterialTheme.typography.labelLarge)
+        Text(if (required) "Area *" else "Area", style = MaterialTheme.typography.labelLarge)
         Text(
-            "Group this item with related tasks, habits, goals, and tracks.",
+            if (required) "Choose the Area for this Task before saving."
+            else "Group this item with related tasks, habits, goals, and tracks.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

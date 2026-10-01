@@ -119,6 +119,29 @@ class HabitPresentationTest {
         assertEquals("Set Today's Total", habit(HabitTrackingMode.Duration).todayCheckInTitle())
     }
 
+    @Test fun ordinaryDurationRejectsNegativeValuesWithoutBanningCorrectionsOrSignedMeasurements() {
+        val duration = habit(HabitTrackingMode.Duration)
+        assertEquals("Duration must be zero or greater", duration.logValueError(-5.0))
+        assertNull(duration.logValueError(0.0))
+        assertNull(duration.logValueError(5.0))
+        assertNull(duration.logValueError(-5.0, allowDurationAdjustment = true))
+        assertNotNull(duration.logValueError(Double.NaN, allowDurationAdjustment = true))
+        assertNull(habit(HabitTrackingMode.Decimal).logValueError(-5.0))
+    }
+
+    @Test fun recordedRatingAndNoteOnlyFactsCannotOfferSkipEvenWithoutATargetOutcome() {
+        for (mode in listOf(HabitTrackingMode.Rating, HabitTrackingMode.LogOnly)) {
+            val item = progress(habit(mode).copy(comparison = TargetComparison.None))
+            val record = HabitLog(1, "log", item.habit.id, if (mode == HabitTrackingMode.Rating) 3.0 else null,
+                null, null, HabitLogStatus.Recorded, date.atStartOfDay(java.time.ZoneOffset.UTC).toInstant(),
+                date, "UTC", 0, "Note", MeasurementSourceType.Manual, null, null, 1, 1)
+            assertTrue(item.canSkipToday(emptyList()))
+            assertFalse(item.canSkipToday(listOf(record)))
+            assertTrue(item.canSkipToday(listOf(record.copy(localDate = date.minusDays(1)))))
+            assertFalse(item.copy(dayState = HabitDayState.NotScheduled).canSkipToday(emptyList()))
+        }
+    }
+
     private fun habit(mode: HabitTrackingMode) = Habit(
         id = 1,
         uuid = "habit-1",

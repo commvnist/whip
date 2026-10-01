@@ -112,6 +112,7 @@ import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -1889,6 +1890,7 @@ fun WhipScreen(
         topBar = {
             Column {
             if (!gymRoutineEditorOpen && !inlineKeyboardVisible && !focusedTrackDetail &&
+                appDestination != AppDestination.Settings &&
                 !(appDestination == AppDestination.Tasks && taskSelectionMode)
             ) TopAppBar(
                 modifier = Modifier.testTag("workspace-top-app-bar"),
@@ -2562,7 +2564,8 @@ fun WhipScreen(
                             !contentPaneIsExpanded
                     },
                     onSectionChange = { settingsSection = it },
-                    externalSearchAction = true,
+                    externalSearchAction = false,
+                    onDismiss = ::closeSettings,
                     searchRequested = settingsSearchRequested,
                     onSearchRequestConsumed = { settingsSearchRequested = false },
                     onSearchAvailabilityChange = { settingsSearchAvailable = it },
@@ -4378,9 +4381,10 @@ private fun WhipNavigationRail(
 private fun WhipBrandMark(
     modifier: Modifier = Modifier,
     contentDescription: String? = null,
-) {
+    ) {
     Image(
-        painter = painterResource(R.drawable.ic_whip_mark),
+        painter = painterResource(R.drawable.ic_whip_navigation_mark),
+        colorFilter = ColorFilter.tint(androidx.compose.material3.LocalContentColor.current),
         contentDescription = contentDescription,
         modifier = modifier,
     )
@@ -5196,12 +5200,6 @@ private fun HomeContent(
         contentPadding = WhipPageContentPadding,
         verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
     ) {
-        areaScopeLabel?.let { label -> item {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("Showing $label", modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
-                WhipTextButton(onClick = onShowAllAreas) { Text("Show All Areas") }
-            }
-        } }
         item {
             TodayHeader(
                 date = state.currentDate,

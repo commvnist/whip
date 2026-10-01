@@ -104,7 +104,7 @@ internal fun EntityInspector(
 ) {
     val placement = LocalWhipDialogPlacement.current
     val resolvedModifier = if (modifier == Modifier) {
-        Modifier.absoluteOffset(x = placement.offsetX).width(placement.maxWidth)
+        Modifier.absoluteOffset(x = placement.offsetX).width(minOf(placement.maxWidth, WhipContentWidth.compactDialog))
     } else modifier
     val paneDescription = "$entityType details for $title"
     val sectionStateHolder = rememberSaveableStateHolder()
@@ -120,8 +120,9 @@ internal fun EntityInspector(
             // alert. Keep its frame fixed while tabs swap differently sized content.
             val inspectorHeight = minOf(maxHeight * 0.94f, 720.dp)
             Surface(
-                modifier = resolvedModifier
-                    .widthIn(min = 280.dp, max = 560.dp)
+                modifier = Modifier
+                    .widthIn(min = 280.dp, max = WhipContentWidth.compactDialog)
+                    .then(resolvedModifier)
                     .height(inspectorHeight)
                     .then(connectedSurfaceTag?.let(Modifier::testTag) ?: Modifier)
                     .semantics { paneTitle = paneDescription },
@@ -176,19 +177,20 @@ internal fun EntityInspector(
                     primaryAction?.let { action ->
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         Surface(modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surfaceContainerLow) {
-                            WhipActivityActions(
-                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
-                                enabled = leadingPrimaryAction,
-                            ) {
-                                WhipButton(
-                                    onClick = action.onClick,
-                                    enabled = action.enabled,
-                                    modifier = Modifier
-                                        .then(if (leadingPrimaryAction) Modifier else Modifier.fillMaxWidth()
-                                            .padding(horizontal = 20.dp, vertical = 12.dp))
-                                        .testTag("entity-inspector-primary-${action.id}"),
+                            Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
+                                WhipActivityActions(
+                                    enabled = leadingPrimaryAction,
+                                    leadingContent = leadingPrimaryAction,
                                 ) {
-                                    Text(action.label, fontWeight = FontWeight.SemiBold)
+                                    WhipButton(
+                                        onClick = action.onClick,
+                                        enabled = action.enabled,
+                                        modifier = Modifier
+                                            .then(if (leadingPrimaryAction) Modifier else Modifier.fillMaxWidth())
+                                            .testTag("entity-inspector-primary-${action.id}"),
+                                    ) {
+                                        Text(action.label, fontWeight = FontWeight.SemiBold)
+                                    }
                                 }
                             }
                         }
@@ -220,7 +222,7 @@ private fun EntityInspectorHeader(
             .testTag("entity-inspector-header")
             .padding(start = 16.dp, top = 12.dp, end = 8.dp, bottom = 12.dp),
     ) {
-        val expandedIdentity = maxIdentityHeight != null || maxWidth < 336.dp * LocalDensity.current.fontScale.coerceIn(1f, 2f)
+        val expandedIdentity = maxIdentityHeight != null || maxWidth < 288.dp * LocalDensity.current.fontScale.coerceIn(1f, 2f)
         if (expandedIdentity) {
             Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Row(

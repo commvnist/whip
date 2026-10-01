@@ -7,6 +7,30 @@ import com.whip.app.domain.BuiltInUnits
 import org.junit.Test
 
 class GoalProgressPresentationTest {
+    @Test fun retainedHistoryDiscoversReopenedAndArchivedGoalsAndCountsClosureEvents() {
+        val day = java.time.LocalDate.of(2026, 9, 30)
+        val goal = com.whip.app.domain.Goal(
+            id = 1, uuid = "g", measurementId = "m", name = "Goal", description = "", area = "",
+            tags = emptyList(), icon = "◎", type = com.whip.app.domain.GoalType.OpenEndedTrend,
+            dimension = com.whip.app.domain.UnitDimension.Unitless, unitId = "unitless", precision = 1,
+            baseline = null, targetMin = null, targetMax = null, direction = com.whip.app.domain.GoalDirection.Neutral,
+            startDate = day, deadline = null, aggregation = com.whip.app.domain.GoalAggregation.Latest,
+            paceType = com.whip.app.domain.GoalPaceType.None, reminderMinutes = null,
+            status = com.whip.app.domain.GoalStatus.Active, pinned = false, position = 0,
+            createdAtMillis = 1, updatedAtMillis = 1,
+        )
+        val closure = com.whip.app.domain.GoalClosureSnapshot(1, "closure", goal.id, 2, 5.0, null, com.whip.app.domain.GoalStatus.Completed)
+        val reopened = com.whip.app.domain.projectGoal(goal, emptyList(), emptyList(), day)
+            .copy(closureSnapshots = listOf(closure, closure.copy(id = 2, uuid = "second", completedAtMillis = 3)))
+        val archived = reopened.copy(goal = goal.copy(id = 2, archived = true), closureSnapshots = listOf(closure.copy(goalId = 2)))
+        val unrecorded = reopened.copy(goal = goal.copy(id = 3), closureSnapshots = emptyList())
+        val state = GoalUiState(active = listOf(reopened, unrecorded), archived = listOf(archived))
+        assertEquals(listOf(1L, 2L), state.history.map { it.goal.id })
+        assertEquals(3, state.history.sumOf { it.retainedOutcomeCount() })
+        assertEquals(5.0, state.history.first().closureSnapshots.first().value!!, 0.0)
+        assertEquals(emptyList<com.whip.app.domain.GoalProjection>(), state.completed)
+    }
+
     @Test fun changingGoalUnitsPreservesMassAndAffineTargetsWithoutConsumingIncompleteText() {
         val kilogram = requireNotNull(BuiltInUnits.get("kilogram"))
         val pound = requireNotNull(BuiltInUnits.get("pound"))

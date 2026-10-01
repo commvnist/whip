@@ -702,6 +702,31 @@ fun TaskEditorDialog(
                     if (request.task == null) {
                         WhipTextButton(onClick = { recipesOpen = true }) { Text("Use a Template") }
                     }
+                    ProductivityOrganizationSection(
+                        areaPicker = {
+                    AreaPicker(
+                        areas = areas,
+                        selectedAreaId = areaId,
+                        selectedAreaName = area,
+                        onSelect = { id, name -> areaId = id; area = name },
+                        onCreateArea = onCreateArea,
+                        modifier = Modifier.fillMaxWidth(),
+                        dialogModifier = Modifier.absoluteOffset(x = paneOffsetX).width(paneMaxWidth),
+                        inheritedFromScope = request.task == null && inheritedAreaFromScope,
+                        required = request.task == null && areas.count { !it.archived } > 1,
+                    )
+                        },
+                        extras = {
+                    if (validationRequested && !areaSelectionValid) {
+                        Text(
+                            "Choose an Area before saving.",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                        },
+                    )
+
                     EditorSectionHeader("Schedule")
                     FieldLabel("When")
                     FlowRow(
@@ -957,29 +982,6 @@ fun TaskEditorDialog(
                         )
                     }
 
-                    ProductivityOrganizationSection(
-                        areaPicker = {
-                    AreaPicker(
-                        areas = areas,
-                        selectedAreaId = areaId,
-                        selectedAreaName = area,
-                        onSelect = { id, name -> areaId = id; area = name },
-                        onCreateArea = onCreateArea,
-                        modifier = Modifier.fillMaxWidth(),
-                        dialogModifier = Modifier.absoluteOffset(x = paneOffsetX).width(paneMaxWidth),
-                        inheritedFromScope = request.task == null && inheritedAreaFromScope,
-                    )
-                        },
-                        extras = {
-                    if (validationRequested && !areaSelectionValid) {
-                        Text(
-                            "Choose an Area before saving.",
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                    }
-                        },
-                    )
 
                     EditorSectionHeader("Planning")
                     FieldLabel("Priority")

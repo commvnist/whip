@@ -9,16 +9,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 
 /** Keeps dense editor pairs readable at large text sizes instead of squeezing both fields. */
 @Composable
 internal fun ResponsiveFieldPair(
     modifier: Modifier = Modifier,
+    minimumFieldWidth: Dp = 236.dp,
     first: @Composable (Modifier) -> Unit,
     second: @Composable (Modifier) -> Unit,
 ) {
     BoxWithConstraints(modifier.fillMaxWidth()) {
-        val stack = maxWidth < 480.dp || LocalDensity.current.fontScale >= 1.5f
+        val stack = maxWidth < minimumFieldWidth * 2 + WhipSpacing.sibling || LocalDensity.current.fontScale >= 1.5f
         if (stack) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                 first(Modifier.fillMaxWidth())

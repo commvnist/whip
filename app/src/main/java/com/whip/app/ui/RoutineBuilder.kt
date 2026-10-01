@@ -3206,7 +3206,7 @@ private fun RoutineSetEditorCard(
     ) {
         Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             BoxWithConstraints(Modifier.fillMaxWidth()) {
-                val stackHeader = LocalDensity.current.fontScale >= 1.5f || maxWidth < 330.dp
+                val stackHeader = LocalDensity.current.fontScale >= 1.5f || maxWidth < 280.dp
                 if (stackHeader) {
                     Column(Modifier.fillMaxWidth()) {
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -3266,22 +3266,18 @@ private fun RoutineSetEditorCard(
                     ExerciseTrackingType.WeightDuration,
                 )
                 if (machine?.loadType != MachineLoadType.Level) {
-                    Text("Load Prescription", style = MaterialTheme.typography.labelMedium)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    SelectionField(
+                        "Load Prescription",
                         RoutineLoadPrescriptionType.entries.filter { type ->
                             when (type) {
                                 RoutineLoadPrescriptionType.Absolute -> true
                                 RoutineLoadPrescriptionType.PercentOneRepMax -> estimatedOneRepMaxSupported
                                 RoutineLoadPrescriptionType.PercentTrainingMax -> trainingMaxSupported
                             }
-                        }.forEach { type ->
-                            WhipFilterChip(
-                                selected = prescriptionType == type,
-                                onClick = { onUpdate { it.copy(loadPrescriptionType = type.name) } },
-                                label = { Text(type.label.uiTitleCase()) },
-                            )
-                        }
-                    }
+                        },
+                        prescriptionType, { it.label.uiTitleCase() },
+                        { selected -> onUpdate { it.copy(loadPrescriptionType = selected.name) } },
+                    )
                 }
                 if (prescriptionType == RoutineLoadPrescriptionType.Absolute || machine?.loadType == MachineLoadType.Level) {
                     OutlinedTextField(
@@ -3323,6 +3319,7 @@ private fun RoutineSetEditorCard(
             }
             if (exercise?.trackingType?.supportsRepetitionEntry() == true) {
                 ResponsiveFieldPair(
+                    minimumFieldWidth = 140.dp,
                     first = { field -> OutlinedTextField(set.repetitionsMin, { value -> onUpdate { it.copy(repetitionsMin = value.filter(Char::isDigit).take(4)) } }, label = { Text("Reps min") }, modifier = field.testTag("routine-reps-min-${set.key}"), singleLine = true) },
                     second = { field -> OutlinedTextField(set.repetitionsMax, { value -> onUpdate { it.copy(repetitionsMax = value.filter(Char::isDigit).take(4)) } }, label = { Text("Reps max") }, modifier = field.testTag("routine-reps-max-${set.key}"), singleLine = true) },
                 )

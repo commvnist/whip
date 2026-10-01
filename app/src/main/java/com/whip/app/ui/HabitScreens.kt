@@ -97,6 +97,7 @@ import com.whip.app.domain.HabitLogStatus
 import com.whip.app.domain.HabitPause
 import com.whip.app.domain.HabitScheduleType
 import com.whip.app.domain.HabitSkip
+import com.whip.app.domain.logValueError
 import com.whip.app.domain.HabitTrackingMode
 import com.whip.app.domain.withConfigurationSemantics
 import com.whip.app.domain.DEFAULT_HABIT_EMOJI
@@ -592,9 +593,9 @@ fun HabitAreaContent(
                     mutationCoordinator.finishFailure("Another Habit history change is already finishing.")
                 }
             },
-            logs = state.logs.filter { it.habitId == item.habit.id },
-            skips = state.skips.filter { it.habitId == item.habit.id },
-            pauses = state.pauses.filter { it.habitId == item.habit.id },
+            logs = editorState.logs.filter { it.habitId == item.habit.id },
+            skips = editorState.skips.filter { it.habitId == item.habit.id },
+            pauses = editorState.pauses.filter { it.habitId == item.habit.id },
             onAddHistoricalLog = {
                 historicalLogForToday = false
                 historicalLogHabitId = item.habit.id
@@ -620,7 +621,7 @@ fun HabitAreaContent(
         }
     }
     skipConfirmationHabitId?.let { habitId ->
-        val item = progressById[habitId]
+        val item = editorProgressById[habitId]
         if (item != null) PaneAwareAlertDialog(
             onDismissRequest = { skipConfirmationHabitId = null },
             title = { Text("Skip Today?") },
@@ -629,8 +630,14 @@ fun HabitAreaContent(
             },
             confirmButton = {
                 WhipTextButton(onClick = {
-                    viewModel.skipDay(item.habit.id, item.date)
-                    skipConfirmationHabitId = null
+                    val coordinator = authoredMutationCoordinator ?: return@WhipTextButton
+                    val requestId = coordinator.begin()
+                    if (requestId != null) {
+                        if (!viewModel.skipDay(item.habit.id, item.date, requestId)) {
+                            coordinator.finishFailure("Another Habit change is already finishing.")
+                        }
+                        skipConfirmationHabitId = null
+                    }
                 }) { Text("Skip Today") }
             },
             dismissButton = { WhipTextButton(onClick = { skipConfirmationHabitId = null }) { Text("Cancel") } },
@@ -1320,7 +1327,13 @@ fun HabitProgressCard(
                 if (!skipped && !unavailableForCheckIn && item.flexibleScheduleTarget != null && item.flexibleScheduleProgress != null) {
                     val target = item.flexibleScheduleTarget
                     val fraction = (item.flexibleScheduleProgress.toFloat() / target).coerceIn(0f, 1f)
-                    LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth())
+                    LinearProgressIndicator(
+                        progress = { fraction },
+                        modifier = Modifier.fillMaxWidth(),
+                        color = if (fraction >= 1f) MaterialTheme.whipColors.success else MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        drawStopIndicator = {},
+                    )
                     Text(
                         "${item.flexibleScheduleProgress} / $target completions this ${if (habit.scheduleType == HabitScheduleType.FlexibleTimesPerWeek) "week" else "month"}",
                         style = MaterialTheme.typography.labelMedium,
@@ -1333,7 +1346,13 @@ fun HabitProgressCard(
                 ) {
                     if (habit.comparison == TargetComparison.AtLeast && (habit.targetMin ?: 0.0) > 0.0) {
                         val fraction = (item.value / requireNotNull(habit.targetMin)).toFloat().coerceIn(0f, 1f)
-                        LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth())
+                        LinearProgressIndicator(
+                        progress = { fraction },
+                        modifier = Modifier.fillMaxWidth(),
+                        color = if (fraction >= 1f) MaterialTheme.whipColors.success else MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        drawStopIndicator = {},
+                    )
                     }
                     Text(
                         item.targetProgressLabel(customUnits),
@@ -1482,6 +1501,9 @@ private fun HabitChecklist(
         LinearProgressIndicator(
             progress = { completedItems.toFloat() / totalItems },
             modifier = Modifier.fillMaxWidth(),
+            color = if (completedItems == totalItems) MaterialTheme.whipColors.success else MaterialTheme.colorScheme.primary,
+            trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+            drawStopIndicator = {},
         )
         Text(
             "$completedItems / $totalItems items complete",
@@ -1496,7 +1518,8 @@ fun quickHabitAction(item: HabitDayProgress, vm: HabitViewModel, openNumeric: ()
         HabitTrackingMode.CheckOff -> vm.setCheckOff(item.habit.id, item.date, item.successful != true)
         HabitTrackingMode.Count, HabitTrackingMode.Decimal -> vm.log(item.habit.id, item.habit.quickIncrement)
         HabitTrackingMode.Duration -> if (item.habit.timerStartedAtMillis == null) vm.startTimer(item.habit.id) else vm.stopTimer(item.habit.id)
-        HabitTrackingMode.Checklist -> vm.setCheckOff(item.habit.id, item.date, item.successful != true)
+        HabitTrackingMode.Checklist -> vm.setCheckOff(item.habit.id, item.date,
+            if (item.dayState == HabitDayState.NotScheduled) !item.completionRecordedToday else item.successful != true)
         HabitTrackingMode.Rating, HabitTrackingMode.LogOnly -> openNumeric()
     }
 }
@@ -2888,7 +2911,8 @@ internal fun HabitValueDialog(
         HabitTrackingMode.Duration,
     )
     val parsedValue = value.toWhipDoubleOrNull()
-    val validValue = if (logOnly) value.isBlank() || parsedValue?.isFinite() == true else parsedValue?.isFinite() == true
+    val valueError = item.habit.logValueError(parsedValue)
+    val validValue = (if (logOnly) value.isBlank() || parsedValue?.isFinite() == true else parsedValue?.isFinite() == true) && valueError == null
     PaneAwareAlertDialog(
         testTag = "habit-value-dialog",
         leadingActions = true,
@@ -2919,7 +2943,7 @@ internal fun HabitValueDialog(
                     else item.habit.historyAmountLabel(optional = logOnly, customUnits = customUnits),
                     modifier = Modifier.testTag("habit-value-input"),
                     enabled = !saving,
-                    validationError = "Enter a valid, finite number".takeIf { validationRequested && !validValue },
+                    validationError = (valueError ?: "Enter a valid, finite number").takeIf { validationRequested && !validValue },
                 )
                 if (logOnly) Text(
                     "A note is enough; add a number only when it is useful.",
@@ -3000,11 +3024,12 @@ internal fun HabitHistoryLogDialog(
         mode in setOf(HabitTrackingMode.Count, HabitTrackingMode.Decimal, HabitTrackingMode.Duration, HabitTrackingMode.Rating)
     val dateIsValid = !date.isAfter(LocalWhipToday.current)
     val parsedValue = value.toWhipDoubleOrNull()
+    val amountError = item.habit.logValueError(parsedValue, allowDurationAdjustment = (log?.value ?: 0.0) < 0.0)
     val amountIsValid = when {
         requiresAmount -> parsedValue?.isFinite() == true
         !showsAmount -> true
         else -> value.isBlank() || parsedValue?.isFinite() == true
-    }
+    } && amountError == null
     PaneAwareAlertDialog(
         testTag = "habit-history-dialog",
         leadingActions = true,
@@ -3044,7 +3069,7 @@ internal fun HabitHistoryLogDialog(
                         ),
                         modifier = Modifier.testTag("habit-history-value"),
                         enabled = !saving,
-                        validationError = "Enter a valid, finite number".takeIf { validationRequested && !amountIsValid },
+                        validationError = (amountError ?: "Enter a valid, finite number").takeIf { validationRequested && !amountIsValid },
                     )
                     if (!requiresAmount) Text(
                         "A note is enough; add a number only when it is useful.",
@@ -3164,13 +3189,7 @@ internal fun HabitActionsDialog(
     var section by rememberSaveable(item.habit.id, openHistory) {
         mutableStateOf(if (item.habit.archived || openHistory) HabitDetailSection.History else HabitDetailSection.Today)
     }
-    val skipAvailable = item.dayState == HabitDayState.Pending &&
-        item.checklistItems.none { it.second } &&
-        item.habit.sourceMeasurementId == null &&
-        item.habit.scheduleType !in setOf(
-            HabitScheduleType.FlexibleTimesPerWeek,
-            HabitScheduleType.FlexibleTimesPerMonth,
-        )
+    val skipAvailable = item.canSkipToday(logs)
     val newEntryUnavailable = item.habit.newEntryUnavailableReason()
     val primaryAction = when {
         item.habit.timerStartedAtMillis != null -> EntityInspectorPrimaryAction(
@@ -3185,7 +3204,8 @@ internal fun HabitActionsDialog(
         item.dayState == HabitDayState.Skipped -> EntityInspectorPrimaryAction("undo-skip", "Undo Today's Skip", onUndoSkip)
         item.dayState == HabitDayState.NotScheduled -> EntityInspectorPrimaryAction(
             "check-in-outside-schedule",
-            item.inspectorOutsideScheduleActionLabel(),
+            if (item.habit.trackingMode == HabitTrackingMode.Checklist && item.completionRecordedToday) "Undo Today's Completion"
+            else item.inspectorOutsideScheduleActionLabel(),
             onQuick,
         )
         else -> EntityInspectorPrimaryAction("check-in", item.inspectorPrimaryActionLabel(customUnits), onQuick)
@@ -3305,6 +3325,11 @@ internal fun HabitActionsDialog(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
+                        }
+                        if (!skipAvailable && item.dayState == HabitDayState.Pending && logs.any { it.localDate == item.date }) item {
+                            Text("Today's entry is already recorded. Edit or remove it in History before skipping.",
+                                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.testTag("habit-skip-unavailable-reason"))
                         }
                         if (skipAvailable) item {
                             WhipActionList {
@@ -3505,6 +3530,12 @@ private fun HabitTodayMetric(
     }
 }
 
+internal fun HabitDayProgress.canSkipToday(logs: List<HabitLog>): Boolean =
+    dayState == HabitDayState.Pending && !habit.archived && !habit.paused &&
+        logs.none { it.habitId == habit.id && it.localDate == date } &&
+        checklistItems.none { it.second } && habit.sourceMeasurementId == null &&
+        habit.scheduleType !in setOf(HabitScheduleType.FlexibleTimesPerWeek, HabitScheduleType.FlexibleTimesPerMonth)
+
 internal fun HabitDayProgress.inspectorTodaySummary(
     timerElapsedSeconds: Double,
     activeZoneId: ZoneId,
@@ -3523,7 +3554,9 @@ internal fun HabitDayProgress.inspectorTodaySummary(
         "Skipped today. Your streak remains protected."
     }
     dayState == HabitDayState.Paused -> "Paused today. No check-in is expected."
-    dayState == HabitDayState.NotScheduled -> "Not scheduled today."
+    dayState == HabitDayState.NotScheduled -> if (habit.trackingMode == HabitTrackingMode.Checklist && completionRecordedToday) {
+        "Not scheduled today. Completion recorded outside schedule; checklist items are unchanged."
+    } else "Not scheduled today."
     habit.trackingMode == HabitTrackingMode.CheckOff -> if (dayState == HabitDayState.Completed) {
         "Completed today."
     } else {

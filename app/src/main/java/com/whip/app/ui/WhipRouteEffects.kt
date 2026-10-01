@@ -27,7 +27,9 @@ internal fun CompletedTaskRouteEffect(
             !loading &&
             (completedItem == null || completedItem.completedAtMillis == null)
         ) {
-            onUnavailable()
+            // A present Task with no completion is a normal reopened route.
+            // Missing records still warrant the unavailable explanation.
+            if (completedItem == null) onUnavailable()
             onClear()
         }
     }

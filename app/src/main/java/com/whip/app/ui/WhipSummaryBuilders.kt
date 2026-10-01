@@ -38,7 +38,7 @@ internal fun WhipSummaryCard(
         if (summary.metrics.isNotEmpty()) {
             BoxWithConstraints(Modifier.fillMaxWidth()) {
                 val columns = ((maxWidth + WhipSpacing.standard) /
-                    (144.dp * LocalDensity.current.fontScale + WhipSpacing.standard)).toInt()
+                    (128.dp * LocalDensity.current.fontScale + WhipSpacing.standard)).toInt()
                     .coerceIn(1, minOf(2, summary.metrics.size))
                 Column(verticalArrangement = Arrangement.spacedBy(WhipSpacing.standard)) {
                     summary.metrics.chunked(columns).forEach { row ->

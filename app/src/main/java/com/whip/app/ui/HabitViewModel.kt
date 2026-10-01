@@ -100,6 +100,7 @@ internal enum class HabitMutationKind {
     PauseCreated,
     PauseUpdated,
     PauseDeleted,
+    SkipCreated,
     SkipDeleted,
     ValueUnchanged,
     ChecklistChanged,
@@ -769,13 +770,19 @@ class HabitViewModel(
             followUp = { committed -> committed.withReminderRefresh(reminders, committed.habitId) },
         )
     }
-    fun skipDay(habitId: Long, date: LocalDate) = runOperation(
-        "Skipping today…",
-        "Today skipped · streak protected",
-        successFeedbackPresentation = OperationFeedbackPresentation.Inline,
+    fun skipDay(habitId: Long, date: LocalDate, requestId: String? = null): Boolean = runAuthoredMutation(
+        running = "Skipping today…",
+        success = "Today skipped · streak protected",
+        requestId = requestId,
+        savedDescription = "skipped day",
     ) {
-        repository.skipDay(habitId, date)
-        reminders.syncHabit(habitId)
+        completeCommittedHabitMutation(
+            commit = {
+                repository.skipDay(habitId, date)
+                HabitMutationReceipt(HabitMutationKind.SkipCreated, habitId, effectiveDate = date)
+            },
+            followUp = { committed -> committed.withReminderRefresh(reminders, habitId) },
+        )
     }
     fun undoSkip(
         habitId: Long,
@@ -1384,6 +1391,10 @@ private fun buildProgress(
             else -> null
         },
         checklistItems = items,
+        completionRecordedToday = habitLogs.any {
+            it.localDate == date && it.status in setOf(HabitLogStatus.Recorded, HabitLogStatus.Success) &&
+                (it.value ?: 0.0) > 0.0
+        },
         streak = streak,
         completionRate = completionRate,
         flexibleScheduleProgress = flexibleProgress?.completed,

@@ -10,6 +10,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.whip.app.domain.*
@@ -77,6 +79,7 @@ internal fun TrackEntryPreviewDialog(draft: TrackDraft, units: List<UnitDefiniti
     var result by remember(projection) { mutableStateOf<String?>(null) }
     var validResult by remember(projection) { mutableStateOf(false) }
     val listState = rememberLazyListState()
+    var previewViewport by remember { mutableStateOf(IntSize.Zero) }
     LaunchedEffect(result) { if (result != null) listState.animateScrollToItem(1) }
     val today = LocalWhipToday.current
     PaneAwareAlertDialog(
@@ -84,7 +87,7 @@ internal fun TrackEntryPreviewDialog(draft: TrackDraft, units: List<UnitDefiniti
         onDismissRequest = onDismiss,
         title = { Text("Entry Preview") },
         text = {
-            LazyColumn(state = listState, verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.testTag("track-preview-fields")) {
+            LazyColumn(state = listState, verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.testTag("track-preview-fields").onSizeChanged { previewViewport = it }) {
                 item {
                     Text("Try the form before saving your Track. Sample values are discarded when you close this preview.",
                         style = MaterialTheme.typography.bodyMedium)
@@ -108,6 +111,7 @@ internal fun TrackEntryPreviewDialog(draft: TrackDraft, units: List<UnitDefiniti
                                 result = null
                             },
                             onValue = { value -> values = values + (field.uuid to value); result = null },
+                            viewportSize = previewViewport,
                         )
                     }
                 }

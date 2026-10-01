@@ -88,7 +88,7 @@ internal fun TodayHeader(
     habitAvailability: HomeSummaryAvailability = HomeSummaryAvailability.Ready,
 ) {
     Column(
-        modifier = Modifier.fillMaxWidth().padding(vertical = WhipSpacing.compact),
+        modifier = Modifier.fillMaxWidth().padding(vertical = WhipSpacing.micro),
         verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
     ) {
         if (showFullHeader) {
@@ -118,7 +118,17 @@ internal fun TodayHeader(
                 }
             }
             if (showFullHeader) WhipPageHeader(title = "Home", actions = actions)
-            else Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, content = actions)
+            else Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start, content = actions)
+            if (showTasks && onPlanDay == null) Text(
+                when (taskAvailability) {
+                    HomeSummaryAvailability.Ready -> "No unscheduled Tasks to plan"
+                    HomeSummaryAvailability.Loading -> "Tasks are loading"
+                    HomeSummaryAvailability.Unavailable -> "Tasks are unavailable; open Tasks to retry"
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.testTag("home-planning-availability"),
+            )
         }
         if (showTasks || showHabits) {
             val taskCard: @Composable (Modifier) -> Unit = { modifier ->
@@ -228,6 +238,7 @@ private fun HomeDailySummaryCard(
                     progress = { it.coerceIn(0f, 1f) },
                     modifier = Modifier.fillMaxWidth().height(4.dp).clearAndSetSemantics {},
                     trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    drawStopIndicator = {},
                 )
             }
         }

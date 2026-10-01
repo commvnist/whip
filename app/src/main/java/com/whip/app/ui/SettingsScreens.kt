@@ -66,6 +66,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.key.Key
@@ -84,6 +86,8 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -192,6 +196,7 @@ internal fun SettingsContent(
     searchRequested: Boolean = false,
     onSearchRequestConsumed: () -> Unit = {},
     onSearchAvailabilityChange: (Boolean) -> Unit = {},
+    onDismiss: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val weekdayFormatter = rememberWhipWeekdayFormatter()
@@ -447,6 +452,7 @@ internal fun SettingsContent(
                         supportingText = "Preferences, defaults, and app data.",
                     ) {
                         if (!externalSearchAction) WhipPageIconAction(Icons.Outlined.Search, "Search Settings", onClick = { settingsSearchOpen = true }, enabled = canSearchSettings)
+                        onDismiss?.let { close -> WhipTrailingCloseAction("Close Settings", close) }
                     }
                 }
                 LazyColumn(
@@ -483,34 +489,23 @@ internal fun SettingsContent(
             modifier = Modifier.fillMaxWidth().padding(whipPagePadding(bottom = 0.dp)),
             verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                if (!externalSectionNavigation && !wideSettingsNavigation) {
-                    WhipBackAction(
+            WhipEditorHeader(
+                navigationAction = {
+                    if (!externalSectionNavigation && !wideSettingsNavigation) WhipBackAction(
                         label = "Back to Settings",
-                        onClick = {
-                            if (activeTypedSettingTag == null) compactSectionOpen = false
-                        },
+                        onClick = { if (activeTypedSettingTag == null) compactSectionOpen = false },
                     )
-                }
-                WhipPageHeader(
-                    title = if (wideSettingsNavigation) "Settings" else section.label,
-                    supportingText = if (wideSettingsNavigation) {
-                        "Local preferences, data controls, defaults, and export."
-                    } else null,
-                    modifier = Modifier.weight(1f),
-                ) {
+                },
+                title = { Text(if (wideSettingsNavigation) "Settings" else section.label, fontWeight = FontWeight.Bold) },
+                actions = {
                     if (!externalSearchAction) WhipPageIconAction(
-                        Icons.Outlined.Search,
-                        "Search Settings",
-                        onClick = { settingsSearchOpen = true },
-                        enabled = canSearchSettings,
+                        Icons.Outlined.Search, "Search Settings",
+                        onClick = { settingsSearchOpen = true }, enabled = canSearchSettings,
                         modifier = Modifier.testTag("settings-search-open"),
                     )
-                }
-            }
+                    onDismiss?.let { close -> WhipTrailingCloseAction("Close Settings", close) }
+                },
+            )
         }
         Row(Modifier.fillMaxWidth().weight(1f)) {
         if (wideSettingsNavigation) {
@@ -762,7 +757,7 @@ internal fun SettingsContent(
         anchored.item { SettingsHeading("Date and Number Defaults") }
         anchored.item(key = "setting-week") {
             SettingsDropdown("First day of week", DayOfWeek.entries, settings.firstDayOfWeek, { weekdayFormatter.label(it, WhipWeekdayLabelWidth.Full) }) { selected -> viewModel.update { it.copy(firstDayOfWeek = selected) } }
-            Text("Sets weekday order in calendars and editors, and groups weekly Review and Gym analytics. Existing Habit schedules keep their own week start.", style = MaterialTheme.typography.bodySmall)
+            Text("Sets weekday order in calendars and editors, and groups weekly Gym analytics. Review uses the last 7 days or month to date. Existing Habit schedules keep their own week start.", style = MaterialTheme.typography.bodySmall)
         }
         anchored.item(key = "setting-timezone") {
             val followDevice = settings.timeZoneId == null
@@ -2364,6 +2359,7 @@ private fun <T> TransactionalSettingsField(
     val actionFocusRequester = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
     val editorScroll = rememberScrollState()
+    var editorViewport by remember { mutableStateOf(IntSize.Zero) }
     val reportEditorState = LocalSettingsTypedEditorState.current
 
     DisposableEffect(testTag) {
@@ -2444,7 +2440,7 @@ private fun <T> TransactionalSettingsField(
 
     val inputProblem = when {
         inputTooLong -> "Use at most $maxInputLength characters."
-        validationRequested && parsed == null -> invalidMessage
+        (validationRequested || dirty) && parsed == null -> invalidMessage
         else -> null
     }
 
@@ -2496,10 +2492,10 @@ private fun <T> TransactionalSettingsField(
             inputBlocked = saving,
             inputBlockedLabel = "Saving $label",
             onDismissRequest = ::requestDismiss,
-            title = { Text("Edit $label") },
+            title = { Text("Edit Setting") },
             text = {
                 Column(
-                    modifier = Modifier.fillMaxWidth().verticalScroll(editorScroll),
+                    modifier = Modifier.fillMaxWidth().onSizeChanged { editorViewport = it }.verticalScroll(editorScroll),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     externalConflict?.let { message ->
@@ -2520,23 +2516,17 @@ private fun <T> TransactionalSettingsField(
                                 .testTag("$testTag-save-error"),
                         )
                     }
+                    Column(
+                        Modifier.fillMaxWidth().then(rememberFocusedInputVisibility(editorViewport, hasFloatingLabel = false)),
+                        verticalArrangement = Arrangement.spacedBy(WhipSpacing.micro),
+                    ) {
+                    Text(label, style = MaterialTheme.typography.labelLarge)
                     OutlinedTextField(
                         value = draftText,
                         onValueChange = { value ->
                             inputTooLong = value.length > maxInputLength
                             draftText = value.take(maxInputLength)
                             validationRequested = false
-                        },
-                        label = { Text(label) },
-                        supportingText = {
-                            Text(
-                                inputProblem ?: supportingText ?: "Enter the value, then choose Save.",
-                                modifier = if (inputProblem == null) {
-                                    Modifier
-                                } else {
-                                    Modifier.semantics { liveRegion = LiveRegionMode.Polite }
-                                },
-                            )
                         },
                         isError = inputProblem != null,
                         enabled = !saving,
@@ -2566,7 +2556,15 @@ private fun <T> TransactionalSettingsField(
                                     else -> "Matches saved value"
                                 }
                             }
+                            .semantics { contentDescription = label; inputProblem?.let { error(it) } }
                             .testTag("$testTag-input"),
+                    )
+                    }
+                    Text(
+                        inputProblem ?: supportingText ?: "Enter the value, then choose Save.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (inputProblem != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = if (inputProblem == null) Modifier else Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                     )
                     if (saving) {
                         Text(

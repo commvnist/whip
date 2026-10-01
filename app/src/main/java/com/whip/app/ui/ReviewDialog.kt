@@ -182,6 +182,7 @@ fun ReviewDialog(
             trackEvidence = trackEvidence,
             allSignals = allSignals,
             includedSections = availability.readySections,
+            selectedSections = sections,
             availability = availability,
             retryActions = retryActions,
             correlations = correlations,
@@ -334,7 +335,7 @@ private fun ReviewCompactDashboard(
                 end = WhipSpacing.screenCompact,
                 bottom = 96.dp,
             ),
-            verticalArrangement = Arrangement.spacedBy(WhipSpacing.major),
+            verticalArrangement = Arrangement.spacedBy(WhipSpacing.standard),
         ) {
             item {
                 DisclosureRow(
@@ -375,7 +376,7 @@ private fun ReviewDestinationHeader(
                 fontWeight = FontWeight.Bold,
             )
             Text(
-                if (sidebar) "Progress dashboard" else "See outcomes, patterns, and progress in one place.",
+                if (sidebar) "Progress dashboard" else "Recorded outcomes and trends",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -454,6 +455,7 @@ private fun ReviewOverview(
     trackEvidence: TrackReviewEvidence?,
     allSignals: List<Pair<ReviewSection, ReviewSignal>>,
     includedSections: Set<ReviewSection>,
+    selectedSections: Set<ReviewSection>,
     availability: ReviewAvailability,
     retryActions: DomainRetryActions,
     correlations: List<ReviewCorrelation>,
@@ -466,6 +468,7 @@ private fun ReviewOverview(
     correlationsExpanded: Boolean,
     onCorrelationsExpandedChange: (Boolean) -> Unit,
 ) {
+    var dailyTrendsExpanded by rememberSaveable { mutableStateOf(false) }
     Column(
         modifier = Modifier.fillMaxWidth().testTag("review-overview"),
         verticalArrangement = Arrangement.spacedBy(WhipSpacing.standard),
@@ -481,38 +484,18 @@ private fun ReviewOverview(
             )
         }
         ReviewAvailabilityNotice(availability, retryActions)
-        if (!hasReviewData && availability.outcomesComplete) {
-            WhipEmptyState(
-                title = "No Outcomes in This View",
-                supportingText = "Try another period or include more sections in Review Options. " +
-                    "Complete a Task, reach a Habit target, record Goal progress, or finish a Workout to add an outcome.",
-            )
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
-                verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
-            ) {
-                WhipTextButton(onClick = { onDrillDown(ReviewSection.Tasks) }) { Text("Open Tasks") }
-                WhipTextButton(onClick = { onDrillDown(ReviewSection.Habits) }) { Text("Open Habits") }
-                WhipTextButton(onClick = { onDrillDown(ReviewSection.Goals) }) { Text("Open Goals") }
-                if (trackEvidence == null) {
-                    WhipTextButton(onClick = onOpenTracks) { Text("Open Tracks") }
-                }
-                WhipTextButton(onClick = { onDrillDown(ReviewSection.Gym) }) { Text("Open Gym") }
-            }
-        }
         if (includedSections.isEmpty()) {
             trackEvidence?.let { evidence ->
                 TrackEvidenceCard(evidence = evidence, rangeLabel = rangeLabel, onOpenTracks = onOpenTracks)
             }
             return@Column
         }
-        if (hasReviewData || !availability.outcomesComplete) BoxWithConstraints(Modifier.fillMaxWidth().testTag("review-signal-grid")) {
+        BoxWithConstraints(Modifier.fillMaxWidth().testTag("review-signal-grid")) {
             val visibleSignals = allSignals.filter { it.first in includedSections }
             val readableWidth = maxWidth / LocalDensity.current.fontScale.coerceAtLeast(1f)
             val columns = when {
-                readableWidth >= 1_240.dp && visibleSignals.size >= 4 -> 4
-                readableWidth >= 620.dp && visibleSignals.size >= 2 -> 2
+                readableWidth >= 1_000.dp && visibleSignals.size >= 4 -> 4
+                readableWidth >= 280.dp && visibleSignals.size >= 2 -> 2
                 else -> 1
             }
             Column(
@@ -528,11 +511,48 @@ private fun ReviewOverview(
                                 locale = locale,
                                 onOpen = onOpenDetails,
                                 modifier = Modifier.weight(1f),
+                                compact = true,
                             )
                         }
                         repeat(columns - row.size) { Spacer(Modifier.weight(1f)) }
                     }
                 }
+            }
+        }
+        if (!hasReviewData && availability.outcomesComplete) {
+            WhipEmptyState(
+                title = "No Outcomes in This View",
+                supportingText = reviewEmptyOutcomeAdvice(selectedSections),
+            )
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
+                verticalArrangement = Arrangement.spacedBy(WhipSpacing.sibling),
+            ) {
+                WhipTextButton(onClick = { onDrillDown(ReviewSection.Tasks) }) { Text("Open Tasks") }
+                WhipTextButton(onClick = { onDrillDown(ReviewSection.Habits) }) { Text("Open Habits") }
+                WhipTextButton(onClick = { onDrillDown(ReviewSection.Goals) }) { Text("Open Goals") }
+                if (trackEvidence == null) {
+                    WhipTextButton(onClick = onOpenTracks) { Text("Open Tracks") }
+                }
+                WhipTextButton(onClick = { onDrillDown(ReviewSection.Gym) }) { Text("Open Gym") }
+            }
+        }
+        if (hasReviewData || !availability.outcomesComplete) {
+            if (ReviewSection.Goals in includedSections) Text(
+                "Goal progress is a normalized score; partial progress counts proportionally.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            DisclosureRow(
+                title = "Daily Trends",
+                supportingText = "$rangeLabel · Daily values and scales",
+                expanded = dailyTrendsExpanded,
+                onClick = { dailyTrendsExpanded = !dailyTrendsExpanded },
+                modifier = Modifier.testTag("review-daily-trends-toggle"),
+            )
+            if (dailyTrendsExpanded) allSignals.filter { it.first in includedSections }.forEach { (section, signal) ->
+                ReviewSignalCard(section, signal, locale, onOpenDetails, Modifier.fillMaxWidth())
             }
         }
         trackEvidence?.let { evidence ->
@@ -611,6 +631,7 @@ private fun ReviewSignalCard(
     locale: java.util.Locale,
     onOpen: (ReviewSection) -> Unit,
     modifier: Modifier = Modifier,
+    compact: Boolean = false,
 ) {
     val total = signal.values.sum()
     val totalText = formatReviewNumber(total, locale)
@@ -620,15 +641,16 @@ private fun ReviewSignalCard(
     Card(
         modifier = modifier
             .testTag("review-signal-${section.name}")
-            .heightIn(min = 148.dp)
+            .heightIn(min = if (compact) 100.dp else 148.dp)
             .clickable(onClickLabel = "Open ${signal.name} details") { onOpen(section) },
     ) {
-        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(Modifier.fillMaxWidth().padding(if (compact) 12.dp else 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(signal.name, Modifier.weight(1f), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(signal.name, Modifier.weight(1f), style = if (compact) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Icon(Icons.AutoMirrored.Outlined.NavigateNext, contentDescription = "Open ${signal.name} details")
             }
-            Text(totalText, modifier = Modifier.testTag("review-total-${section.name}"), style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
+            Text(totalText, modifier = Modifier.testTag("review-total-${section.name}"), style = if (compact) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
+            if (!compact) {
             if (signal.name == "Goal progress") {
                 Text(
                     "Normalized progress score; partial progress counts proportionally.",
@@ -651,8 +673,16 @@ private fun ReviewSignalCard(
                     modifier = Modifier.testTag("review-scale-${section.name}"),
                 )
             }
+            }
         }
     }
+}
+
+internal fun reviewEmptyOutcomeAdvice(sections: Set<ReviewSection>): String {
+    val choices = if (sections.size < ReviewSection.entries.size) {
+        "Try another period or include more sections in Review Options. "
+    } else "Try another period. "
+    return choices + "Complete a Task, reach a Habit target, record Goal progress, or finish a Workout to add an outcome."
 }
 
 @Composable

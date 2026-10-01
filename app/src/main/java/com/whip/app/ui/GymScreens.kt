@@ -6285,8 +6285,6 @@ internal fun MachineEditorDialog(
                     )
                 }
                 item { OutlinedTextField(name, { name = it.replace('\n', ' ').replace('\r', ' ').take(100) }, label = { Text("Machine name *") }, supportingText = { Text("${name.length}/100 · Example: Home multi-gym") }, singleLine = true, modifier = Modifier.fillMaxWidth().testTag("machine-editor-name")) }
-                item { OutlinedTextField(location, { location = it }, label = { Text("Location") }, supportingText = { Text("Example: Home or Downtown Gym") }, modifier = Modifier.fillMaxWidth()) }
-                item { OutlinedTextField(details, { details = it }, label = { Text("Model / setup notes") }, supportingText = { Text("Seat, attachment, pulley, or other setup that changes resistance") }, modifier = Modifier.fillMaxWidth()) }
                 if (definitionLocked) item {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         AvailabilityNotice(
@@ -6304,24 +6302,8 @@ internal fun MachineEditorDialog(
                     }
                 }
                 item {
-                    EditorSectionHeader("Resistance", "Choose how this machine labels resistance.")
-                    FlowRow(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        MachineLoadType.entries.forEach { type ->
-                            WhipFilterChip(selected = loadType == type, enabled = !definitionLocked, onClick = { changeLoadType(type) }, label = { Text(type.label.uiTitleCase()) })
-                        }
-                    }
-                    DependentSettingsNotice(
-                        message = if (loadType == MachineLoadType.Mass) {
-                            "Mass units, entry meaning, and optional base resistance appear next."
-                        } else {
-                            "The setting label and optional mass mapping appear next."
-                        },
-                        testTag = "machine-load-type-consequence",
-                    )
+                    SelectionField("Resistance type", MachineLoadType.entries, loadType, { it.label.uiTitleCase() },
+                        { changeLoadType(it) }, enabled = !definitionLocked)
                 }
                 if (loadType == MachineLoadType.Mass) {
                     item {
@@ -6407,6 +6389,8 @@ internal fun MachineEditorDialog(
                         )
                     }
                 }
+                item { OutlinedTextField(location, { location = it }, label = { Text("Location") }, supportingText = { Text("Example: Home or Downtown Gym") }, modifier = Modifier.fillMaxWidth()) }
+                item { OutlinedTextField(details, { details = it }, label = { Text("Model / setup notes") }, supportingText = { Text("Seat, attachment, pulley, or other setup that changes resistance") }, modifier = Modifier.fillMaxWidth()) }
                 if (creatingVersion) item {
                     Text("The old configuration remains immutable in history. This becomes version ${(machine?.configurationVersion ?: 0) + 1} of the same physical machine family.", style = MaterialTheme.typography.bodySmall)
                 }
@@ -8385,6 +8369,218 @@ internal fun GymProgressContent(
             }
         }
         item {
+            ExerciseSelectionField(
+                label = "Exercise",
+                exercises = historyExercises,
+                selectedExerciseId = selectedExerciseId,
+                onSelect = { id ->
+                    val selected = historyExercises.firstOrNull { it.id == id } ?: return@ExerciseSelectionField
+                    selectedExerciseId = selected.id
+                    val measurements = selected.trackingType.supportedGraphMetrics()
+                    measurement = runCatching { GymGraphMetric.valueOf(selected.defaultGraphMetric) }
+                        .getOrNull()
+                        .takeIf(measurements::contains)
+                        ?: measurements.first()
+                },
+                modifier = Modifier.fillMaxWidth().testTag("gym-progress-exercise-selector"),
+            )
+        }
+        if (machineScoped) item {
+            Text("Machine / Equipment Scope", style = MaterialTheme.typography.labelMedium)
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (hasUnassignedHistory) {
+                    WhipFilterChip(selected = selectedMachineScope == null, onClick = { selectedMachineScope = null }, label = { Text("No Machine / Free Weights") })
+                }
+                usedMachineScopes.forEach { machineScope ->
+                    val profile = (state.machines + state.archivedMachines).firstOrNull { it.uuid == machineScope }
+                    val snapshot = exercisePlacements.firstOrNull { it.equipmentScopeKey == machineScope }?.machineNameSnapshot
+                    WhipFilterChip(
+                        selected = selectedMachineScope == machineScope,
+                        onClick = { selectedMachineScope = machineScope },
+                        label = { Text(profile?.displayName ?: snapshot ?: "Deleted machine") },
+                    )
+                }
+            }
+            if (selectedMachine?.compatibleForComparison == true) {
+                ToggleRow("Include explicitly compatible configuration versions", includeCompatibleVersions) {
+                    includeCompatibleVersions = it
+                }
+            }
+            Text(
+                if (includeCompatibleVersions && compatibleMachineScopes.size > 1) {
+                    "Combining ${compatibleMachineScopes.size} versions in the same user-approved configuration family. Every source retains its version snapshot."
+                } else "Whip does not merge strength, volume, previous-set, or PR data across machines or versions unless you opt in.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+        item {
+            GymEnumDropdown("Measurement", availableMeasurements, measurement.takeIf { it in availableMeasurements } ?: availableMeasurements.first(), { it.label }) { measurement = it }
+            if (needsRepTarget) {
+                NumberField(selectedRepetitions, { selectedRepetitions = it }, "Repetitions", integer = true,
+                    isError = !repTargetValid, supportingText = "Enter at least 1 repetition".takeUnless { repTargetValid },
+                    modifier = Modifier.testTag("gym-progress-rep-target"))
+            }
+            if (measurement == GymGraphMetric.MaxMachineSetting) {
+                Text(machineLevelDirection.label, style = MaterialTheme.typography.bodySmall)
+            }
+            if (measurement == GymGraphMetric.EstimatedOneRepMax) {
+                val formulas = exercisePlacements.map(WorkoutExercise::oneRepMaxFormulaSnapshot).distinct()
+                    .ifEmpty { listOfNotNull(exercise?.oneRepMaxFormula) }
+                Text(
+                    buildString {
+                        append("Formula: ")
+                        append(formulas.joinToString(" and ") { it.label })
+                        append(" · eligible sets up to ${state.appSettings.oneRepMaxRepCutoff} reps")
+                        if (state.appSettings.adjustE1rmForEffort) append(" · adjusted using recorded RIR or RPE")
+                        if (formulas.size > 1) append(". Each point uses the formula saved with its source workout.")
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.testTag("gym-e1rm-formula"),
+                )
+            }
+        }
+        item {
+            if (exercisePoints.isNotEmpty()) {
+                WhipGroupHeading("${exercise?.name.orEmpty()} · ${measurement.label.uiTitleCase()}" +
+                    if (needsRepTarget) " · $selectedRepetitions reps" else "")
+                Text("${range.uiLabel()} · ${aggregation.uiLabel()}", style = MaterialTheme.typography.bodySmall)
+                val unit = displayUnit
+                val summary = chartDescription(
+                    exercise?.name.orEmpty(),
+                    measurement.label.uiTitleCase(),
+                    exercisePoints,
+                    unit,
+                )
+                val minimum = exercisePoints.minOf { it.value }
+                val maximum = exercisePoints.maxOf { it.value }
+                val change = exercisePoints.last().value - exercisePoints.first().value
+                Text(
+                    if (exercisePoints.size == 1) "1 recorded point · ${formatNumber(exercisePoints.single().value, state.appSettings.numberPrecision)} $unit" else
+                    "${exercisePoints.size} points · range ${formatNumber(minimum, state.appSettings.numberPrecision)}–" +
+                        "${formatNumber(maximum, state.appSettings.numberPrecision)} $unit · " +
+                        "change ${if (change > 0) "+" else ""}${formatNumber(change, state.appSettings.numberPrecision)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.testTag("gym-chart-summary").semantics { contentDescription = summary },
+                )
+            }
+            if (exercisePoints.isEmpty()) {
+                WhipEmptyState(
+                    title = if (validatedRange.error != null || !repTargetValid) "Check Trend Inputs" else "No Eligible Data",
+                    supportingText = validatedRange.error ?: if (!repTargetValid) "Enter a positive whole number of repetitions." else
+                        "No completed sets match ${exercise?.name.orEmpty()}, ${measurement.label.lowercase()}" +
+                            (if (needsRepTarget) " at $selectedRepetitions reps" else "") + " in this range and equipment scope.",
+                    primaryActionLabel = "Show All Dates".takeIf { repTargetValid && range != GymGraphRange.All },
+                    onPrimaryAction = if (repTargetValid && range != GymGraphRange.All) ({ range = GymGraphRange.All }) else null,
+                )
+            } else {
+                val best = bestGymGraphValue(exercisePoints.map { it.value }, measurement, machineLevelDirection)
+                Text("${formatNumber(best, state.appSettings.numberPrecision)} $displayUnit", style = MaterialTheme.typography.headlineMedium)
+                Text("Best in this range", style = MaterialTheme.typography.bodySmall)
+                if (chartSeries.sumOf { it.points.size } == 1) {
+                    val point = exercisePoints.single()
+                    NavigationRow(
+                        title = if (point.sourceSessionId != null) "View Source Workout" else "View Source Details",
+                        supportingText = "${point.date} · ${quantityLabel(point.sourceCount, "source")}",
+                        onClick = {
+                            selectedChartSeriesId = selectedExerciseId
+                            selectedChartSessionId = point.sourceSessionId
+                            selectedChartPointDate = point.date
+                        }, modifier = Modifier.testTag("gym-chart-single-source"),
+                    )
+                } else SharedGymLineChart(
+                    series = chartSeries.map { it.copy(points = downsampleEvenly(it.points, 200)) },
+                    unit = displayUnit,
+                    precision = state.appSettings.numberPrecision,
+                    description = chartSeries.joinToString(" ") { series ->
+                        chartDescription(series.name, measurement.label, series.points, displayUnit)
+                    },
+                    onPointSelected = { seriesId, point ->
+                        selectedChartSeriesId = seriesId
+                        selectedChartSessionId = point.sourceSessionId
+                        selectedChartPointDate = point.date
+                    },
+                )
+                DisclosureRow("Data Points", supportingText = "${quantityLabel(exercisePoints.size, "point")} · ${exercise?.name.orEmpty()}",
+                    expanded = chartDataExpanded, onClick = { chartDataExpanded = !chartDataExpanded })
+                if (chartDataExpanded) {
+                if (exercisePoints.size > 8) {
+                    WhipTextButton(onClick = { showAllChartData = !showAllChartData }) {
+                        Text(if (showAllChartData) "Show Latest 8" else "Show All ${exercisePoints.size}")
+                    }
+                }
+                (if (showAllChartData) exercisePoints else exercisePoints.takeLast(8)).forEach { point ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 48.dp)
+                            .clickable(onClickLabel = "Open details for ${point.date}") {
+                            selectedChartSeriesId = selectedExerciseId
+                            selectedChartSessionId = point.sourceSessionId
+                            selectedChartPointDate = point.date
+                        },
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        EntityInspectorFact(
+                            point.date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)),
+                            "${formatNumber(point.value, state.appSettings.numberPrecision)} $displayUnit",
+                        )
+                    }
+                }
+                }
+            }
+        }
+
+        item {
+            DisclosureRow(
+                title = "Graph Options",
+                supportingText = "${range.uiLabel()} · ${aggregation.uiLabel()}",
+                expanded = graphOptionsExpanded,
+                onClick = { graphOptionsExpanded = !graphOptionsExpanded },
+            )
+        }
+        if (graphOptionsExpanded) item {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                ResponsiveFieldPair(
+                    first = { field -> Column(field) {
+                        GymEnumDropdown("Range", GymGraphRange.entries, range, GymGraphRange::uiLabel) { selected ->
+                            range = selected
+                            if (selected == GymGraphRange.Custom) {
+                                if (customFrom.isBlank()) customFrom = through.minusMonths(3).toString()
+                                if (customTo.isBlank()) customTo = through.toString()
+                            }
+                        }
+                    } },
+                    second = { field -> Column(field) { GymEnumDropdown("Group points", GymGraphAggregation.entries, aggregation, GymGraphAggregation::uiLabel) { aggregation = it } } },
+                )
+                if (range == GymGraphRange.Custom) ResponsiveFieldPair(
+                    first = { field -> OutlinedTextField(customFrom, { customFrom = it }, label = { Text("From YYYY-MM-DD") }, isError = validatedRange.error != null, modifier = field) },
+                    second = { field -> OutlinedTextField(customTo, { customTo = it }, label = { Text("To YYYY-MM-DD") }, isError = validatedRange.error != null, modifier = field) },
+                )
+                if (range == GymGraphRange.Custom && validatedRange.error != null) {
+                    Text(requireNotNull(validatedRange.error), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                }
+                if (historyExercises.size > 1 && !machineScoped) {
+                    ExerciseComparisonField(
+                        exercises = historyExercises.filter { measurement in it.trackingType.supportedGraphMetrics() },
+                        excludedExerciseId = selectedExerciseId,
+                        selectedExerciseIds = comparisonIds,
+                        onSelectionChange = { comparisonIds = it },
+                        modifier = Modifier.fillMaxWidth().testTag("gym-progress-comparison-selector"),
+                    )
+                }
+            }
+            if (selectedMachine?.loadType == MachineLoadType.Level) {
+                Text(
+                    selectedMachine.levelDirection.label,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        item {
             DisclosureRow("Weekly Details", supportingText = "Volume, records and category totals",
                 expanded = weeklyDetailsExpanded, onClick = { weeklyDetailsExpanded = !weeklyDetailsExpanded })
             if (weeklyDetailsExpanded) {
@@ -8458,217 +8654,6 @@ internal fun GymProgressContent(
                 onOpenWorkoutHistory = onOpenWorkoutHistory,
             )
         }
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                EditorSectionHeader(
-                    "Explore a Trend",
-                    if (state.history.isEmpty()) "Finish a workout to create your first progress data point."
-                    else "Choose an exercise and measurement. Every point keeps its source workout.",
-                )
-                if (state.history.isEmpty()) {
-                    WhipTextButton(onClick = onOpenWorkout) { Text("Open Workout") }
-                }
-            }
-        }
-        item {
-            ExerciseSelectionField(
-                label = "Exercise",
-                exercises = historyExercises,
-                selectedExerciseId = selectedExerciseId,
-                onSelect = { id ->
-                    val selected = historyExercises.firstOrNull { it.id == id } ?: return@ExerciseSelectionField
-                    selectedExerciseId = selected.id
-                    val measurements = selected.trackingType.supportedGraphMetrics()
-                    measurement = runCatching { GymGraphMetric.valueOf(selected.defaultGraphMetric) }
-                        .getOrNull()
-                        .takeIf(measurements::contains)
-                        ?: measurements.first()
-                },
-                modifier = Modifier.fillMaxWidth().testTag("gym-progress-exercise-selector"),
-            )
-        }
-        if (machineScoped) item {
-            Text("Machine / Equipment Scope", style = MaterialTheme.typography.labelMedium)
-            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                if (hasUnassignedHistory) {
-                    WhipFilterChip(selected = selectedMachineScope == null, onClick = { selectedMachineScope = null }, label = { Text("No Machine / Free Weights") })
-                }
-                usedMachineScopes.forEach { machineScope ->
-                    val profile = (state.machines + state.archivedMachines).firstOrNull { it.uuid == machineScope }
-                    val snapshot = exercisePlacements.firstOrNull { it.equipmentScopeKey == machineScope }?.machineNameSnapshot
-                    WhipFilterChip(
-                        selected = selectedMachineScope == machineScope,
-                        onClick = { selectedMachineScope = machineScope },
-                        label = { Text(profile?.displayName ?: snapshot ?: "Deleted machine") },
-                    )
-                }
-            }
-            if (selectedMachine?.compatibleForComparison == true) {
-                ToggleRow("Include explicitly compatible configuration versions", includeCompatibleVersions) {
-                    includeCompatibleVersions = it
-                }
-            }
-            Text(
-                if (includeCompatibleVersions && compatibleMachineScopes.size > 1) {
-                    "Combining ${compatibleMachineScopes.size} versions in the same user-approved configuration family. Every source retains its version snapshot."
-                } else "Whip does not merge strength, volume, previous-set, or PR data across machines or versions unless you opt in.",
-                style = MaterialTheme.typography.bodySmall,
-            )
-        }
-        item {
-            GymEnumDropdown("Measurement", availableMeasurements, measurement.takeIf { it in availableMeasurements } ?: availableMeasurements.first(), { it.label }) { measurement = it }
-            if (needsRepTarget) {
-                NumberField(selectedRepetitions, { selectedRepetitions = it }, "Repetitions", integer = true,
-                    isError = !repTargetValid, supportingText = "Enter at least 1 repetition".takeUnless { repTargetValid },
-                    modifier = Modifier.testTag("gym-progress-rep-target"))
-            }
-            if (measurement == GymGraphMetric.MaxMachineSetting) {
-                Text(machineLevelDirection.label, style = MaterialTheme.typography.bodySmall)
-            }
-            if (measurement == GymGraphMetric.EstimatedOneRepMax) {
-                val formulas = exercisePlacements.map(WorkoutExercise::oneRepMaxFormulaSnapshot).distinct()
-                    .ifEmpty { listOfNotNull(exercise?.oneRepMaxFormula) }
-                Text(
-                    buildString {
-                        append("Formula: ")
-                        append(formulas.joinToString(" and ") { it.label })
-                        append(" · eligible sets up to ${state.appSettings.oneRepMaxRepCutoff} reps")
-                        if (state.appSettings.adjustE1rmForEffort) append(" · adjusted using recorded RIR or RPE")
-                        if (formulas.size > 1) append(". Each point uses the formula saved with its source workout.")
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.testTag("gym-e1rm-formula"),
-                )
-            }
-        }
-        item {
-            DisclosureRow(
-                title = "Graph Options",
-                supportingText = "${range.uiLabel()} · ${aggregation.uiLabel()}",
-                expanded = graphOptionsExpanded,
-                onClick = { graphOptionsExpanded = !graphOptionsExpanded },
-            )
-        }
-        if (graphOptionsExpanded) item {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                ResponsiveFieldPair(
-                    first = { field -> Column(field) {
-                        GymEnumDropdown("Range", GymGraphRange.entries, range, GymGraphRange::uiLabel) { selected ->
-                            range = selected
-                            if (selected == GymGraphRange.Custom) {
-                                if (customFrom.isBlank()) customFrom = through.minusMonths(3).toString()
-                                if (customTo.isBlank()) customTo = through.toString()
-                            }
-                        }
-                    } },
-                    second = { field -> Column(field) { GymEnumDropdown("Group points", GymGraphAggregation.entries, aggregation, GymGraphAggregation::uiLabel) { aggregation = it } } },
-                )
-                if (range == GymGraphRange.Custom) ResponsiveFieldPair(
-                    first = { field -> OutlinedTextField(customFrom, { customFrom = it }, label = { Text("From YYYY-MM-DD") }, isError = validatedRange.error != null, modifier = field) },
-                    second = { field -> OutlinedTextField(customTo, { customTo = it }, label = { Text("To YYYY-MM-DD") }, isError = validatedRange.error != null, modifier = field) },
-                )
-                if (range == GymGraphRange.Custom && validatedRange.error != null) {
-                    Text(requireNotNull(validatedRange.error), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-                }
-                if (historyExercises.size > 1 && !machineScoped) {
-                    ExerciseComparisonField(
-                        exercises = historyExercises.filter { measurement in it.trackingType.supportedGraphMetrics() },
-                        excludedExerciseId = selectedExerciseId,
-                        selectedExerciseIds = comparisonIds,
-                        onSelectionChange = { comparisonIds = it },
-                        modifier = Modifier.fillMaxWidth().testTag("gym-progress-comparison-selector"),
-                    )
-                }
-            }
-            if (selectedMachine?.loadType == MachineLoadType.Level) {
-                Text(
-                    selectedMachine.levelDirection.label,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-        item {
-            if (exercisePoints.isNotEmpty()) {
-                WhipGroupHeading("${exercise?.name.orEmpty()} · ${measurement.label.uiTitleCase()}" +
-                    if (needsRepTarget) " · $selectedRepetitions reps" else "")
-                val unit = displayUnit
-                val summary = chartDescription(
-                    exercise?.name.orEmpty(),
-                    measurement.label.uiTitleCase(),
-                    exercisePoints,
-                    unit,
-                )
-                val minimum = exercisePoints.minOf { it.value }
-                val maximum = exercisePoints.maxOf { it.value }
-                val change = exercisePoints.last().value - exercisePoints.first().value
-                Text(
-                    if (exercisePoints.size == 1) "1 recorded point · ${formatNumber(exercisePoints.single().value, state.appSettings.numberPrecision)} $unit" else
-                    "${exercisePoints.size} points · range ${formatNumber(minimum, state.appSettings.numberPrecision)}–" +
-                        "${formatNumber(maximum, state.appSettings.numberPrecision)} $unit · " +
-                        "change ${if (change > 0) "+" else ""}${formatNumber(change, state.appSettings.numberPrecision)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.testTag("gym-chart-summary").semantics { contentDescription = summary },
-                )
-            }
-            if (exercisePoints.isEmpty()) {
-                WhipEmptyState(
-                    title = if (validatedRange.error != null || !repTargetValid) "Check Trend Inputs" else "No Eligible Data",
-                    supportingText = validatedRange.error ?: if (!repTargetValid) "Enter a positive whole number of repetitions." else
-                        "No completed sets match ${exercise?.name.orEmpty()}, ${measurement.label.lowercase()}" +
-                            (if (needsRepTarget) " at $selectedRepetitions reps" else "") + " in this range and equipment scope.",
-                    primaryActionLabel = "Show All Dates".takeIf { repTargetValid && range != GymGraphRange.All },
-                    onPrimaryAction = if (repTargetValid && range != GymGraphRange.All) ({ range = GymGraphRange.All }) else null,
-                )
-            } else {
-                val best = bestGymGraphValue(exercisePoints.map { it.value }, measurement, machineLevelDirection)
-                Text("${measurement.label.uiTitleCase()} · ${formatNumber(best, state.appSettings.numberPrecision)} $displayUnit · best")
-                SharedGymLineChart(
-                    series = chartSeries.map { it.copy(points = downsampleEvenly(it.points, 200)) },
-                    unit = displayUnit,
-                    precision = state.appSettings.numberPrecision,
-                    description = chartSeries.joinToString(" ") { series ->
-                        chartDescription(series.name, measurement.label, series.points, displayUnit)
-                    },
-                    onPointSelected = { seriesId, point ->
-                        selectedChartSeriesId = seriesId
-                        selectedChartSessionId = point.sourceSessionId
-                        selectedChartPointDate = point.date
-                    },
-                )
-                DisclosureRow("Data Points", supportingText = "${quantityLabel(exercisePoints.size, "point")} · ${exercise?.name.orEmpty()}",
-                    expanded = chartDataExpanded, onClick = { chartDataExpanded = !chartDataExpanded })
-                if (chartDataExpanded) {
-                if (exercisePoints.size > 8) {
-                    WhipTextButton(onClick = { showAllChartData = !showAllChartData }) {
-                        Text(if (showAllChartData) "Show Latest 8" else "Show All ${exercisePoints.size}")
-                    }
-                }
-                (if (showAllChartData) exercisePoints else exercisePoints.takeLast(8)).forEach { point ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 48.dp)
-                            .clickable(onClickLabel = "Open details for ${point.date}") {
-                            selectedChartSeriesId = selectedExerciseId
-                            selectedChartSessionId = point.sourceSessionId
-                            selectedChartPointDate = point.date
-                        },
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        EntityInspectorFact(
-                            point.date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)),
-                            "${formatNumber(point.value, state.appSettings.numberPrecision)} $displayUnit",
-                        )
-                    }
-                }
-                }
-            }
-        }
-
     }
     selectedChartPoint?.let { point ->
         PaneAwareAlertDialog(

@@ -39,6 +39,7 @@ import com.whip.app.domain.isScheduledOn
 import com.whip.app.domain.supportsQuickAddAmounts
 import com.whip.app.domain.valueForPeriod
 import com.whip.app.domain.validationErrors
+import com.whip.app.domain.logValueError
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -289,11 +290,24 @@ class RoomHabitRepository(
         note: String,
         sourceType: MeasurementSourceType,
         sourceId: String?,
+    ): Long = recordLog(habitId, value, status, date, timestamp, note, sourceType, sourceId)
+
+    private suspend fun recordLog(
+        habitId: Long,
+        value: Double?,
+        status: HabitLogStatus = HabitLogStatus.Recorded,
+        date: LocalDate? = null,
+        timestamp: Instant? = null,
+        note: String = "",
+        sourceType: MeasurementSourceType = MeasurementSourceType.Manual,
+        sourceId: String? = null,
+        allowDurationAdjustment: Boolean = false,
     ): Long = database.withTransaction {
         if (sourceType != MeasurementSourceType.Manual && !sourceId.isNullOrBlank()) {
             dao.getLogBySource(sourceType.name, sourceId)?.let { return@withTransaction it.id }
         }
         val habit = dao.getHabit(habitId)?.toDomain() ?: error("Habit no longer exists")
+        habit.logValueError(value, allowDurationAdjustment)?.let { throw IllegalArgumentException(it) }
         val instant = timestamp ?: clock.now()
         val zone = clock.zoneId()
         val localDate = date ?: timestamp?.atZone(zone)?.toLocalDate() ?: clock.today(zone)
@@ -355,10 +369,10 @@ class RoomHabitRepository(
         value: Double,
         note: String,
     ): Long? = database.withTransaction {
-        require(value.isFinite()) { "Habit value must be finite" }
         val habit = dao.getHabit(habitId)?.toDomain() ?: error("Habit no longer exists")
         requireHabitCanAcceptManualProgress(habit)
         require(!date.isAfter(clock.today(clock.zoneId()))) { "Habit check-ins cannot be recorded in the future" }
+        habit.logValueError(value)?.let { throw IllegalArgumentException(it) }
         val current = habit.valueForPeriod(
             logs = dao.getLogsForHabit(habitId).map(HabitLogEntity::toDomain),
             date = date,
@@ -370,7 +384,7 @@ class RoomHabitRepository(
         val tolerance = max(1e-12, 4.0 * max(Math.ulp(value), Math.ulp(current)))
         val delta = rawDelta.takeUnless { abs(it) <= tolerance } ?: 0.0
         if (delta == 0.0 && note.isBlank()) return@withTransaction null
-        log(habitId, delta, date = date, note = note)
+        recordLog(habitId, delta, date = date, note = note, allowDurationAdjustment = true)
     }
 
     override suspend fun undoLog(logId: Long, expectedHabitId: Long?): Long = database.withTransaction {
@@ -398,7 +412,9 @@ class RoomHabitRepository(
         }
         val habit = dao.getHabit(existing.habitId)?.toDomain() ?: error("Habit no longer exists")
         require(!date.isAfter(clock.today(clock.zoneId()))) { "Habit check-ins cannot be recorded in the future" }
-        // History edits retain authored nullable facts, even after a compatible mode change.
+        habit.logValueError(value, allowDurationAdjustment = (existing.value ?: 0.0) < 0.0)
+            ?.let { throw IllegalArgumentException(it) }
+        // History edits retain authored nullable facts and existing signed corrections.
         val effectiveValue = value
         val entryStatus = when (status) {
             HabitLogStatus.Failed -> MeasurementEntryStatus.Failed
